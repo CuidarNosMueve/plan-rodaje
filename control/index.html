@@ -1244,7 +1244,8 @@ function htmlControl(){
   let nTot=0; const nV={}, nQ={}, nUlt={ts:0};
   data.momentos.forEach(m=>planosDe(m).forEach(i=>{ const k=marcaDe(i.k); if(k&&k.h&&!i.fijo){ nTot++; nV[m.video]=(nV[m.video]||0)+1; const q=k.q||"Sin nombre"; nQ[q]=(nQ[q]||0)+1; nUlt.ts=Math.max(nUlt.ts,k.ts); } }));
   const pl=n=>n+" plano"+(n==1?"":"s");
-  h+=`<div class="linea">Planos grabados</div><div class="ccard"><div class="fila"><strong>📹 ${pl(nTot)} nuevo${nTot==1?"":"s"}</strong><span class="n">sin contar los «Ya hay»</span></div><div class="sub">${nTot?"Último "+esc(hace(nUlt.ts))+" · ":""}${Object.keys(nV).length} video${Object.keys(nV).length==1?"":"s"} con planos grabados</div></div>`;
+  h+=`<div class="linea">Planos grabados</div><div class="ccard"><div class="fila"><strong>📹 ${pl(nTot)} nuevo${nTot==1?"":"s"}</strong><span class="n">sin contar los «Ya hay»</span></div><div class="sub">${nTot?"Último "+esc(hace(nUlt.ts))+" · ":""}${Object.keys(nV).length} video${Object.keys(nV).length==1?"":"s"} con planos grabados</div>
+    ${(()=>{ const cv=String((MOMS()[momActual()]||{}).video||""); if(!cv) return ""; const c=conteos(cv), t=conteos(); return `<div class="fila" style="margin-top:8px"><span>Video ${esc(cv)} (el que estás viendo)</span><span class="n">${pl(nV[cv]||0)} nuevo${(nV[cv]||0)==1?"":"s"} · ${c.pH}/${c.pT} planos</span></div><div class="fila"><span>Total del proyecto</span><span class="n">${pl(nTot)} nuevo${nTot==1?"":"s"} · ${t.pH}/${t.pT} planos</span></div>`; })()}</div>`;
   const nBl=vids.filter(bloqueado).length;
   h+=`<div class="linea">Ajustes</div><div class="ccard ajustes">
     <button class="sw" data-aj="edicion" aria-pressed="${edicion()}"><span>Fase de edición<small>Los planos de «Ya hay» salen en negrilla en todos los teléfonos del equipo</small></span><i></i></button>
