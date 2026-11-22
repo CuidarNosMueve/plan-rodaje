@@ -590,7 +590,7 @@ const EQUIPO = ["Valentina Hoyos","Alejandra Rivera","Jorge Girón"];
    cola:    eventos por enviar (se guardan hasta que haya señal) */
 const base = JSON.parse(document.getElementById("datos-base").textContent);
 const DEF = () => ({formato:2,modo:"inicio",serie:null,pos:null,avanceTotal:false,videoActual:null,notas:{},marcas:{},custom:{},nuevos:{},keys:null,sig:null,data:null,filtro:"Todos",ocultar:false,abiertas:{},
-  persona:null,asig:{},aj:{},cola:[],borrados:{},pin:"",vista:"plan",vistoEn:0,adoptado:false,sub:null,avisosNo:false,deHoja:false});
+  persona:null,asig:{},aj:{},cola:[],borrados:{},pin:"",vista:"plan",vistoEn:0,adoptado:false,sub:null,avisosNo:false,avisosOk:false,deHoja:false});
 let st = cargar();
 
 function cargar(){
@@ -886,7 +886,7 @@ async function activarAvisos(){
 function htmlAvisos(donde){
   const e=estadoAvisos();
   if(e=="off") return "";
-  if(e=="activo") return donde=="equipo" ? `<div class="avisos ok"><b>🔔 Avisos activados</b><p>Te llegará una notificación cuando se publique una lista nueva.</p></div>` : "";
+  if(e=="activo") return donde=="equipo" && !st.avisosOk ? `<div class="avisos ok"><b>🔔 Avisos activados</b><p>Te llegará una notificación cuando se publique una lista nueva.</p><button class="modo" data-avisosok="1" style="margin:8px 0 0;padding:8px 18px">OK</button></div>` : "";
   if(donde=="plan" && (st.avisosNo || e=="nosoporta" || e=="denegado")) return "";
   const msg={
     pendiente:"Recibe una notificación en este teléfono cuando se publique una lista nueva.",
@@ -1247,8 +1247,8 @@ function renderModal(){
 let autoIntentado=false;
 function intentoAuto(){ if(autoIntentado || st.avisosNo || estadoAvisos()!="pendiente") return; autoIntentado=true; activarAvisos(); }
 document.addEventListener("click",ev=>{
-  if(!ev.target.closest("[data-avisos],[data-avisosno],#modal")) intentoAuto();
-  const t=ev.target.closest("[data-vgen],[data-nuevou],[data-ctlver],[data-ctlaj],[data-ocres],[data-edv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,#cerrarAviso,#reset,#toggleOcultar"); if(!t) return;
+  if(!ev.target.closest("[data-avisos],[data-avisosno],[data-avisosok],#modal")) intentoAuto();
+  const t=ev.target.closest("[data-vgen],[data-nuevou],[data-ctlver],[data-ctlaj],[data-ocres],[data-edv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,#cerrarAviso,#reset,#toggleOcultar,[data-avisosok]"); if(!t) return;
   if(t.dataset.toggle){ const id=t.dataset.toggle; st.abiertas[id]=!st.abiertas[id]; if(st.abiertas[id]) st.videoActual=id; guardar(); pintarAvance();
     t.parentElement.classList.toggle("open",st.abiertas[id]); t.setAttribute("aria-expanded",st.abiertas[id]); return; }
   if(t.id=='avance'){ st.avanceTotal=!st.avanceTotal; guardar(); render(); return; }
@@ -1262,6 +1262,7 @@ document.addEventListener("click",ev=>{
     if(k=="mom") j=i+dd; else { const vids=[...new Set(ms.map(x=>x.video))], vi=vids.indexOf(ms[i].video)+dd; if(vi<0||vi>=vids.length) return; j=ms.findIndex(x=>x.video==vids[vi]); }
     if(j<0||j>=ms.length) return; desplegado=false; st.pos=ms[j].id; st.videoActual=ms[j].video; guardar(); render(); window.scrollTo(0,0); return; }
   if(t.dataset.avisos!==undefined){ activarAvisos(); return; }
+  if(t.dataset.avisosok!==undefined){ st.avisosOk=true; guardar(); render(); return; }
   if(t.dataset.avisosno!==undefined){ st.avisosNo=true; guardar(); render(); return; }
   if(t.dataset.f){ st.filtro=t.dataset.f; guardar(); render(); return; }
   if(t.dataset.v){ st.vista=t.dataset.v; guardar(); render(); window.scrollTo(0,0); return; }
