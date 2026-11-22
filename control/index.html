@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Control de rodaje</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Control">
+<meta name="theme-color" content="#f6f3ee">
+<script>/* Aplica el estilo guardado antes de pintar (sin parpadeo). */
+try{ const k=JSON.parse(localStorage.getItem("rodaje-skin:"+location.pathname)||"{}"); if(k.s) document.documentElement.dataset.skin=k.s; if(k.a==="0") document.documentElement.classList.add("sin-aj"); }catch(e){}</script>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+:root{
+  --bg:#f6f3ee; --card:#ffffff; --ink:#1b1a17; --muted:#6b665d; --line:#e4ded3;
+  --accent:#d9480f; --accent-soft:#fde8dc; --ok:#2b8a3e; --ok-soft:#e3f4e6; --new:#1864ab; --new-soft:#e1efff;
+  --radius:14px; --on-accent:#fff; --on-ok:#fff;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#141311; --card:#1f1d1a; --ink:#f1ede6; --muted:#a39d92; --line:#34302a;
+    --accent:#ff7a3d; --accent-soft:#3a2217; --ok:#5fcf72; --ok-soft:#1b2e1f; --new:#6cb2ff; --new-soft:#172636; }
+}
+*{box-sizing:border-box}
+html{scrollbar-width:none;-ms-overflow-style:none}
+::-webkit-scrollbar{display:none;width:0;height:0}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+button,input,textarea{font:inherit;color:inherit}
+header{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 92%,transparent);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  padding:calc(env(safe-area-inset-top) + 6px) 16px 17px;border-bottom:0}
+.sbar{position:absolute;left:0;right:0;bottom:0;height:14px;background:var(--line);pointer-events:none;overflow:hidden}
+.sbar i{display:block;height:100%;width:0;background:var(--accent);border-radius:0 14px 14px 0;transition:width .8s cubic-bezier(.2,.9,.25,1.15)}
+.top{display:flex;align-items:center;gap:10px}
+.top h1{min-width:0;overflow:hidden;font-size:19px;margin:0;flex:1;letter-spacing:-.01em;line-height:1.15}
+.top h1 small{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:0}
+.sub2{display:flex;align-items:center;gap:8px;margin-top:2px;min-width:0;white-space:nowrap}
+.sub2 .yo{margin:0;vertical-align:baseline;flex:none}
+.sub2 small{overflow:hidden;text-overflow:ellipsis}
+#ttxt{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.iconbtn{border:1px solid var(--line);background:var(--card);border-radius:999px;height:36px;min-width:36px;padding:0 12px;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:14px;font-weight:600;cursor:pointer}
+.iconbtn:active{transform:scale(.97)}
+#btnSync{position:relative}
+.progress{margin-top:0;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.bar{flex:1;height:18px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--ok);border-radius:99px;transition:width .3s}
+.progress b{color:var(--ink)}
+.avance{border:0;background:none;padding:2px 0 2px 4px;font-size:13px;line-height:1.3;color:var(--muted);font-variant-numeric:tabular-nums;cursor:pointer;white-space:nowrap;text-align:right}
+.avance .vtot{text-transform:none;letter-spacing:0;font-weight:600}
+.avance{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex:1;min-width:0}
+.avance small{display:block;overflow:hidden;text-overflow:ellipsis;text-align:left;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.filters{display:flex;gap:8px;overflow-x:auto;padding:10px 16px 2px;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 13px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.search{margin:8px 16px 0;display:block;width:calc(100% - 32px);border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 12px;font-size:16px}
+main{padding:6px 12px calc(16px + env(safe-area-inset-bottom));max-width:720px;margin:0 auto}
+.banner{margin:0 4px 12px;border-radius:var(--radius);background:var(--new-soft);color:var(--ink);padding:12px 14px;display:flex;gap:10px;align-items:flex-start;border:1px solid color-mix(in srgb,var(--new) 30%,transparent)}
+.banner b{color:var(--new)}
+.banner p{margin:2px 0 0;font-size:14px;color:var(--muted)}
+.banner button{margin-left:auto;flex:none}
+.linea{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:18px 8px 8px}
+.scene{scroll-margin-top:150px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:10px;overflow:hidden}
+.scene.done{border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}
+.shead{width:100%;display:flex;gap:12px;align-items:center;padding:13px 14px;background:none;border:0;text-align:left;cursor:pointer}
+.num{flex:none;min-width:44px;height:44px;border-radius:11px;background:var(--accent-soft);color:var(--accent);font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
+.scene.done .num{background:var(--ok-soft);color:var(--ok)}
+.stitle{flex:1;min-width:0}
+.stitle strong{display:block;font-size:16px;line-height:1.2}
+.stitle span{display:block;font-size:13px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.count{flex:none;font-size:13px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
+.count .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--new);margin-right:5px;vertical-align:1px}
+.sbody{display:none;padding:0 14px 14px;border-top:1px solid var(--line)}
+.scene.open .sbody{display:block}
+.story{font-size:14.5px;color:var(--muted);margin:12px 0 10px;font-style:italic}
+.meta{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13.5px;margin:0 0 10px}
+.meta dt{color:var(--muted)} .meta dd{margin:0}
+.maps{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.maps a{font-size:13px;text-decoration:none;color:var(--accent);background:var(--accent-soft);padding:5px 10px;border-radius:999px;font-weight:600}
+.shots{list-style:none;margin:0;padding:0}
+.shot{display:flex;align-items:flex-start;gap:12px;padding:7px 2px;border-top:1px solid var(--line)}
+.shot:first-child{border-top:0}
+.shot label{flex:1;display:flex;gap:12px;align-items:flex-start;cursor:pointer;min-height:28px}
+.shot input{appearance:none;-webkit-appearance:none;flex:none;width:26px;height:26px;border-radius:8px;border:2px solid var(--muted);margin:0;display:grid;place-content:center;background:var(--card);cursor:pointer}
+.shot input:checked{background:var(--ok);border-color:var(--ok)}
+.shot input:checked::after{content:"";width:12px;height:7px;border:3px solid var(--on-ok);border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.shot .txt{font-size:15.5px;padding-top:2px}
+.shot .col{flex:1;min-width:0}
+.shot.checked .txt{color:var(--muted);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--muted) 60%,transparent)}
+.tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.04em;padding:2px 6px;border-radius:6px;margin-left:6px;vertical-align:2px;text-transform:uppercase}
+.tag.ya{background:var(--ok-soft);color:var(--ok)}
+.shot input:disabled{cursor:default;opacity:.85}
+.tag.new{background:var(--new-soft);color:var(--new)} .tag.mine{background:var(--accent-soft);color:var(--accent)}
+.del{flex:none;border:0;background:none;color:var(--muted);font-size:20px;line-height:1;padding:2px 6px;cursor:pointer}
+.add{display:flex;gap:8px;margin-top:10px}
+.add input{flex:1;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg);font-size:16px;min-width:0}
+.add button{border:0;background:var(--ink);color:var(--bg);border-radius:10px;padding:0 14px;font-weight:700;cursor:pointer}
+.mom{padding:14px 0 4px;border-top:1px solid var(--line)}
+.mom:first-child{border-top:0}
+.mhead{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;min-height:46px;overflow:hidden;padding-left:2px}
+.mhead>*{flex:none}
+.mhead .dur{flex:none;white-space:nowrap}
+.mhead .cnt{white-space:nowrap}
+.mhead .cnt .c{display:none}
+.mhead.ap .cnt .l{display:none}.mhead.ap .cnt .c{display:inline}
+.mhead.ap2 .dur .ic{display:none}
+.mn .mc{display:none}.mhead.ap3 .mn .mw{display:none}.mhead.ap3 .mn .mc{display:inline}
+.mhead .dur small{font-size:12px;font-weight:600;opacity:.8}
+.apert{display:block;margin-top:6px;padding:7px 10px;border-radius:10px;font-size:13px;line-height:1.35;font-weight:600;color:var(--ink);background:color-mix(in srgb,var(--accent) 13%,transparent);border-left:4px solid var(--accent)}
+.apert b{display:block;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);margin-bottom:1px}
+html[data-skin="neon"] .apert{border-radius:4px;border:1px solid var(--accent);border-left-width:4px;font-family:var(--mono);font-size:12px;box-shadow:0 0 12px rgba(0,229,255,.18)}
+html[data-skin="cine"] .apert{border-radius:2px;font-family:Georgia,serif;font-style:italic;background:rgba(226,182,90,.1)}
+html[data-skin="editorial"] .apert{border-radius:0;border:2px solid var(--accent);background:transparent;font-family:Georgia,serif}
+html[data-skin="aurora"] .apert{border-radius:14px;border-left-width:0;background:linear-gradient(90deg,rgba(106,76,255,.14),rgba(255,79,134,.12))}
+.dur.est{opacity:.75;font-style:italic}
+.tag.gu{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent);margin-left:6px}
+.sbar.late{animation:late .6s ease-out}
+@keyframes late{0%{transform:scaleY(1)}30%{transform:scaleY(1.35)}60%{transform:scaleY(.92)}100%{transform:scaleY(1)}}
+.sbar{transform-origin:50% 100%}
+.brote{position:fixed;z-index:9998;pointer-events:none;transform:translate(-50%,-50%);font:800 15px/1 -apple-system,system-ui,sans-serif;color:#fff;background:var(--accent);padding:4px 8px;border-radius:99px;box-shadow:0 4px 14px rgba(0,0,0,.2);animation:brote 1.25s cubic-bezier(.2,.8,.3,1) forwards}
+@keyframes brote{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}20%{opacity:1;transform:translate(-50%,-90%) scale(1.15)}70%{opacity:1;transform:translate(-50%,-180%) scale(1)}100%{opacity:0;transform:translate(-50%,-240%) scale(.9)}}
+html[data-skin="neon"] .brote{background:transparent;color:#eaffff;border:1px solid var(--accent);border-radius:3px;font-family:var(--mono);text-shadow:0 0 8px var(--accent);box-shadow:0 0 14px var(--accent),inset 0 0 10px rgba(0,229,255,.35)}
+html[data-skin="cine"] .brote{background:linear-gradient(180deg,#f6dc9a,#b8893a);color:#1a140c;font-family:Georgia,serif;font-style:italic;box-shadow:0 0 22px rgba(226,182,90,.7)}
+html[data-skin="editorial"] .brote{background:var(--bg);color:#e0201b;border:2px solid #e0201b;border-radius:0;font-family:Georgia,serif;transform:translate(-50%,-50%) rotate(-6deg)}
+html[data-skin="aurora"] .brote{background:linear-gradient(90deg,#6a4cff,#ff4f86);box-shadow:0 6px 24px rgba(255,79,134,.45)}
+.fiesta{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:9999}
+.mom.festejo .mhead{animation:festejo 1.4s ease-out}
+@keyframes festejo{0%{transform:scale(1)}15%{transform:scale(1.035)}35%{transform:scale(.99)}55%{transform:scale(1.01)}100%{transform:scale(1)}}
+.sello{position:fixed;z-index:10000;pointer-events:none;transform:translate(-50%,-50%) rotate(-8deg) scale(2.2);opacity:0;font:900 26px/1 Georgia,serif;letter-spacing:.06em;text-transform:uppercase;color:#e0201b;border:4px double #e0201b;padding:8px 14px;background:rgba(251,250,246,.85);animation:sello 1.5s cubic-bezier(.2,1.4,.4,1) forwards}
+@keyframes sello{0%{opacity:0;transform:translate(-50%,-50%) rotate(-8deg) scale(2.2)}18%{opacity:1;transform:translate(-50%,-50%) rotate(-8deg) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) rotate(-8deg) scale(1)}}
+html[data-skin="neon"] .mom.festejo .mhead{box-shadow:0 0 0 1px var(--accent),0 0 28px var(--accent)}
+html[data-skin="cine"] .mom.festejo .mhead{box-shadow:0 0 30px rgba(226,182,90,.5)}
+.mom.cubierto{border-top-color:var(--ok);background:linear-gradient(90deg,color-mix(in srgb,var(--ok) 16%,transparent),color-mix(in srgb,var(--ok) 4%,transparent) 70%,transparent);box-shadow:inset 5px 0 0 var(--ok);filter:saturate(1.2) brightness(1.04)}
+.mom.cubierto .mn{background:var(--ok);color:#fff}
+html[data-skin="neon"] .mom.cubierto{background:linear-gradient(90deg,rgba(57,255,136,.14),rgba(57,255,136,.03) 70%,transparent);box-shadow:inset 4px 0 0 var(--ok),inset 0 0 38px rgba(57,255,136,.10);filter:brightness(1.12)}
+html[data-skin="neon"] .mom.cubierto .mn{background:transparent;color:var(--ok);border-color:var(--ok);box-shadow:0 0 10px var(--ok)}
+html[data-skin="cine"] .mom.cubierto{background:linear-gradient(90deg,rgba(226,182,90,.16),rgba(226,182,90,.03) 70%,transparent);box-shadow:inset 4px 0 0 var(--accent),inset 0 0 40px rgba(226,182,90,.08);filter:brightness(1.1)}
+html[data-skin="cine"] .mom.cubierto .mn{background:var(--accent);color:var(--on-accent,#1a140c)}
+html[data-skin="editorial"] .mom.cubierto{background:repeating-linear-gradient(135deg,rgba(0,0,0,.05) 0 2px,transparent 2px 7px);box-shadow:inset 7px 0 0 var(--ok);filter:none}
+html[data-skin="aurora"] .mom.cubierto{background:linear-gradient(90deg,rgba(106,76,255,.14),rgba(255,79,134,.10) 60%,transparent);box-shadow:inset 5px 0 0 #a64cff;filter:saturate(1.25) brightness(1.04)}
+html[data-skin="aurora"] .mom.cubierto .mn{background:linear-gradient(90deg,#6a4cff,#ff4f86);color:#fff}
+.mhead.cubierto{background:linear-gradient(90deg,transparent 30%,var(--ok-soft));border-radius:12px}
+.mhead .cnt.lleno{color:var(--ok);background:var(--ok-soft);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ok) 45%,transparent);padding:3px 9px;border-radius:99px;font-weight:800}
+.mn{white-space:nowrap;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:3px 9px;border-radius:999px}
+.mom.done .mn{color:var(--ok);background:var(--ok-soft)}
+.dur{font-size:13px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.mom .cnt{white-space:nowrap;margin-left:auto;font-size:13px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.voz{margin:8px 0 6px;font-size:17px;line-height:1.35;font-weight:600}
+.mas{flex:none;display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border:2px dashed var(--muted);background:none;border-radius:50%;font-size:28px;line-height:1;font-weight:400;color:var(--muted);cursor:pointer;padding:0}
+.mas[aria-pressed="true"]{border-style:solid;color:var(--accent);border-color:var(--accent)}
+.yabtn{display:block;margin:2px 0 0;border:0;background:none;padding:8px 2px;font-size:14px;font-weight:700;color:var(--ok);cursor:pointer}
+.mom textarea{margin-top:8px;min-height:44px;resize:none;overflow:hidden}
+.listo{margin-top:12px}
+.vtit{display:block;width:100%;margin:0 0 4px;padding:4px 6px;background:none;border:0;text-align:center;font-size:18px;font-weight:800;cursor:pointer}
+.vtit span{color:var(--muted)}
+.desp{margin:0 4px 10px;padding:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;max-height:55vh;overflow-y:auto}
+.tipos{display:flex;gap:8px;margin-bottom:10px;overflow-x:auto}
+.navfijo{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;align-items:center;gap:8px;padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line)}
+.navfijo .navb{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.navfijo .navb:disabled{opacity:.35}
+body.uno main{padding-bottom:0}
+.espacio{height:calc(66px + env(safe-area-inset-bottom))}
+body.uno .toast{bottom:calc(88px + env(safe-area-inset-bottom))}
+.yo{display:inline-block;margin-left:8px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:1px 9px;font-size:12px;font-weight:700;vertical-align:2px;cursor:pointer;letter-spacing:0}
+.yo[hidden]{display:none}
+.navv,.navm{display:flex;align-items:center;gap:8px;margin:0 4px 8px}
+.navt{flex:1;min-width:0;text-align:center;line-height:1.2}
+.navt b{display:block;font-size:15px}.navt small{color:var(--muted);font-size:12px}
+.navb{flex:none;min-width:92px;min-height:46px;border:1px solid var(--line);background:var(--card);border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;padding:0 10px}
+.navm .navb{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.navb:disabled{opacity:.35;cursor:default}
+.navv{padding-bottom:8px;border-bottom:1px solid var(--line)}
+.modo{display:block;margin:16px auto 0;background:none;border:0;color:var(--muted);text-decoration:underline;font-size:13px;cursor:pointer}
+body.uno .filters, body.uno .search{display:none}
+.listo{display:block;width:100%;margin-top:14px;min-height:54px;border:2px solid var(--ok);background:var(--card);color:var(--ok);border-radius:14px;font-size:17px;font-weight:800;cursor:pointer}
+.listo[aria-pressed="true"]{background:var(--ok);color:var(--on-ok)}
+.info{margin:2px 0;font-size:13px;color:var(--muted)}
+.info b{color:var(--ink);font-weight:700}
+.mom .shots{margin-top:6px}
+.mom .nl{display:block;margin-top:10px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.mom textarea{display:block;width:100%;margin-top:4px;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;font-size:16px;line-height:1.35;resize:vertical;min-height:44px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink)}
+.mom .nl small{font-weight:500;text-transform:none;letter-spacing:0;margin-left:6px}
+.mom .fin{height:12px}
+.empty{text-align:center;color:var(--muted);padding:40px 20px}
+.foot{text-align:center;font-size:12px;color:var(--muted);margin-top:8px}
+.foot button{background:none;border:0;color:var(--muted);text-decoration:underline;font-size:12px;cursor:pointer;padding:6px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(calc(100% + 140px + env(safe-area-inset-bottom)));opacity:0;visibility:hidden;pointer-events:none;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:18px;font-size:14px;line-height:1.35;font-weight:600;transition:transform .25s,opacity .25s,visibility 0s linear .25s;z-index:9;white-space:normal;text-align:center;width:max-content;max-width:calc(100vw - 32px);box-sizing:border-box;box-shadow:0 8px 28px rgba(0,0,0,.25)}   /* el aviso puede ocupar 2–3 líneas: nunca se corta */
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;visibility:visible;transition:transform .25s,opacity .25s,visibility 0s}
+.spin{animation:spin 1s linear infinite;display:inline-block} @keyframes spin{to{transform:rotate(360deg)}}
+
+/* ----- Equipo ----- */
+.vistas{display:none;margin-top:6px;background:var(--line);border-radius:10px;padding:3px;gap:3px}
+body.team .vistas{display:flex}
+.vistas button{flex:1;border:0;background:none;border-radius:8px;padding:5px 0;font-weight:700;font-size:14px;color:var(--muted);cursor:pointer}
+.vistas button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.15)}
+body.vista-equipo .filters, body.vista-equipo .search{display:none}
+.pend{position:absolute;right:-3px;bottom:-3px;background:var(--accent);color:#fff;border-radius:99px;font-size:9px;line-height:1;font-weight:700;min-width:14px;height:14px;padding:0 3px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;border:1.5px solid var(--bg);pointer-events:none}
+.pend[hidden]{display:none}
+.who{display:block;font-size:12px;color:var(--muted);margin-top:1px}
+.estado{margin:4px 8px 4px;font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.estado .pt{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
+.estado.off .pt{background:var(--accent)}
+.pcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px}
+.pcard.tuyo{border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
+.pcard .fila{display:flex;align-items:baseline;gap:8px}
+.pcard strong{flex:1;font-size:16px}
+.pcard .n{font-weight:800;font-variant-numeric:tabular-nums}
+.pcard .bar{margin-top:2px}
+.pcard .sub{margin-top:2px!important}
+.pcard .sub{margin-top:6px;font-size:12.5px;color:var(--muted)}
+.reciente{display:flex;width:100%;gap:10px;align-items:flex-start;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:6px;cursor:pointer}
+.reciente .num{min-width:38px;height:30px;font-size:13px;border-radius:8px}
+.reciente .t{flex:1;min-width:0;font-size:14.5px}
+.reciente .t small{display:block;color:var(--muted);font-size:12px;margin-top:1px}
+.avisos{margin:0 4px 12px;border-radius:var(--radius);background:var(--accent-soft);padding:12px 14px;border:1px solid color-mix(in srgb,var(--accent) 30%,transparent)}
+.avisos b{color:var(--accent)} .avisos p{margin:3px 0 0;font-size:14px;color:var(--muted)}
+.avisos .acc{display:flex;gap:8px;margin-top:10px}
+.avisos.ok{background:var(--ok-soft);border-color:color-mix(in srgb,var(--ok) 30%,transparent)} .avisos.ok b{color:var(--ok)}
+.modal{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center}
+.modal .sheet{background:var(--card);width:100%;max-width:520px;border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom))}
+.modal h2{margin:0 0 4px;font-size:20px}
+.modal p{margin:0 0 14px;color:var(--muted);font-size:14px}
+.modal .nombre{display:block;width:100%;margin-bottom:8px;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:14px;font-size:17px;font-weight:700;text-align:left;cursor:pointer}
+.modal .nombre.sel{border-color:var(--accent);background:var(--accent-soft)}
+.series{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:4px 4px 0}
+.serie{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:150px;background:var(--card);border:1px solid var(--line);border-radius:18px;cursor:pointer}
+.serie b{font-size:56px;line-height:1;color:var(--accent);font-weight:800}
+.serie span{font-size:15px;font-weight:700}.serie .tn{font-size:16px;font-weight:800;text-align:center;padding:2px 10px 0;line-height:1.15}.serie .tn+span{font-size:13px;font-weight:600;color:var(--muted)}
+.tdesc{margin:2px 6px 12px;font-size:13px;line-height:1.4;color:var(--muted);text-align:center}.serie small{font-size:12.5px;color:var(--muted)}
+.vrow{display:flex;align-items:center;gap:12px;width:100%;margin:0 0 8px;padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:14px;text-align:left;cursor:pointer}
+.vrow.ok{border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}
+.vrow .vn{flex:1;min-width:0;font-size:16px;font-weight:700}
+.vrow .vc{flex:none;font-size:13px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.vrow.ok .num{background:var(--ok-soft);color:var(--ok)}
+.navt .tv{display:block;width:100%;background:none;border:0;padding:0;cursor:pointer;font-size:15px;font-weight:800;line-height:1.2}
+.navt .tv::after{content:" ▾";color:var(--muted)}
+.modal .nombre.cancel{text-align:center;font-weight:600;color:var(--muted);background:none}
+.vg{display:flex;align-items:center;gap:8px;margin:6px 0 2px;font-size:13px;color:var(--muted)}
+.vg b{color:var(--ink)}
+.etq{display:inline-block;font-size:11px;font-weight:800;padding:1px 7px;border-radius:99px;background:var(--line);color:var(--muted);margin:0 0 0 6px;vertical-align:middle;white-space:nowrap}
+.etq.mio{background:var(--accent);color:var(--on-accent)}
+.etq.bq{background:none;padding:0 0 0 4px;margin:0}
+.vrow .vn .etq, .stitle .etq{margin:3px 0 0;display:block;width:fit-content}
+.vg.mio,.vg.aj{display:block;line-height:1.35}
+.vg.mio{background:color-mix(in srgb,var(--accent) 12%,var(--card));border:1px solid var(--accent);border-radius:10px;padding:8px 10px;color:var(--ink)}
+.vg.aj{background:var(--line);border-radius:10px;padding:8px 10px}
+.vrow.mio, .scene.mio{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,var(--card))}
+.scene.mio .shead{background:transparent}
+.mom.mio{border-left:5px solid var(--accent)}
+.vtit.mio{color:var(--accent)}
+.vrow.ajeno, .scene.ajeno{opacity:.55}
+.mom.ajeno{opacity:.62;filter:saturate(.35);border-style:dashed}
+.vtit.ajeno{opacity:.6}
+body.edicion .shot.ya .txt{font-weight:800}
+.listo:disabled{opacity:.55;cursor:not-allowed}
+.mom textarea[readonly]{opacity:.7;background:var(--line)}
+.mas[hidden]{display:none}
+.vrow .vg2{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-top:2px}
+/**/.vg2fila{display:flex;gap:8px;align-items:center;margin:6px 0 2px}.vg2fila .vg{flex:1;min-width:0;margin:0}
+.bq{flex:none;height:36px;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:0 10px;font-size:13px;font-weight:700;cursor:pointer;color:var(--muted)}
+.bq.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.fila2{display:flex;gap:8px;margin-top:10px}.fila2 button{flex:1;height:40px;border:1px solid var(--line);background:var(--card);border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;color:var(--ink)}
+.sw{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;padding:4px 0;font-size:15px;font-weight:700;cursor:pointer;color:var(--ink)}
+.sw span{flex:1}.sw small{display:block;color:var(--muted);font-size:12px;font-weight:500}
+.sw i{flex:none;width:46px;height:28px;border-radius:99px;background:var(--line);position:relative;transition:background .15s}
+.sw i::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:left .15s}
+.sw[aria-pressed='true'] i{background:var(--ok)}.sw[aria-pressed='true'] i::after{left:21px}
+.vg select{flex:1;min-width:0;height:36px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font-size:15px;padding:0 8px}
+.ctl-solo{display:none}
+body.control .ctl-solo{display:block}
+body.control .mas, body.control .del{display:none}
+.ro{margin-top:10px;padding:10px 12px;border:1px dashed var(--line);border-radius:10px;font-size:13px;color:var(--muted);white-space:pre-wrap}
+.ro b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
+.ctl-badge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:99px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;vertical-align:middle}
+.ccard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+.ccard .fila{display:flex;gap:8px;align-items:baseline}
+.ccard .fila strong{flex:1;min-width:0}
+.ccard .n{font-size:13px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.ccard .bar{margin:0}
+.ccard .sub{font-size:12px;color:var(--muted)}
+.ccard.ok{border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}
+.ccard.sin{border-color:var(--accent)}
+.vistas button[hidden]{display:none}
+
+/* ================= ESTILOS (skins) ================= */
+.skinbtn{padding:0;width:36px}
+.skinpop{position:fixed;z-index:30;right:12px;top:calc(env(safe-area-inset-top) + 58px);width:min(330px,calc(100vw - 24px));padding:14px;border-radius:20px;
+  background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);
+  border:1px solid var(--line);box-shadow:0 18px 50px rgba(0,0,0,.28);animation:skin-in .18s ease-out}
+.skinpop[hidden]{display:none}
+@keyframes skin-in{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}
+.sk-row{display:flex;justify-content:space-between;gap:6px}
+.sk{width:52px;height:52px;border-radius:50%;padding:3px;border:2px solid transparent;background:none;cursor:pointer;transition:transform .15s}
+.sk:active{transform:scale(.92)}
+.sk-op{display:flex;align-items:center;gap:12px;width:100%;margin-top:14px;padding:10px 2px 2px;border:0;border-top:1px solid var(--line);background:none;text-align:left;font-size:14px;font-weight:700;color:var(--ink);cursor:pointer}
+.sk-op span{flex:1}.sk-op small{display:block;font-size:12px;font-weight:500;color:var(--muted)}
+.sk-op i{flex:none;width:46px;height:28px;border-radius:99px;background:var(--line);position:relative;transition:background .15s}
+.sk-op i::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:left .15s}
+.sk-op[aria-pressed="true"] i{background:var(--ok)}.sk-op[aria-pressed="true"] i::after{left:21px}
+html.sin-aj :is(.vrow,.scene,.mom,.vtit).ajeno{opacity:1!important;filter:none!important;background-image:none!important;border-style:solid!important}
+.sk[aria-pressed="true"]{border-color:var(--ink)}
+.sk i{display:block;width:100%;height:100%;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(127,127,127,.35)}
+.sk[data-skin="papel"] i{background:conic-gradient(from 200deg,#f6f3ee 0 50%,#d9480f 50% 70%,#1b1a17 70%)}
+.sk[data-skin="neon"] i{background:radial-gradient(circle at 30% 30%,#00e5ff 0 18%,transparent 19%),radial-gradient(circle at 72% 68%,#ff3df2 0 14%,transparent 15%),linear-gradient(135deg,#0b1020,#05060a);box-shadow:0 0 14px rgba(0,229,255,.45),inset 0 0 0 1px rgba(0,229,255,.5)}
+.sk[data-skin="cine"] i{background:radial-gradient(circle at 50% 40%,#e2b65a 0 22%,#7a5a22 23% 30%,#0d0b09 31%)}
+.sk[data-skin="editorial"] i{background:linear-gradient(90deg,#fbfaf6 0 50%,#0a0a0a 50%);box-shadow:inset 0 0 0 2px #0a0a0a,inset 0 -14px 0 0 #e10600}
+.sk[data-skin="aurora"] i{background:radial-gradient(circle at 25% 30%,#b8a6ff,transparent 55%),radial-gradient(circle at 75% 35%,#ffc2d6,transparent 55%),radial-gradient(circle at 50% 80%,#a6f0e0,transparent 60%),#eef0ff}
+
+/* ---- Al llegar a un video TUYO: toda la pantalla cambia de tono ---- */
+body{transition:background-color .4s}
+header{transition:box-shadow .4s}
+html.mio-v .vtit{color:var(--accent)}
+.vtit.llega{animation:llega .9s ease-out}
+@keyframes llega{0%{transform:scale(.94);opacity:.2}40%{transform:scale(1.06);opacity:1}100%{transform:none}}
+html.mio-v{--bg:#fdeee2;--line:#f0d2bd;--accent-soft:#fbd9c3}
+@media (prefers-color-scheme: dark){html.mio-v:not([data-skin]){--bg:#241209;--line:#4a2a18;--accent-soft:#4a2616}}
+html.mio-v[data-skin="neon"]{--bg:#0b0510;--accent:#ff3df2;--accent-soft:rgba(255,61,242,.13);--line:rgba(255,61,242,.28);--on-accent:#190018;--new:#00e5ff;--new-soft:rgba(0,229,255,.11)}
+html.mio-v[data-skin="neon"] body::before{background:radial-gradient(60% 40% at 15% 0%,rgba(255,61,242,.2),transparent 70%),radial-gradient(50% 40% at 100% 100%,rgba(120,60,255,.2),transparent 70%),linear-gradient(rgba(255,61,242,.05) 1px,transparent 1px) 0 0/28px 28px,linear-gradient(90deg,rgba(255,61,242,.05) 1px,transparent 1px) 0 0/28px 28px}
+html.mio-v[data-skin="neon"] header{background:rgba(11,5,16,.78);box-shadow:0 10px 40px rgba(255,61,242,.2)}
+html.mio-v[data-skin="neon"] .top h1{text-shadow:0 0 18px rgba(255,61,242,.6)}
+html.mio-v[data-skin="neon"] .chip[aria-pressed="true"],html.mio-v[data-skin="neon"] .vistas button[aria-pressed="true"]{box-shadow:0 0 18px rgba(255,61,242,.6)}
+html.mio-v[data-skin="cine"]{--bg:#1a0f05;--accent:#ffcb5c;--accent-soft:#3a2510;--line:#4a3418}
+html.mio-v[data-skin="cine"] body::before{background:radial-gradient(120% 90% at 50% 0%,rgba(255,170,60,.22),transparent 60%),radial-gradient(140% 100% at 50% 50%,transparent 50%,rgba(0,0,0,.7))}
+html.mio-v[data-skin="editorial"]{--bg:#ffece8;--line:#e8b8b0;--accent-soft:#ffd2cb}
+html.mio-v[data-skin="editorial"] header{background:rgba(255,236,232,.97)}
+html.mio-v[data-skin="aurora"]{--bg:#fdeaf3;--accent:#ff4f86;--accent-soft:rgba(255,79,134,.13)}
+html.mio-v[data-skin="aurora"] body::before{filter:blur(40px) hue-rotate(-60deg) saturate(1.2)}
+html.mio-v[data-skin="aurora"] .top h1{color:#e0306f}
+html.mio-v[data-skin="aurora"] .navfijo .navb,html.mio-v[data-skin="aurora"] .navm .navb,html.mio-v[data-skin="aurora"] .chip[aria-pressed="true"],html.mio-v[data-skin="aurora"] .vistas button[aria-pressed="true"]{background:linear-gradient(135deg,#ff4f86,#ff8a5c);box-shadow:0 8px 20px rgba(255,79,134,.35)}
+
+
+/* ===== Barras gruesas: estilo propio y efecto al avanzar (clase .sube) en cada estilo ===== */
+.sbar i,.bar>i{position:relative;overflow:hidden}
+.sbar i::after,.bar>i::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:0}
+.bar>i{transition:width .7s cubic-bezier(.2,.9,.25,1.15)}
+/* Papel: píldora con rayas de caramelo; al avanzar, las rayas aceleran y pasa un brillo */
+html:not([data-skin]) .sbar,html:not([data-skin]) .bar{box-shadow:inset 0 1px 2px rgba(0,0,0,.12)}
+html:not([data-skin]) .sbar i,html:not([data-skin]) .bar>i{background-color:var(--accent);background-image:repeating-linear-gradient(-45deg,rgba(255,255,255,.28) 0 6px,transparent 6px 12px);background-size:17px 17px;animation:rayas 1.6s linear infinite}
+html:not([data-skin]) .bar>i{background-color:var(--ok)}
+html:not([data-skin]) .sube{animation-duration:.25s}
+html:not([data-skin]) .sube::after{background:linear-gradient(100deg,transparent 20%,rgba(255,255,255,.85) 50%,transparent 80%);animation:barrido .7s ease-out}
+@keyframes rayas{to{background-position:17px 0}}
+@keyframes barrido{0%{opacity:1;transform:translateX(-100%)}100%{opacity:1;transform:translateX(100%)}}
+/* Futurista: bloques de LED con brillo; al avanzar, la punta se enciende en blanco */
+html[data-skin="neon"] .sbar,html[data-skin="neon"] .bar{background:rgba(0,229,255,.08);border-radius:2px;box-shadow:inset 0 0 0 1px rgba(0,229,255,.25)}
+html[data-skin="neon"] .sbar i,html[data-skin="neon"] .bar>i{border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--ok));-webkit-mask:repeating-linear-gradient(90deg,#000 0 7px,transparent 7px 9px);mask:repeating-linear-gradient(90deg,#000 0 7px,transparent 7px 9px);filter:drop-shadow(0 0 4px var(--accent))}
+html.mio-v[data-skin="neon"] .sbar i{background:linear-gradient(90deg,#ff3df2,#7a3cff)}
+html[data-skin="neon"] .sube{animation:led .5s ease-out}
+html[data-skin="neon"] .sube::after{left:auto;width:22px;background:linear-gradient(90deg,transparent,#fff);animation:punta .5s ease-out}
+@keyframes led{0%{filter:drop-shadow(0 0 12px #fff) brightness(1.8)}100%{filter:drop-shadow(0 0 4px var(--accent)) brightness(1)}}
+@keyframes punta{0%{opacity:1}100%{opacity:0}}
+/* Cine: tira de película dorada con perforaciones; al avanzar, destello de proyector */
+html[data-skin="cine"] .sbar,html[data-skin="cine"] .bar{background:#1c1712;border-radius:2px;box-shadow:inset 0 0 0 1px rgba(226,182,90,.25)}
+html[data-skin="cine"] .sbar i,html[data-skin="cine"] .bar>i{border-radius:2px;background:radial-gradient(circle,#0c0a08 1.2px,transparent 1.6px) 0 1px/7px 100% repeat-x,radial-gradient(circle,#0c0a08 1.2px,transparent 1.6px) 0 calc(100% - 1px)/7px 100% repeat-x,linear-gradient(180deg,#f6dc9a,#e2b65a 45%,#8a6a2c)}
+html[data-skin="cine"] .sbar i{background:linear-gradient(180deg,#f6dc9a,#e2b65a 45%,#8a6a2c)}
+html[data-skin="cine"] .bar>i{background-size:7px 4px,7px 4px,auto;background-position:0 1px,0 calc(100% - 1px),0 0;background-repeat:repeat-x,repeat-x,no-repeat}
+html[data-skin="cine"] .sube{animation:proyector .6s steps(6)}
+html[data-skin="cine"] .sube::after{background:linear-gradient(100deg,transparent 35%,rgba(255,248,220,.95) 50%,transparent 65%);animation:barrido .6s ease-in-out}
+@keyframes proyector{0%,40%,80%{filter:brightness(1.5)}20%,60%,100%{filter:brightness(1)}}
+/* Editorial: tinta con trama diagonal, recta y con borde; al avanzar, la punta se marca en rojo como un sello */
+html[data-skin="editorial"] .sbar,html[data-skin="editorial"] .bar{background:transparent;border-radius:0;box-shadow:inset 0 0 0 2px var(--ink)}
+html[data-skin="editorial"] .sbar{box-shadow:inset 0 -2px 0 var(--ink)}
+html[data-skin="editorial"] .sbar i,html[data-skin="editorial"] .bar>i{border-radius:0;background:repeating-linear-gradient(45deg,var(--ink) 0 2px,transparent 2px 5px),var(--bg);box-shadow:inset 0 0 0 2px var(--ink)}
+html[data-skin="editorial"] .sbar i{background:repeating-linear-gradient(45deg,var(--accent) 0 2px,transparent 2px 5px),var(--bg)}
+html[data-skin="editorial"] .sube{animation:sacude .35s steps(3)}
+html[data-skin="editorial"] .sube::after{left:auto;width:6px;background:var(--accent);animation:punta .7s steps(2)}
+@keyframes sacude{0%{transform:translateY(-1px)}50%{transform:translateY(1px)}100%{transform:none}}
+/* Aurora: luz líquida que fluye; al avanzar, florece un halo en la punta */
+html[data-skin="aurora"] .sbar,html[data-skin="aurora"] .bar{background:rgba(106,76,255,.1);box-shadow:inset 0 1px 3px rgba(106,76,255,.15)}
+html[data-skin="aurora"] .sbar i,html[data-skin="aurora"] .bar>i{background:linear-gradient(90deg,#6a4cff,#ff4f86,#ff8a5c,#6a4cff);background-size:300% 100%;animation:fluye 6s ease-in-out infinite alternate}
+html.mio-v[data-skin="aurora"] .sbar i{background-image:linear-gradient(90deg,#ff4f86,#ff8a5c,#ffd36e,#ff4f86)}
+html[data-skin="aurora"] .sube{animation:fluye 6s ease-in-out infinite alternate,florece .8s ease-out}
+html[data-skin="aurora"] .sube::after{left:auto;width:40px;background:radial-gradient(circle at 100% 50%,rgba(255,255,255,.95),transparent 70%);animation:punta .8s ease-out}
+@keyframes fluye{0%{background-position:0 0}100%{background-position:100% 0}}
+@keyframes florece{0%{filter:saturate(1.8) brightness(1.3)}100%{filter:none}}
+@media (prefers-reduced-motion:reduce){.sbar i,.bar>i,.sube,.sube::after{animation:none!important}}
+
+/* ---- Futurista ---- */
+html[data-skin="neon"]{--bg:#05060a;--card:rgba(16,21,34,.74);--ink:#e9f7ff;--muted:#8090a8;--line:rgba(110,200,255,.17);
+  --accent:#00e5ff;--accent-soft:rgba(0,229,255,.11);--ok:#3dff9a;--ok-soft:rgba(61,255,154,.11);--new:#ff3df2;--new-soft:rgba(255,61,242,.11);
+  --on-accent:#00141a;--on-ok:#00170b;--radius:12px;--mono:"SF Mono",ui-monospace,Menlo,monospace;color-scheme:dark}
+html[data-skin="neon"] body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(60% 40% at 15% 0%,rgba(0,229,255,.16),transparent 70%),radial-gradient(50% 40% at 100% 100%,rgba(255,61,242,.13),transparent 70%),
+  linear-gradient(rgba(0,229,255,.045) 1px,transparent 1px) 0 0/28px 28px,linear-gradient(90deg,rgba(0,229,255,.045) 1px,transparent 1px) 0 0/28px 28px}
+html[data-skin="neon"] header{background:rgba(5,6,10,.72);box-shadow:0 1px 0 rgba(0,229,255,.08),0 10px 30px rgba(0,0,0,.4)}
+html[data-skin="neon"] .top h1{font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;font-size:15px;font-weight:700;text-shadow:0 0 18px rgba(0,229,255,.45)}
+html[data-skin="neon"] .top h1 small{letter-spacing:.08em;font-size:10px;color:var(--accent);opacity:.8}
+html[data-skin="neon"] .iconbtn,html[data-skin="neon"] .yo,html[data-skin="neon"] .chip{background:rgba(0,229,255,.05);border-color:rgba(0,229,255,.3);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;font-size:12px}
+html[data-skin="neon"] .chip[aria-pressed="true"],html[data-skin="neon"] .vistas button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent);box-shadow:0 0 18px rgba(0,229,255,.55)}
+html[data-skin="neon"] .vistas{background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.18)}
+html[data-skin="neon"] .vistas button{font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;font-size:12px}
+html[data-skin="neon"] .avance,html[data-skin="neon"] .count,html[data-skin="neon"] .cnt,html[data-skin="neon"] .dur,html[data-skin="neon"] .vc{font-family:var(--mono)}
+html[data-skin="neon"] .scene,html[data-skin="neon"] .vrow,html[data-skin="neon"] .serie,html[data-skin="neon"] .desp,html[data-skin="neon"] .pcard,html[data-skin="neon"] .search{backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+html[data-skin="neon"] .num{background:transparent;border:1px solid var(--accent);font-family:var(--mono);box-shadow:0 0 14px rgba(0,229,255,.3),inset 0 0 10px rgba(0,229,255,.15);border-radius:6px}
+html[data-skin="neon"] .serie b{font-family:var(--mono);font-weight:300;font-size:64px;color:var(--accent);text-shadow:0 0 26px rgba(0,229,255,.7)}
+html[data-skin="neon"] .mn{background:transparent;border:1px solid currentColor;font-family:var(--mono);border-radius:4px}
+html[data-skin="neon"] .vtit,html[data-skin="neon"] .navt b{font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;font-size:15px}
+html[data-skin="neon"] .linea{font-family:var(--mono);color:var(--accent);letter-spacing:.22em}
+html[data-skin="neon"] .voz{font-weight:500;color:#fff;border-left:2px solid var(--accent);padding-left:12px;text-shadow:0 0 22px rgba(0,229,255,.18)}
+html[data-skin="neon"] .shot input{border-radius:4px;border-color:rgba(0,229,255,.5);background:transparent}
+html[data-skin="neon"] .shot input:checked{background:var(--ok);border-color:var(--ok);box-shadow:0 0 12px rgba(61,255,154,.7)}
+html[data-skin="neon"] .listo{border-radius:8px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;font-size:14px;background:transparent}
+html[data-skin="neon"] .listo[aria-pressed="true"]{background:var(--ok);box-shadow:0 0 24px rgba(61,255,154,.55)}
+html[data-skin="neon"] .navfijo{background:rgba(5,6,10,.8);border-top:1px solid rgba(0,229,255,.25)}
+html[data-skin="neon"] .navfijo .navb,html[data-skin="neon"] .navm .navb,html[data-skin="neon"] .navv .navb{background:transparent;color:var(--accent);border:1px solid var(--accent);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;font-size:13px;box-shadow:0 0 14px rgba(0,229,255,.25),inset 0 0 12px rgba(0,229,255,.12)}
+html[data-skin="neon"] :is(.vrow,.scene,.vg,.vtit).mio{box-shadow:0 0 0 1px var(--accent),0 0 26px rgba(0,229,255,.28)!important}
+html[data-skin="neon"] .mom.mio{border-left:2px solid var(--accent);padding-left:10px}
+html[data-skin="neon"] .etq.mio{box-shadow:0 0 12px rgba(0,229,255,.7);font-family:var(--mono)}
+html[data-skin="neon"] .ajeno{opacity:.42;filter:grayscale(.8) blur(.2px)}
+html[data-skin="neon"] .pend{border-color:#05060a;box-shadow:0 0 8px var(--accent)}
+
+html[data-skin="neon"] .mhead{gap:6px}
+html[data-skin="neon"] .mhead .cnt,html[data-skin="neon"] .mhead .dur{font-size:12px;letter-spacing:-.02em}
+html[data-skin="neon"] .mhead .mn{padding:3px 6px;letter-spacing:0}
+
+/* ---- Noche de cine ---- */
+html[data-skin="cine"]{--bg:#0c0a08;--card:#16120e;--ink:#f4ead9;--muted:#a3927a;--line:#2a2219;--accent:#e2b65a;--accent-soft:#2a2013;
+  --ok:#a8d68f;--ok-soft:#1b2416;--new:#93b9ff;--new-soft:#151c2a;--on-accent:#1a1206;--on-ok:#10180b;--radius:6px;
+  --serif:"New York","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;color-scheme:dark}
+html[data-skin="cine"] body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(120% 80% at 50% 0%,rgba(226,182,90,.09),transparent 60%),radial-gradient(140% 100% at 50% 50%,transparent 55%,rgba(0,0,0,.65))}
+html[data-skin="cine"] header{background:rgba(12,10,8,.86)}
+html[data-skin="cine"] .top h1{font-family:var(--serif);font-weight:400;font-size:23px;letter-spacing:.01em}
+html[data-skin="cine"] .top h1 small{font-family:var(--serif);font-style:italic;color:var(--accent);font-size:13px}
+html[data-skin="cine"] .iconbtn,html[data-skin="cine"] .chip,html[data-skin="cine"] .yo{background:transparent;border-color:rgba(226,182,90,.45);color:var(--accent)}
+html[data-skin="cine"] .chip[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+html[data-skin="cine"] .vistas{background:transparent;border-bottom:1px solid var(--line);border-radius:0}
+html[data-skin="cine"] .vistas button{font-family:var(--serif);font-size:16px;font-weight:400;letter-spacing:.04em;border-radius:0}
+html[data-skin="cine"] .vistas button[aria-pressed="true"]{background:transparent;color:var(--accent);box-shadow:inset 0 -2px 0 var(--accent)}
+html[data-skin="cine"] .scene,html[data-skin="cine"] .vrow,html[data-skin="cine"] .serie,html[data-skin="cine"] .desp,html[data-skin="cine"] .pcard{box-shadow:0 20px 40px rgba(0,0,0,.35)}
+html[data-skin="cine"] .num{background:transparent;border:1px solid rgba(226,182,90,.5);font-family:var(--serif);font-weight:400;font-size:16px;border-radius:50%;min-width:46px;height:46px}
+html[data-skin="cine"] .serie b{font-family:var(--serif);font-weight:400;font-size:70px;font-style:italic}
+html[data-skin="cine"] .serie .tn,html[data-skin="cine"] .vrow .vn,html[data-skin="cine"] .stitle strong,html[data-skin="cine"] .vtit,html[data-skin="cine"] .navt b{font-family:var(--serif);font-weight:500}
+html[data-skin="cine"] .vtit{font-size:21px;font-weight:400}
+html[data-skin="cine"] .linea{font-family:var(--serif);font-style:italic;text-transform:none;letter-spacing:.02em;font-size:15px;color:var(--accent)}
+html[data-skin="cine"] .voz{font-family:var(--serif);font-style:italic;font-weight:400;font-size:20px;line-height:1.4}
+html[data-skin="cine"] .voz::before{content:"“";color:var(--accent);font-size:1.4em;line-height:0;vertical-align:-.3em;margin-right:2px}
+html[data-skin="cine"] .mn{background:transparent;border:1px solid currentColor;letter-spacing:.18em;font-size:10px}
+html[data-skin="cine"] .shot input{border-radius:50%;border-width:1.5px}
+html[data-skin="cine"] .listo{border-radius:999px;font-family:var(--serif);font-weight:500;letter-spacing:.04em;border-color:var(--accent);color:var(--accent)}
+html[data-skin="cine"] .listo[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+html[data-skin="cine"] .navfijo .navb,html[data-skin="cine"] .navm .navb{background:var(--accent);color:var(--on-accent);border-color:var(--accent);border-radius:999px;font-family:var(--serif)}
+html[data-skin="cine"] :is(.vrow,.scene,.vg,.vtit).mio{border-color:var(--accent)!important;box-shadow:0 0 0 1px var(--accent),0 0 40px rgba(226,182,90,.18)!important}
+html[data-skin="cine"] .ajeno{opacity:.4;filter:sepia(.5) grayscale(.5)}
+
+/* ---- Editorial (alto contraste, ideal a pleno sol) ---- */
+html[data-skin="editorial"]{--bg:#fbfaf6;--card:#ffffff;--ink:#0a0a0a;--muted:#4a4740;--line:#d6d1c6;--accent:#e10600;--accent-soft:#ffe4e1;
+  --ok:#00803a;--ok-soft:#e1f3e7;--new:#0038ff;--new-soft:#e3e9ff;--on-accent:#fff;--on-ok:#fff;--radius:2px;
+  --serif:"New York","Iowan Old Style",Georgia,"Times New Roman",serif;color-scheme:light}
+html[data-skin="editorial"] header{background:rgba(251,250,246,.96)}
+html[data-skin="editorial"] .top h1{font-family:var(--serif);font-size:26px;font-weight:800;letter-spacing:-.02em}
+html[data-skin="editorial"] .top h1 small{text-transform:uppercase;letter-spacing:.1em;font-size:10px;font-weight:700;color:var(--accent)}
+html[data-skin="editorial"] .iconbtn,html[data-skin="editorial"] .chip,html[data-skin="editorial"] .yo{border:1.5px solid var(--ink);border-radius:0;font-weight:800;text-transform:uppercase;letter-spacing:.06em;font-size:12px}
+html[data-skin="editorial"] .chip[aria-pressed="true"]{background:var(--ink);color:#fff}
+html[data-skin="editorial"] .mhead{gap:5px}
+html[data-skin="editorial"] .mhead .mn{letter-spacing:.08em;padding:3px 7px}
+.mhead .cnt.lleno{padding:3px 7px}
+@media (max-width:380px){.top{gap:6px}.top .iconbtn{padding:0 9px}.sub2{gap:5px}.sub2 small{font-size:11px;overflow:visible;text-overflow:clip}.sub2 .yo{padding:1px 7px;font-size:11px}.mhead{gap:5px}.mhead .mn{padding:3px 7px;letter-spacing:.03em}.mom .cnt{font-size:12px}.mhead .dur{font-size:12px}}
+html[data-skin="editorial"] .top{gap:6px}
+html[data-skin="editorial"] .top .iconbtn{padding:0 8px;letter-spacing:.03em;font-size:11px}
+html[data-skin="editorial"] .sub2{gap:5px}
+html[data-skin="editorial"] .sub2 .yo{padding:1px 5px;font-size:10px;letter-spacing:.03em}
+html[data-skin="editorial"] .sub2 small{overflow:visible;text-overflow:clip;font-size:9px;letter-spacing:.02em}
+html[data-skin="editorial"] .vistas{background:transparent;border:1.5px solid var(--ink);border-radius:0;padding:0;gap:0}
+html[data-skin="editorial"] .vistas button{border-radius:0;text-transform:uppercase;letter-spacing:.14em;font-size:12px;font-weight:800;color:var(--ink)}
+html[data-skin="editorial"] .vistas button[aria-pressed="true"]{background:var(--ink);color:#fff;box-shadow:none}
+html[data-skin="editorial"] .scene,html[data-skin="editorial"] .vrow,html[data-skin="editorial"] .serie,html[data-skin="editorial"] .desp,html[data-skin="editorial"] .pcard,html[data-skin="editorial"] .search{border:1.5px solid var(--ink);border-radius:0}
+html[data-skin="editorial"] .num{background:var(--ink);color:#fff;border-radius:0;font-family:var(--serif);font-weight:800}
+html[data-skin="editorial"] .scene.done .num{background:var(--ok);color:#fff}
+html[data-skin="editorial"] .serie b{font-family:var(--serif);color:var(--ink);font-size:80px;font-weight:900}
+html[data-skin="editorial"] .serie .tn,html[data-skin="editorial"] .vrow .vn,html[data-skin="editorial"] .stitle strong,html[data-skin="editorial"] .vtit,html[data-skin="editorial"] .navt b{font-family:var(--serif);font-weight:800}
+html[data-skin="editorial"] .vtit{font-size:22px;letter-spacing:-.01em}
+html[data-skin="editorial"] .linea{color:var(--ink);font-weight:900;letter-spacing:.24em;border-top:1.5px solid var(--ink);padding-top:8px}
+html[data-skin="editorial"] .voz{font-family:var(--serif);font-size:21px;font-weight:700;line-height:1.3;letter-spacing:-.01em}
+html[data-skin="editorial"] .mn{border-radius:0;background:var(--accent);color:#fff;letter-spacing:.16em}
+html[data-skin="editorial"] .mom.done .mn{background:var(--ok);color:#fff}
+html[data-skin="editorial"] .shot{border-top-color:var(--ink)}
+html[data-skin="editorial"] .shot input{border-radius:0;border-color:var(--ink)}
+html[data-skin="editorial"] .shot .txt{font-weight:500;color:var(--ink)}
+html[data-skin="editorial"] .listo{border-radius:0;border:2px solid var(--ink);color:var(--ink);text-transform:uppercase;letter-spacing:.1em;font-weight:900}
+html[data-skin="editorial"] .listo[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:#fff}
+html[data-skin="editorial"] .navfijo{background:#fbfaf6;border-top:3px double var(--ink)}
+html[data-skin="editorial"] .navfijo .navb,html[data-skin="editorial"] .navm .navb,html[data-skin="editorial"] .navb{border-radius:0;text-transform:uppercase;letter-spacing:.08em;font-weight:900;font-size:13px}
+html[data-skin="editorial"] :is(.vrow,.scene,.vg,.vtit).mio{border:2.5px solid var(--accent)!important;box-shadow:6px 6px 0 var(--ink)!important}
+html[data-skin="editorial"] .mom.mio{box-shadow:none!important;border:0!important;border-left:6px solid var(--accent)!important;padding-left:10px}
+html[data-skin="editorial"] .etq{border-radius:0;letter-spacing:.08em;text-transform:uppercase}
+html[data-skin="editorial"] .ajeno{opacity:.5;background-image:repeating-linear-gradient(135deg,transparent 0 9px,rgba(0,0,0,.05) 9px 10px)}
+
+/* ---- Aurora ---- */
+html[data-skin="aurora"]{--bg:#eef0fb;--card:rgba(255,255,255,.62);--ink:#1c1a3a;--muted:#68668e;--line:rgba(90,80,170,.14);--accent:#6a4cff;--accent-soft:rgba(106,76,255,.11);
+  --ok:#00a58c;--ok-soft:rgba(0,165,140,.12);--new:#ff4f86;--new-soft:rgba(255,79,134,.12);--on-accent:#fff;--on-ok:#fff;--radius:22px;
+  --round:"SF Pro Rounded",ui-rounded,-apple-system,"Segoe UI",sans-serif;color-scheme:light}
+html[data-skin="aurora"] body{font-family:var(--round)}
+html[data-skin="aurora"] body::before{content:"";position:fixed;inset:-20%;z-index:-1;pointer-events:none;filter:blur(40px);
+  background:radial-gradient(35% 30% at 18% 12%,#c9b8ff,transparent 70%),radial-gradient(35% 30% at 90% 22%,#ffd0e0,transparent 70%),radial-gradient(40% 35% at 70% 90%,#b9f3e6,transparent 70%),radial-gradient(30% 25% at 10% 80%,#ffe7c2,transparent 70%)}
+html[data-skin="aurora"] header{background:rgba(255,255,255,.45)}
+html[data-skin="aurora"] .top h1{font-weight:800;color:#5b3df0;letter-spacing:-.02em}
+html[data-skin="aurora"] .scene,html[data-skin="aurora"] .vrow,html[data-skin="aurora"] .serie,html[data-skin="aurora"] .desp,html[data-skin="aurora"] .pcard,html[data-skin="aurora"] .search,html[data-skin="aurora"] .iconbtn,html[data-skin="aurora"] .chip,html[data-skin="aurora"] .yo{
+  backdrop-filter:blur(18px) saturate(1.5);-webkit-backdrop-filter:blur(18px) saturate(1.5);border-color:rgba(255,255,255,.8);box-shadow:0 8px 30px rgba(70,50,170,.08)}
+html[data-skin="aurora"] .chip[aria-pressed="true"],html[data-skin="aurora"] .vistas button[aria-pressed="true"]{background:linear-gradient(135deg,#6a4cff,#a64cff);color:#fff;border-color:transparent;box-shadow:0 6px 18px rgba(106,76,255,.35)}
+html[data-skin="aurora"] .vistas{background:rgba(255,255,255,.45);border-radius:16px}
+html[data-skin="aurora"] .vistas button{border-radius:13px}
+html[data-skin="aurora"] .num{border-radius:16px;background:linear-gradient(135deg,rgba(106,76,255,.16),rgba(255,79,134,.14))}
+html[data-skin="aurora"] .serie b{background:linear-gradient(160deg,#6a4cff,#ff4f86);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:64px}
+html[data-skin="aurora"] .mn{background:linear-gradient(90deg,rgba(106,76,255,.14),rgba(255,79,134,.12))}
+html[data-skin="aurora"] .voz{font-weight:700;letter-spacing:-.01em}
+html[data-skin="aurora"] .shot input{border-radius:50%}
+html[data-skin="aurora"] .listo{border:0;background:rgba(255,255,255,.7);color:var(--accent);box-shadow:0 8px 24px rgba(70,50,170,.12)}
+html[data-skin="aurora"] .listo[aria-pressed="true"]{background:linear-gradient(135deg,#00b894,#00a0c8);color:#fff;box-shadow:0 10px 26px rgba(0,165,140,.35)}
+html[data-skin="aurora"] .navfijo{background:rgba(255,255,255,.55)}
+html[data-skin="aurora"] .navfijo .navb,html[data-skin="aurora"] .navm .navb{background:linear-gradient(135deg,#6a4cff,#a64cff);color:#fff;border:0;border-radius:18px;box-shadow:0 8px 20px rgba(106,76,255,.35)}
+html[data-skin="aurora"] :is(.vrow,.scene,.vg,.vtit).mio{border-color:transparent!important;box-shadow:0 0 0 2px #6a4cff,0 14px 36px rgba(106,76,255,.28)!important;background:linear-gradient(135deg,rgba(255,255,255,.85),rgba(232,226,255,.8))!important}
+html[data-skin="aurora"] .mom.mio{box-shadow:none!important;background:none!important;border-left:5px solid #6a4cff}
+html[data-skin="aurora"] .etq.mio{background:linear-gradient(135deg,#6a4cff,#ff4f86)}
+html[data-skin="aurora"] .ajeno{opacity:.45;filter:grayscale(.6)}
+html[data-skin="aurora"] .modal .sheet{background:rgba(255,255,255,.9)}
+html[data-skin="neon"] .ccard{backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+html[data-skin="cine"] .ccard{box-shadow:0 20px 40px rgba(0,0,0,.35)}
+html[data-skin="editorial"] .ccard{border:1.5px solid var(--ink);border-radius:0}
+html[data-skin="aurora"] .ccard{backdrop-filter:blur(18px) saturate(1.5);-webkit-backdrop-filter:blur(18px) saturate(1.5);border-color:rgba(255,255,255,.8);box-shadow:0 8px 30px rgba(70,50,170,.08)}
+
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <h1 id="titulo"><span id="ttxt">Plan de rodaje</span><span class="sub2"><button class="yo" id="yo" data-cambiar hidden></button><small id="sub"></small></span></h1>
+    <button class="iconbtn" id="btnShare" aria-label="Compartir sábana de montaje" title="Compartir sábana de montaje"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3.5M7.5 8 12 3.5 16.5 8M5 12.5V19a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-6.5"/></svg></button>
+    <button class="iconbtn skinbtn" id="btnSkin" aria-label="Cambiar estilo" aria-expanded="false"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"/></svg></button>
+    <button class="iconbtn" id="btnSync" aria-label="Actualizar lista y equipo"><span id="syncIco">↻</span><span class="pend" id="pend" hidden></span></button>
+  </div>
+  <div class="progress"><button class="avance" id="avance" aria-label="Cambiar entre planos de hoy y planos totales"></button></div>
+  <div class="vistas" id="vistas"><button data-v="plan">Plan</button><button data-v="equipo">Equipo</button><button data-v="control">Control</button></div>
+  <div class="sbar" id="sbar" aria-hidden="true"><i></i></div>
+</header>
+<nav class="filters" id="filtros" aria-label="Filtros"></nav>
+<input class="search" id="buscar" type="search" placeholder="Buscar video, voz en off o plano…" autocomplete="off">
+<main id="app"></main>
+<div class="toast" id="toast"></div>
+<div id="modal"></div>
+<div id="skinpop" class="skinpop" hidden role="dialog" aria-label="Estilo">
+  <div class="sk-row">
+    <button class="sk" data-skin="papel" aria-label="Papel"><i></i></button>
+    <button class="sk" data-skin="neon" aria-label="Futurista"><i></i></button>
+    <button class="sk" data-skin="cine" aria-label="Noche de cine"><i></i></button>
+    <button class="sk" data-skin="editorial" aria-label="Editorial, alto contraste"><i></i></button>
+    <button class="sk" data-skin="aurora" aria-label="Aurora"><i></i></button>
+  </div>
+  <button class="sk-op" id="opAjeno" aria-pressed="true"><span>Atenuar videos de otros<small>Apágalo si cuesta leerlos</small></span><i></i></button>
+</div>
+
+<script id="datos-base" type="application/json">{"version": "2026-11-22 · v1", "proyecto": "Planimetría", "mensaje": "Cuidar nos mueve.", "rodaje": "Cali Somos Todos", "sync": "https://script.google.com/macros/s/AKfycbzD4gfLbKwubf2Q0dc3ZnlBani7n3uWrL_XgRg_xU2ZUIoKe8rqNwZpWrRkZS67emApgg/exec", "vapid": "BHU_psSX_IN3ZLJO7dx4eaGv6Bx3EEowd7dZsOYE5m1BqVsHDcpPZ0k9fmQBq4z5aHfacpKCNgd3_vOoaBcRjEY", "equipo": ["Valentina Hoyos", "Alejandra Rivera", "Jorge Girón"], "momentos": [{"id": "1-1/1", "video": "1-1", "nombre": "Reconocer lo que sentimos", "momento": "1", "voz": "«…el cuerpo baila a otro son.»", "duracion": "", "total": "", "yaHay": [], "planos": ["Persona parada frente a la cámara en timelapse, al rededor la gente se mueve a toda velocidad", "Boca haciendo gestos, sonriendo", "Pies quietos en una esquina de Cali, con mucho movimiento alrededor: motos, bicicletas, autos, gente que pasa. Ambiente de ciudad"], "guion": ["Pies quietos en una esquina de Cali, con mucho movimiento alrededor: motos, bicicletas, autos, gente que pasa. Ambiente de ciudad"], "editados": []}, {"id": "1-1/2", "video": "1-1", "nombre": "Reconocer lo que sentimos", "momento": "2", "voz": "«¿Qué siente tu pecho?»", "duracion": "", "total": "", "yaHay": [], "planos": ["Manos que aprietan un bolso contra el pecho en la calle", "Paradas callejeras del MIO: manos que aprietan el bolso contra el pecho, solo la mano y el bolso"], "guion": ["Paradas callejeras del MIO: manos que aprietan el bolso contra el pecho, solo la mano y el bolso"], "editados": []}, {"id": "1-1/3", "video": "1-1", "nombre": "Reconocer lo que sentimos", "momento": "3", "voz": "«¿Cómo están tus manos?»", "duracion": "", "total": "", "yaHay": [], "planos": ["Dedos tamborileando sobre la pierna", "Un bus del MIO llega y se detiene; dentro, manos que se aferran a los tubos"], "guion": ["Un bus del MIO llega y se detiene; dentro, manos que se aferran a los tubos"], "editados": []}, {"id": "1-1/4", "video": "1-1", "nombre": "Reconocer lo que sentimos", "momento": "4", "voz": "«¿Cómo se siente tu estómago?»", "duracion": "", "total": "", "yaHay": [], "planos": ["Una mujer embarazada", "Brazos cruzados sobre el abdomen de dos personas en la banca de un parque"], "guion": ["Brazos cruzados sobre el abdomen de dos personas en la banca de un parque"], "editados": []}, {"id": "1-1/5", "video": "1-1", "nombre": "Reconocer lo que sentimos", "momento": "5", "voz": "«…eso no significa que tu cuerpo esté mal.»", "duracion": "", "total": "", "yaHay": [], "planos": ["Planos generales de calles, edificios y gente que camina, pasa o espera.", "Planos generales de la ciudad: calles, edificios y personas que caminan, pasan o esperan"], "guion": ["Planos generales de la ciudad: calles, edificios y personas que caminan, pasan o esperan"], "editados": []}, {"id": "1-1/6", "video": "1-1", "nombre": "Reconocer lo que sentimos", "momento": "6", "voz": "«…Línea 106. Eso también es cuidarte.»", "duracion": "", "total": "", "yaHay": [], "planos": ["Alguien en el celular", "Regresan los pies quietos: empiezan a caminar y se pierden entre la gente", "Luz de la tarde sobre una ciudad en movimiento"], "guion": ["Regresan los pies quietos: empiezan a caminar y se pierden entre la gente", "Luz de la tarde sobre una ciudad en movimiento"], "editados": []}, {"id": "1-2/0", "video": "1-2", "nombre": "Anclarse", "momento": "0", "voz": "0–14 s (antes de la primera frase de la voz)", "duracion": "", "total": "", "yaHay": [], "planos": ["Pasajes de un barrio popular al oriente de Cali: hileras de casas cuyas fachadas se miran entre sí"], "guion": ["Pasajes de un barrio popular al oriente de Cali: hileras de casas cuyas fachadas se miran entre sí"], "editados": []}, {"id": "1-2/1", "video": "1-2", "nombre": "Anclarse", "momento": "1", "voz": "14–22 s «¿No te pasa que a veces estás en algún parche… pero tu cabeza…»", "duracion": "", "total": "", "yaHay": ["Olla con humo y grupo al fondo"], "planos": ["Persona del grupo mirando a lo lejos", "Perfil con mirada perdida", "Manos con una ramita", "Grupo riendo desenfocado y una persona en silencio"], "guion": [], "editados": []}, {"id": "1-2/2", "video": "1-2", "nombre": "Anclarse", "momento": "2", "voz": "22–28 s «…se van a lo que pasó… podría pasar»", "duracion": "", "total": "", "yaHay": ["Río con montaña"], "planos": ["Alguien que mira atrás y vuelve al frente", "Cerrar y abrir los ojos con ramas moviéndose"], "guion": [], "editados": []}, {"id": "1-2/3", "video": "1-2", "nombre": "Anclarse", "momento": "3", "voz": "28–33 s «…en el suelo… ¿qué textura tiene?»", "duracion": "", "total": "", "yaHay": ["Pies sobre la tierra"], "planos": ["Pies descalzos sobre pasto húmedo, cámara baja", "Mano sobre corteza o piedra tibia", "A la orilla del río, pies descalzos apoyados sobre la arena; los dedos se mueven despacio, sintiendo la textura"], "guion": ["A la orilla del río, pies descalzos apoyados sobre la arena; los dedos se mueven despacio, sintiendo la textura"], "editados": []}, {"id": "1-2/4", "video": "1-2", "nombre": "Anclarse", "momento": "4", "voz": "34–39 s «…o si está frío»", "duracion": "", "total": "", "yaHay": ["Agua corriendo, mano en el agua"], "planos": ["Mano sacando agua y dejándola caer, en cámara lenta", "Una mano que toca el agua fría, jugando con la corriente", "La leña que truena bajo la olla"], "guion": ["Una mano que toca el agua fría, jugando con la corriente", "La leña que truena bajo la olla"], "editados": []}, {"id": "1-2/5", "video": "1-2", "nombre": "Anclarse", "momento": "5", "voz": "39–45 s «…lo que tocás… lo que escuchás… momento»", "duracion": "", "total": "", "yaHay": ["Bambú y flor roja entre piedras"], "planos": ["Ojos cerrados escuchando el río", "Hojas de bambú moviéndose"], "guion": [], "editados": []}, {"id": "1-2/6", "video": "1-2", "nombre": "Anclarse", "momento": "6", "voz": "45–47 s «Respirá»", "duracion": "", "total": "", "yaHay": ["Río a contraluz"], "planos": ["Hombros y pecho de alguien que respira hondo y suelta el aire"], "guion": [], "editados": []}, {"id": "1-2/7", "video": "1-2", "nombre": "Anclarse", "momento": "7", "voz": "48–51 s «…lo que nos pasó»", "duracion": "", "total": "", "yaHay": ["Sancocho en la olla"], "planos": ["Servir un plato a otra persona: manos, vapor, sonrisas", "El sancocho hierve en la olla", "Unas manos toman agua del río para humedecer una piedra seca y recorrer su superficie con delicadeza"], "guion": ["El sancocho hierve en la olla", "Unas manos toman agua del río para humedecer una piedra seca y recorrer su superficie con delicadeza"], "editados": []}, {"id": "1-2/8", "video": "1-2", "nombre": "Anclarse", "momento": "8", "voz": "52–58 s «…de sentir miedo… cuando la vida…»", "duracion": "", "total": "", "yaHay": ["Ciclistas, puente colgante"], "planos": ["Grupo caminando junto o cruzando el puente, de espaldas y de frente"], "guion": [], "editados": []}, {"id": "1-2/9", "video": "1-2", "nombre": "Anclarse", "momento": "9", "voz": "58–61 s «…no baja… también es cuidarte»", "duracion": "", "total": "", "yaHay": ["Agua sobre una roca, río con montaña"], "planos": ["Persona que sonríe suave mirando el río, luz cálida"], "guion": [], "editados": []}, {"id": "1-3/1", "video": "1-3", "nombre": "Soltar el anzuelo", "momento": "1", "voz": "«¿Últimamente te pasa que antes de salir…?»", "duracion": "", "total": "", "yaHay": [], "planos": ["Burbujas del sancocho en detalle", "Humo de la leña sobre las piedras", "Olla de sancocho hirviendo en fogón de piedras", "Plano general del río con gente y montañas", "La corriente entre las piedras"], "guion": ["Olla de sancocho hirviendo en fogón de piedras", "Plano general del río con gente y montañas", "La corriente entre las piedras"], "editados": []}, {"id": "1-3/2", "video": "1-3", "nombre": "Soltar el anzuelo", "momento": "2", "voz": "«Un pito por si pasa algo, agua de reserva…»", "duracion": "", "total": "", "yaHay": [], "planos": ["Postes con cables vistos desde abajo", "Un gato en una ventana", "Un perro dormido en la acera", "Cables que salen de los postes", "Perros y gatos del barrio"], "guion": ["Cables que salen de los postes", "Perros y gatos del barrio"], "editados": []}, {"id": "1-3/3", "video": "1-3", "nombre": "Soltar el anzuelo", "momento": "3", "voz": "«…como una mamá preocupada…»", "duracion": "", "total": "", "yaHay": [], "planos": ["Mano que paga en la tienda", "Estantes con productos, sin rostros", "Gente comprando en las tiendas del barrio"], "guion": ["Gente comprando en las tiendas del barrio"], "editados": []}, {"id": "1-3/4", "video": "1-3", "nombre": "Soltar el anzuelo", "momento": "4", "voz": "«Probá esto: ¿cuál es el pensamiento que más te enreda?»", "duracion": "", "total": "", "yaHay": [], "planos": ["Pies esperando en una parada", "Un bus que llega", "Personas esperando transporte en calles principales"], "guion": ["Personas esperando transporte en calles principales"], "editados": []}, {"id": "1-3/5", "video": "1-3", "nombre": "Soltar el anzuelo", "momento": "5", "voz": "«…escribí esa misma frase como si vieras desde afuera…»", "duracion": "", "total": "", "yaHay": [], "planos": ["Escoba barriendo la entrada", "Esponja y agua sobre una moto", "Gente que barre la entrada de su casa o lava su moto"], "guion": ["Gente que barre la entrada de su casa o lava su moto"], "editados": []}, {"id": "1-3/6", "video": "1-3", "nombre": "Soltar el anzuelo", "momento": "6", "voz": "«Vale la pena darle las gracias a tu mente…»", "duracion": "", "total": "", "yaHay": [], "planos": ["Fachadas con ropa tendida", "Una puerta que se abre", "Hileras de fachadas que se miran entre sí en los pasajes del barrio"], "guion": ["Hileras de fachadas que se miran entre sí en los pasajes del barrio"], "editados": []}, {"id": "1-4/1", "video": "1-4", "nombre": "Sentir sin pelear", "momento": "1", "voz": "«¿Cuando llega diciembre no te pasa…?»", "duracion": "", "total": "", "yaHay": [], "planos": ["Luces de navidad entre los postes", "Pasos de gente con bolsas", "Centro de Cali con luces y ofertas navideñas", "Gente, carros y buses del MIO"], "guion": ["Centro de Cali con luces y ofertas navideñas", "Gente, carros y buses del MIO"], "editados": []}, {"id": "1-4/2", "video": "1-4", "nombre": "Sentir sin pelear", "momento": "2", "voz": "«…nostalgia, miedo o frustración por lo vivido.»", "duracion": "", "total": "", "yaHay": [], "planos": ["Adornos y árboles en detalle, con luces que parpadean", "Vitrina con pesebre", "Árboles de navidad de distintos tipos"], "guion": ["Árboles de navidad de distintos tipos"], "editados": []}, {"id": "1-4/3", "video": "1-4", "nombre": "Sentir sin pelear", "momento": "3", "voz": "«…podés probar esto:»", "duracion": "", "total": "", "yaHay": [], "planos": ["Cruce peatonal con multitud", "Buses que pasan", "Planos generales de calles llenas de gente que va y viene entre el comercio"], "guion": ["Planos generales de calles llenas de gente que va y viene entre el comercio"], "editados": []}, {"id": "1-4/4", "video": "1-4", "nombre": "Sentir sin pelear", "momento": "4", "voz": "«Ubicá lo que sentís en tu cuerpo…»", "duracion": "", "total": "", "yaHay": [], "planos": ["Una persona quieta en medio del flujo de gente", "Mano sobre el pecho en una banca", "Calles, edificios y personas del centro, sin el comercio decembrino"], "guion": ["Calles, edificios y personas del centro, sin el comercio decembrino"], "editados": []}, {"id": "1-5/1", "video": "1-5", "nombre": "Valores", "momento": "1", "voz": "«Sí, el sismo cambió tantas cosas…»", "duracion": "", "total": "", "yaHay": [], "planos": ["Persianas y ropa al sol en un barrio de ladera", "Sombra de un árbol sobre una pared", "Fachadas de un barrio de ladera iluminadas por el sol, día de calor"], "guion": ["Fachadas de un barrio de ladera iluminadas por el sol, día de calor"], "editados": []}, {"id": "1-5/2", "video": "1-5", "nombre": "Valores", "momento": "2", "voz": "«¿Qué te mueve: la familia, el trabajo…?»", "duracion": "", "total": "", "yaHay": [], "planos": ["Pies que caminan rápido por la sombra", "Alguien que se abanica", "Gente del barrio que se mueve con prisa al mediodía porque el sol pega duro"], "guion": ["Gente del barrio que se mueve con prisa al mediodía porque el sol pega duro"], "editados": []}, {"id": "1-5/3", "video": "1-5", "nombre": "Valores", "momento": "3", "voz": "«Cuando lo sepás, podés pensar…»", "duracion": "", "total": "", "yaHay": [], "planos": ["Cuchillas del carrito de cholado en detalle", "Vasos alineados", "Carrito de cholados: manos que ponen hielo en las cuchillas y el hielo raspado cayendo en el vaso"], "guion": ["Carrito de cholados: manos que ponen hielo en las cuchillas y el hielo raspado cayendo en el vaso"], "editados": []}, {"id": "1-5/4", "video": "1-5", "nombre": "Valores", "momento": "4", "voz": "«Conectate con eso que te importa día a día.»", "duracion": "", "total": "", "yaHay": [], "planos": ["Miel de colores cayendo en cámara lenta", "Manos que se pasan el vaso", "Miel de colores que cae sobre el hielo", "La mano que entrega el cholado a otras manos"], "guion": ["Miel de colores que cae sobre el hielo", "La mano que entrega el cholado a otras manos"], "editados": []}, {"id": "1-6/1", "video": "1-6", "nombre": "Hábitos", "momento": "1", "voz": "«…a veces nos pesa la rutina…»", "duracion": "", "total": "", "yaHay": [], "planos": ["Rueda de moto en movimiento", "Semáforo que cambia de color", "Dos o tres planos breves de carros y motos que avanzan rápido; ambiente algo caótico"], "guion": ["Dos o tres planos breves de carros y motos que avanzan rápido; ambiente algo caótico"], "editados": []}, {"id": "1-6/2", "video": "1-6", "nombre": "Hábitos", "momento": "2", "voz": "«Pero ve, podés comenzar por algo chiquito…»", "duracion": "", "total": "", "yaHay": [], "planos": ["Un pájaro en una rama", "Banca con hojas caídas", "Un perrito o un pájaro en un parque", "Alguien sentado en una banca o caminando con calma", "Cámara quieta y a distancia"], "guion": ["Un perrito o un pájaro en un parque", "Alguien sentado en una banca o caminando con calma", "Cámara quieta y a distancia"], "editados": []}, {"id": "1-6/3", "video": "1-6", "nombre": "Hábitos", "momento": "3", "voz": "«Buscá un hábito que te dé energía…»", "duracion": "", "total": "", "yaHay": [], "planos": ["Pies de alguien que trota", "Perro que corre con su dueño a lo lejos", "Parque habitado: alguien paseando a su perro, trotando o caminando. Planos abiertos"], "guion": ["Parque habitado: alguien paseando a su perro, trotando o caminando. Planos abiertos"], "editados": []}, {"id": "1-6/4", "video": "1-6", "nombre": "Hábitos", "momento": "4", "voz": "«Hacelo junto con algo que ya hagás…»", "duracion": "", "total": "", "yaHay": [], "planos": ["Taza de café humeante", "Bicicleta que pasa de fondo", "Voces del parque", "Manos que toman un café", "Una persona que pasa en bicicleta"], "guion": ["Voces del parque", "Manos que toman un café", "Una persona que pasa en bicicleta"], "editados": []}, {"id": "1-6/5", "video": "1-6", "nombre": "Hábitos", "momento": "5", "voz": "«…recuperar el equilibrio comienza por las cosas más pequeñas.»", "duracion": "", "total": "", "yaHay": [], "planos": ["Gotas cayendo sobre el agua", "Hojas flotando en la fuente", "Plano detalle del agua de una fuente, cámara quieta"], "guion": ["Plano detalle del agua de una fuente, cámara quieta"], "editados": []}, {"id": "1-7/1", "video": "1-7", "nombre": "Acompañar", "momento": "1", "voz": "«¿Sabés cómo acompañar a alguien que la está pasando mal?»", "duracion": "", "total": "", "yaHay": ["0:00 Plaza con monumento y palmas", "0:03–0:06 Dos hombres de espaldas en una banca de piedra"], "planos": ["Detalle de las manos de uno de ellos sobre la banca", "Palmeras moviéndose, para cortar el plano largo", "Dos personas conversando en un espacio público, de espaldas y desde lejos"], "guion": ["Dos personas conversando en un espacio público, de espaldas y desde lejos"], "editados": []}, {"id": "1-7/2", "video": "1-7", "nombre": "Acompañar", "momento": "2", "voz": "«Si no lo sabés del todo está bien, no tenés que tener todas las respuestas.»", "duracion": "", "total": "", "yaHay": ["0:09–0:12 Dos mujeres de espaldas en una banca frente a la fuente"], "planos": ["Fuente con el agua cayendo", "Pasos de gente al fondo"], "guion": [], "editados": []}, {"id": "1-7/3", "video": "1-7", "nombre": "Acompañar", "momento": "3", "voz": "«Podés, por ejemplo, ofrecerle un lugar tranquilo para estar, y preguntarle qué necesita.»", "duracion": "", "total": "", "yaHay": ["0:15 Placa «Parque de los Poetas»", "0:18–0:21 Banca vacía con un edificio amarillo al fondo"], "planos": ["Alguien que pasa en bicicleta al fondo", "Hojas sobre la banca", "Banca vacía en un parque o bulevar, con la vida normal al fondo: personas que caminan o pasan en bicicleta"], "guion": ["Banca vacía en un parque o bulevar, con la vida normal al fondo: personas que caminan o pasan en bicicleta"], "editados": []}, {"id": "1-7/4", "video": "1-7", "nombre": "Acompañar", "momento": "4", "voz": "«Escuchá, pero sin presionar. Y si esa persona prefiere el silencio, quedate ahí al ladito, eso basta.»", "duracion": "", "total": "", "yaHay": ["0:24–0:30 Hombre mayor sentado con su perro frente a una puerta roja (un solo plano de unos 9 s)"], "planos": ["Cortar el plano largo: la correa o la pata del perro", "Zapatos del señor y el bordillo de la calle", "Otro espacio con bancas (estación del MIO o sillas afuera de una casa), dos personas compartiendo sin rostros de cerca"], "guion": ["Otro espacio con bancas (estación del MIO o sillas afuera de una casa), dos personas compartiendo sin rostros de cerca"], "editados": []}, {"id": "1-7/5", "video": "1-7", "nombre": "Acompañar", "momento": "5", "voz": "«A veces, la ayuda también es algo práctico: ofrecer un vaso con agua, algo de comer…»", "duracion": "", "total": "", "yaHay": ["0:33 Vendedor de guarapo sirviendo un vaso", "0:36 Ofrece el vaso a cámara"], "planos": ["Detalle del guarapo cayendo al vaso", "Manos recibiendo el vaso", "Vendedor de guarapo; el gesto de servir un vaso, sin primer plano del rostro"], "guion": ["Vendedor de guarapo; el gesto de servir un vaso, sin primer plano del rostro"], "editados": []}, {"id": "1-7/6", "video": "1-7", "nombre": "Acompañar", "momento": "6", "voz": "«…o información confiable.»", "duracion": "", "total": "", "yaHay": ["0:39 Comedero de aves junto al río"], "planos": ["Aves en el comedero, primer plano", "La corriente del río"], "guion": [], "editados": []}, {"id": "1-7/7", "video": "1-7", "nombre": "Acompañar", "momento": "7", "voz": "«Si esa persona necesita otro tipo de apoyos, busquen ayuda juntos.»", "duracion": "", "total": "", "yaHay": ["0:42–0:45 Adulta y niña caminando de la mano entre puestos con sombrillas"], "planos": ["Sombrillas y puestos de la calle", "Cielo con aves, como indica el guion", "Cielo en un lugar de Cali donde se oigan aves, encuadre amplio y sereno"], "guion": ["Cielo en un lugar de Cali donde se oigan aves, encuadre amplio y sereno"], "editados": []}, {"id": "1-7/8", "video": "1-7", "nombre": "Acompañar", "momento": "8", "voz": "«En Cali pueden comunicarse con la Línea 106, que brinda orientación en salud mental.»", "duracion": "", "total": "", "yaHay": ["0:48 Edificio alto de fachada de ladrillo"], "planos": ["Ventanas del edificio", "Cielo detrás del edificio"], "guion": [], "editados": []}, {"id": "1-7/9", "video": "1-7", "nombre": "Acompañar", "momento": "9", "voz": "«Acompañar también es cuidar.»", "duracion": "", "total": "", "yaHay": ["0:51 Árbol a contraluz con sol", "0:54 Árbol y edificio piramidal al atardecer"], "planos": ["Aves cruzando el cielo, si se logra", "Otro fragmento de cielo, quizá con aves cruzando a lo lejos"], "guion": ["Otro fragmento de cielo, quizá con aves cruzando a lo lejos"], "editados": []}, {"id": "1-8/1", "video": "1-8", "nombre": "Formas de ayuda", "momento": "1", "voz": "«¿Te ha pasado que por querer ayudar al otro, decís algo que era mejor callar?»", "duracion": "", "total": "", "yaHay": ["0:00–0:03 Árbol visto desde abajo", "0:06 Cerro con edificios", "0:09 Pasajeros bajando de un bus del MIO"], "planos": ["Puertas del bus abriéndose (detalle)", "Estación del MIO vista desde la calle: buses que llegan, se detienen y parten"], "guion": ["Estación del MIO vista desde la calle: buses que llegan, se detienen y parten"], "editados": []}, {"id": "1-8/2", "video": "1-8", "nombre": "Formas de ayuda", "momento": "2", "voz": "«Cuando pensás en acompañar y ayudar, hay una serie de cosas que conviene evitar.»", "duracion": "", "total": "", "yaHay": ["0:12–0:15 Pasajeros subiendo y bajando del MIO"], "planos": ["Pies subiendo al bus", "Mano en el pasamanos"], "guion": [], "editados": []}, {"id": "1-8/3", "video": "1-8", "nombre": "Formas de ayuda", "momento": "3", "voz": "«No es bueno que obliguemos al otro a contar lo que vivió. Respetar el silencio es saber escuchar.»", "duracion": "", "total": "", "yaHay": ["0:18 Pie con tenis en la plataforma", "0:21 Pared azul de la estación"], "planos": ["Sombras de gente sobre el piso (como en el guion)", "El suelo de una calle con las sombras de varias personas que caminan en distintas direcciones"], "guion": ["El suelo de una calle con las sombras de varias personas que caminan en distintas direcciones"], "editados": []}, {"id": "1-8/4", "video": "1-8", "nombre": "Formas de ayuda", "momento": "4", "voz": "«Frases como \"Ya pasó\" o \"Hay gente que lo está pasando peor\" pueden generar una sensación de incomprensión y desanimar más a quien las recibe.»", "duracion": "", "total": "", "yaHay": ["0:24 Carrito de helados frente a una casa", "0:27–0:30 Bus detenido con las puertas abiertas"], "planos": ["Vendedor de mazamorra alejándose (falta; lo pide el guion)", "Un vendedor de mazamorra que pasa por una cuadra; la cámara lo sigue mientras se aleja"], "guion": ["Un vendedor de mazamorra que pasa por una cuadra; la cámara lo sigue mientras se aleja"], "editados": []}, {"id": "1-8/5", "video": "1-8", "nombre": "Formas de ayuda", "momento": "5", "voz": "«Tampoco des un consejo si no te lo han pedido, ni mucho menos intentes dar un diagnóstico de lo que le pasa al otro.»", "duracion": "", "total": "", "yaHay": ["0:33–0:36 Parada con una banca y personas sentadas a lo lejos"], "planos": ["Cancha de barrio (falta; lo pide el guion)", "Banca vacía de la parada", "Grupo jugando baloncesto o fútbol en una cancha de barrio, desde una distancia prudente"], "guion": ["Grupo jugando baloncesto o fútbol en una cancha de barrio, desde una distancia prudente"], "editados": []}, {"id": "1-8/6", "video": "1-8", "nombre": "Formas de ayuda", "momento": "6", "voz": "«Preguntarle a esa persona qué necesita, es una buena forma de comenzar.»", "duracion": "", "total": "", "yaHay": ["0:39–0:42 Dos mujeres de espaldas sentadas mirando la ciudad"], "planos": ["Detalle de sus manos sobre las rodillas"], "guion": [], "editados": []}, {"id": "1-8/7", "video": "1-8", "nombre": "Formas de ayuda", "momento": "7", "voz": "«Y vos, que estás acompañando, no te olvidés de que tu descanso también es importante, vos también podés hacer una pausa, y pedir apoyo.»", "duracion": "", "total": "", "yaHay": ["0:45 Fuente con chorros", "0:48 Cerros y edificios", "0:51 Árbol a contraluz"], "planos": ["Detalle del agua de la fuente", "Plano abierto y tranquilo de un parque: árboles, una fuente o el movimiento del agua, con gente a lo lejos"], "guion": ["Plano abierto y tranquilo de un parque: árboles, una fuente o el movimiento del agua, con gente a lo lejos"], "editados": []}, {"id": "1-8/8", "video": "1-8", "nombre": "Formas de ayuda", "momento": "8", "voz": "«Cuidar la forma en que ayudamos sí importa.»", "duracion": "", "total": "", "yaHay": ["0:54 Calle de barrio con casas bajas"], "planos": ["Atardecer sobre los cerros (falta)", "Atardecer desde un barrio; si se puede, vista a los cerros"], "guion": ["Atardecer desde un barrio; si se puede, vista a los cerros"], "editados": []}, {"id": "1-9/1", "video": "1-9", "nombre": "Inmersión en la naturaleza", "momento": "1", "voz": "«¿En estos últimos días, te has regalado un momento para vos?»", "duracion": "", "total": "", "yaHay": ["0:00 Cielo entre árboles visto desde abajo", "0:03 Copas de árboles"], "planos": ["Hojas moviéndose en primer plano", "Plano fijo del cielo entre muchos árboles, con ramas y hojas que se mueven con el viento"], "guion": ["Plano fijo del cielo entre muchos árboles, con ramas y hojas que se mueven con el viento"], "editados": []}, {"id": "1-9/2", "video": "1-9", "nombre": "Inmersión en la naturaleza", "momento": "2", "voz": "«Sería chévere, y más si lo hacés en un lugar que te conecte con lo natural.»", "duracion": "", "total": "", "yaHay": ["0:06 Agua clara sobre piedras y un tronco", "0:09 Banca de madera junto al río"], "planos": ["Espaldar de la banca en detalle"], "guion": [], "editados": []}, {"id": "1-9/3", "video": "1-9", "nombre": "Inmersión en la naturaleza", "momento": "3", "voz": "«Elegí un lugar de Cali que te guste, un parque de tu barrio, un sendero entre los árboles o al lado del río.»", "duracion": "", "total": "", "yaHay": ["0:12 Rocas con agua corriendo", "0:15–0:18 Dos mujeres de espaldas caminando por un sendero de bambú"], "planos": ["Pies sobre el sendero", "Bambú desde abajo", "Plano fijo y cerrado del río, el agua pasando entre las piedras"], "guion": ["Plano fijo y cerrado del río, el agua pasando entre las piedras"], "editados": []}, {"id": "1-9/4", "video": "1-9", "nombre": "Inmersión en la naturaleza", "momento": "4", "voz": "«Quedate ahí unos 20 o 30 minutos, mirá cómo se mueven las hojas con la brisa,»", "duracion": "", "total": "", "yaHay": ["0:21 Superficie del río con brillo", "0:24 Sol entre ramas y rocas"], "planos": ["Hojas con la brisa, plano fijo corto", "Secuencia pausada: luz entre las hojas, sombras sobre un camino, agua desde un punto seguro, montañas al fondo"], "guion": ["Secuencia pausada: luz entre las hojas, sombras sobre un camino, agua desde un punto seguro, montañas al fondo"], "editados": []}, {"id": "1-9/5", "video": "1-9", "nombre": "Inmersión en la naturaleza", "momento": "5", "voz": "«…escuchá los sonidos del paisaje. Disfrutá ese momento, sin afán.»", "duracion": "", "total": "", "yaHay": ["0:27 Puente colgante con gente", "0:30–0:33 Reflejo del puente sobre el agua", "0:36 Bambú a contraluz"], "planos": ["Agua pasando bajo el puente"], "guion": [], "editados": []}, {"id": "1-9/6", "video": "1-9", "nombre": "Inmersión en la naturaleza", "momento": "6", "voz": "«El verde de Cali todavía está aquí para vos.»", "duracion": "", "total": "", "yaHay": ["0:39–0:45 Río entre árboles en sombra, con reflejos de luz"], "planos": ["Montañas al fondo (falta el plano general del guion)", "Cortar el plano de unos 6 s", "Plano general hacia las montañas"], "guion": ["Plano general hacia las montañas"], "editados": []}, {"id": "1-10/1", "video": "1-10", "nombre": "Silencio matutino", "momento": "1", "voz": "«¿…lo primero que hacés es mirar el celular?»", "duracion": "", "total": "", "yaHay": [], "planos": ["Primer rayo de sol sobre una fachada", "Celular que vibra sobre una mesa de noche", "Amanecer: calles sin gente y el cielo que se aclara. Se oyen pájaros y brisa"], "guion": ["Amanecer: calles sin gente y el cielo que se aclara. Se oyen pájaros y brisa"], "editados": []}, {"id": "1-10/2", "video": "1-10", "nombre": "Silencio matutino", "momento": "2", "voz": "«…antes de levantarte, ya tenés la cabeza llena…»", "duracion": "", "total": "", "yaHay": [], "planos": ["Una luz de ventana que se enciende", "Persiana que sube", "Ventanas ya encendidas en casas y edificios"], "guion": ["Ventanas ya encendidas en casas y edificios"], "editados": []}, {"id": "1-10/3", "video": "1-10", "nombre": "Silencio matutino", "momento": "3", "voz": "«Intentá esto durante siete días…»", "duracion": "", "total": "", "yaHay": [], "planos": ["Pan saliendo del horno", "Vitrina de una panadería", "La ciudad despierta: panaderías de un barrio atendiendo a sus clientes de la mañana"], "guion": ["La ciudad despierta: panaderías de un barrio atendiendo a sus clientes de la mañana"], "editados": []}, {"id": "1-10/4", "video": "1-10", "nombre": "Silencio matutino", "momento": "4", "voz": "«También podés escribir en un papelito…»", "duracion": "", "total": "", "yaHay": [], "planos": ["Papel y lápiz sobre una mesa", "Mano que escribe", "Buses del MIO llenos, gente que sube y baja en las paradas"], "guion": ["Buses del MIO llenos, gente que sube y baja en las paradas"], "editados": []}, {"id": "1-10/5", "video": "1-10", "nombre": "Silencio matutino", "momento": "5", "voz": "«Antes de que el mundo entre en tu cabeza…»", "duracion": "", "total": "", "yaHay": [], "planos": ["Cerros con la primera luz", "Aves que cruzan el cielo", "Imagen panorámica de Cali"], "guion": ["Imagen panorámica de Cali"], "editados": []}, {"id": "1-11/1", "video": "1-11", "nombre": "Movimiento consciente", "momento": "1", "voz": "«¿Sentís que dormís, pero aún así el cansancio no se va?»", "duracion": "", "total": "", "yaHay": ["0:00 Puente peatonal sobre el río", "0:03–0:06 Casa blanca con una paloma en la calle", "0:09 Tienda de barrio con gente y un perro"], "planos": ["Parque de barrio al amanecer (falta)", "Parques de barrio en la mañana, con la naturaleza cerca y la ciudad a lo lejos"], "guion": ["Parques de barrio en la mañana, con la naturaleza cerca y la ciudad a lo lejos"], "editados": []}, {"id": "1-11/2", "video": "1-11", "nombre": "Movimiento consciente", "momento": "2", "voz": "«A veces creemos que el miedo ya pasó, pero el cuerpo todavía siente su peso. Y está bien reconocerlo.»", "duracion": "", "total": "", "yaHay": ["0:12 Tienda de esquina", "0:15–0:18 Mesas de comida en la calle, moto y gente que pasa"], "planos": ["Pan o fruta recién comprados", "Gente que sale a comprar cosas en el barrio, mañana de domingo"], "guion": ["Gente que sale a comprar cosas en el barrio, mañana de domingo"], "editados": []}, {"id": "1-11/3", "video": "1-11", "nombre": "Movimiento consciente", "momento": "3", "voz": "«Hacer ejercicio debería ayudar un poco, pero a veces no es suficiente.»", "duracion": "", "total": "", "yaHay": ["0:21 Mujer caminando con su perro por la calle"], "planos": ["Gente estirando en un parque (falta)", "Parques llenos de gente que hace ejercicio"], "guion": ["Parques llenos de gente que hace ejercicio"], "editados": []}, {"id": "1-11/4", "video": "1-11", "nombre": "Movimiento consciente", "momento": "4", "voz": "«¿Y si hoy te movés para cuidarte, no para exigirte?»", "duracion": "", "total": "", "yaHay": ["0:24 Parque junto al río con árboles"], "planos": ["Pies caminando despacio"], "guion": [], "editados": []}, {"id": "1-11/5", "video": "1-11", "nombre": "Movimiento consciente", "momento": "5", "voz": "«Durante siete días, intentá dedicarle treinta minutos a caminar, bailar o estirar, a tu ritmo.»", "duracion": "", "total": "", "yaHay": ["0:27–0:30 Calle con conos amarillos y dos corredores", "0:33 Sendero entre bambú"], "planos": ["Ramas con brisa (falta)", "Ramas de los árboles mecidas por la brisa"], "guion": ["Ramas de los árboles mecidas por la brisa"], "editados": []}, {"id": "1-11/6", "video": "1-11", "nombre": "Movimiento consciente", "momento": "6", "voz": "«Agradecele a tu cuerpo al empezar y terminar. Escuchá tu respiración y anotá cómo te sentís.»", "duracion": "", "total": "", "yaHay": ["0:36 Ciclovía con un ciclista", "0:39 Palmas a contraluz"], "planos": ["Mano escribiendo en una libreta"], "guion": [], "editados": []}, {"id": "1-11/7", "video": "1-11", "nombre": "Movimiento consciente", "momento": "7", "voz": "«No te movás por rechazo a tu cuerpo. Movete porque merece cuidado.»", "duracion": "", "total": "", "yaHay": ["0:42–0:45 Calle empinada de barrio con cielo nublado"], "planos": ["Cielo azul sobre la calle (falta)", "Un gran cielo azul sobre las calles de la ciudad"], "guion": ["Un gran cielo azul sobre las calles de la ciudad"], "editados": []}, {"id": "1-12/1", "video": "1-12", "nombre": "Dieta mental", "momento": "1", "voz": "«¿Lo que consumís a diario te nutre o te deja con miedo?»", "duracion": "", "total": "", "yaHay": ["0:00 Gente sentada en escalones, una dibuja", "0:03 Puesto de moras en la galería"], "planos": ["Plano general de la ciudad (falta)", "Pantalla de celular con notificaciones", "Gran plano general de la ciudad con el ambiente agitado de sus calles; aparecen emojis de mensajes sin leer"], "guion": ["Gran plano general de la ciudad con el ambiente agitado de sus calles; aparecen emojis de mensajes sin leer"], "editados": []}, {"id": "1-12/2", "video": "1-12", "nombre": "Dieta mental", "momento": "2", "voz": "«Noticias, conversaciones y redes sociales… si recibís más de lo que podés procesar…»", "duracion": "", "total": "", "yaHay": ["0:06–0:09 Verdulero sosteniendo un repollo", "0:12 Cocinando papas sobre una hoja"], "planos": ["Montaña de fruta en un puesto", "Interior de la Galería Alameda: puestos de frutas y comida en abundancia"], "guion": ["Interior de la Galería Alameda: puestos de frutas y comida en abundancia"], "editados": []}, {"id": "1-12/3", "video": "1-12", "nombre": "Dieta mental", "momento": "3", "voz": "«…entonces eso que consumís no te nutre, te intoxica.»", "duracion": "", "total": "", "yaHay": ["0:15–0:18 Manos envolviendo comida en una hoja"], "planos": ["Un plato servido que alguien aparta"], "guion": [], "editados": []}, {"id": "1-12/4", "video": "1-12", "nombre": "Dieta mental", "momento": "4", "voz": "«Probá qué pasa cuando elegís hacer una pausa.»", "duracion": "", "total": "", "yaHay": ["0:21 Pasillo de la galería con banderines"], "planos": ["Café colándose (falta)", "Un café que se cuela en un puesto de comidas de la galería"], "guion": ["Un café que se cuela en un puesto de comidas de la galería"], "editados": []}, {"id": "1-12/5", "video": "1-12", "nombre": "Dieta mental", "momento": "5", "voz": "«Durante tres días, dedicale diez minutos a revisar lo que consumís. Calificá del uno al cinco cómo te hace sentir cada cosa que recibís.»", "duracion": "", "total": "", "yaHay": ["0:24–0:27 Puestos de frutas, ajíes y huevos"], "planos": ["Mano escribiendo una calificación en una libreta"], "guion": [], "editados": []}, {"id": "1-12/6", "video": "1-12", "nombre": "Dieta mental", "momento": "6", "voz": "«Activá el modo No Molestar en momentos específicos del día.»", "duracion": "", "total": "", "yaHay": ["0:30–0:33 Máquina de extraer jugo de caña", "0:36 Hombre descansando en una banca"], "planos": ["Celular boca abajo sobre una mesa"], "guion": [], "editados": []}, {"id": "1-12/7", "video": "1-12", "nombre": "Dieta mental", "momento": "7", "voz": "«Buscá un nuevo hobby.»", "duracion": "", "total": "", "yaHay": ["0:39 Calle con ciclovía y ciclista", "0:42 Cancha de voleibol"], "planos": ["Manos pintando o tejiendo"], "guion": [], "editados": []}, {"id": "1-12/8", "video": "1-12", "nombre": "Dieta mental", "momento": "8", "voz": "«No podés controlar todo lo que pasa, pero sí podés cuidar lo que dejás entrar en tu vida…»", "duracion": "", "total": "", "yaHay": ["0:45 Cancha de voleibol, jugadoras"], "planos": ["Parque al atardecer (falta)", "Parque al atardecer, con los árboles bañados por el sol"], "guion": ["Parque al atardecer, con los árboles bañados por el sol"], "editados": []}, {"id": "1-12/9", "video": "1-12", "nombre": "Dieta mental", "momento": "9", "voz": "«…quedate con el contenido que sea más nutritivo para vos.»", "duracion": "", "total": "", "yaHay": ["0:48–0:51 Dos personas de espaldas mirando la ciudad"], "planos": ["Atardecer sobre la ciudad"], "guion": [], "editados": []}, {"id": "1-13/1", "video": "1-13", "nombre": "Descanso", "momento": "1", "voz": "«¿Cuándo fue la última vez que descansaste sin sentir culpa?»", "duracion": "", "total": "", "yaHay": [], "planos": ["Persiana metálica de un local que baja", "Luces de un bus que pasa", "La ciudad se prepara para descansar: negocios del centro cerrados", "Buses del MIO que recorren las calles de noche"], "guion": ["La ciudad se prepara para descansar: negocios del centro cerrados", "Buses del MIO que recorren las calles de noche"], "editados": []}, {"id": "1-13/2", "video": "1-13", "nombre": "Descanso", "momento": "2", "voz": "«Nos acostumbramos a pensar que descansar solo sirve para rendir más…»", "duracion": "", "total": "", "yaHay": [], "planos": ["Ventanas que se apagan una a una", "Un gato en una terraza", "Calles de barrios populares de noche"], "guion": ["Calles de barrios populares de noche"], "editados": []}, {"id": "1-13/3", "video": "1-13", "nombre": "Descanso", "momento": "3", "voz": "«No tenés que ganarte el derecho de parar…»", "duracion": "", "total": "", "yaHay": [], "planos": ["Semáforo en verde sin carros", "Reflejos de luces en el pavimento", "Avenidas principales de la ciudad de noche"], "guion": ["Avenidas principales de la ciudad de noche"], "editados": []}, {"id": "1-13/4", "video": "1-13", "nombre": "Descanso", "momento": "4", "voz": "«Tu valor no depende de cuánto hacés. Descansá sin culpa.»", "duracion": "", "total": "", "yaHay": [], "planos": ["Luz de una sala encendida", "Cobija sobre un sofá", "Calles de barrios de clase media de noche"], "guion": ["Calles de barrios de clase media de noche"], "editados": []}, {"id": "1-14/1", "video": "1-14", "nombre": "Gratitud activa", "momento": "1", "voz": "«¿…tu pensamiento se enfoca en lo que te hace falta?»", "duracion": "", "total": "", "yaHay": [], "planos": ["Pies en la fila", "Mano que sostiene un tiquete", "Personas haciendo fila, con el tráfico de la ciudad de fondo"], "guion": ["Personas haciendo fila, con el tráfico de la ciudad de fondo"], "editados": []}, {"id": "1-14/2", "video": "1-14", "nombre": "Gratitud activa", "momento": "2", "voz": "«La gratitud diaria puede ayudarnos…»", "duracion": "", "total": "", "yaHay": [], "planos": ["Ventanas con reflejo naranja", "Pájaros que cruzan", "Edificios y la ciudad al atardecer"], "guion": ["Edificios y la ciudad al atardecer"], "editados": []}, {"id": "1-14/3", "video": "1-14", "nombre": "Gratitud activa", "momento": "3", "voz": "«En las noches, durante 30 días, escribí tres cosas…»", "duracion": "", "total": "", "yaHay": [], "planos": ["Mano escribiendo en una libreta", "Lámpara de mesa encendida", "La ciudad de noche: ventanas encendidas", "Calles medio vacías", "Luces de los postes"], "guion": ["La ciudad de noche: ventanas encendidas", "Calles medio vacías", "Luces de los postes"], "editados": []}, {"id": "1-14/4", "video": "1-14", "nombre": "Gratitud activa", "momento": "4", "voz": "«…saber exactamente por qué agradeces.»", "duracion": "", "total": "", "yaHay": [], "planos": ["Primera luz sobre los cerros", "Taza de café", "Imágenes del amanecer"], "guion": ["Imágenes del amanecer"], "editados": []}, {"id": "2-1/1", "video": "2-1", "nombre": "Es normal estar alerta", "momento": "1", "voz": "Planteamiento y giro de la voz, sobre imágenes aéreas", "duracion": "", "total": "", "yaHay": [], "planos": ["Dron: más tomas de las laderas desde ángulos distintos, cortando cada 2 s", "El cable del MIO Cable acercándose", "Dron: las laderas, con el tapiz de casas sobre la falda de la montaña, alrededor de las estaciones del MIO Cable", "Después, los Farallones detrás de las montañas de casas"], "guion": ["Dron: las laderas, con el tapiz de casas sobre la falda de la montaña, alrededor de las estaciones del MIO Cable", "Después, los Farallones detrás de las montañas de casas"], "editados": []}, {"id": "2-1/2", "video": "2-1", "nombre": "Es normal estar alerta", "momento": "2", "voz": "Reflexión final: «pisar firme juntos»", "duracion": "", "total": "", "yaHay": [], "planos": ["Pies de varias personas en dos o tres calles distintas, cortando cada 2 s", "A ras de suelo: una calle concurrida, con los pies de mucha gente que pasa frente a la cámara"], "guion": ["A ras de suelo: una calle concurrida, con los pies de mucha gente que pasa frente a la cámara"], "editados": []}, {"id": "2-2/1", "video": "2-2", "nombre": "Orientarse, volver aquí. Ahora.", "momento": "1", "voz": "«A veces no lo notamos, pero nuestros pensamientos pueden hacernos permanecer entre lo que ya pasó, y el miedo a lo que podría pasar.»", "duracion": "", "total": "", "yaHay": ["0:00–0:03 Río entre vegetación y montañas", "0:06 Carretera con un ciclista"], "planos": ["Dron sobre Pance (falta; todo está a ras de tierra)", "Dron: la Cali rural, sobrevolando Pance y acercándose a las montañas por el hilo del río"], "guion": ["Dron: la Cali rural, sobrevolando Pance y acercándose a las montañas por el hilo del río"], "editados": []}, {"id": "2-2/2", "video": "2-2", "nombre": "Orientarse, volver aquí. Ahora.", "momento": "2", "voz": "«Especialmente después del 10 de agosto.»", "duracion": "", "total": "", "yaHay": ["0:09 Reflejo de un puente en el agua", "0:12 Agua clara con piedras"], "planos": ["Dron bajando hacia el río", "Un vuelo más bajo, cerca de la tierra"], "guion": ["Un vuelo más bajo, cerca de la tierra"], "editados": []}, {"id": "2-2/3", "video": "2-2", "nombre": "Orientarse, volver aquí. Ahora.", "momento": "3", "voz": "«Intentar seguirle el ritmo a ese ir y venir de los pensamientos puede ser agotador.»", "duracion": "", "total": "", "yaHay": ["0:15 Agua en movimiento", "0:18 Río con vegetación"], "planos": ["Hojas sobre la corriente"], "guion": [], "editados": []}, {"id": "2-2/4", "video": "2-2", "nombre": "Orientarse, volver aquí. Ahora.", "momento": "4", "voz": "«Si te sentís así, podés probar lo siguiente:»", "duracion": "", "total": "", "yaHay": ["0:21 Río y orilla"], "planos": ["Luz entre hojas, como transición"], "guion": [], "editados": []}, {"id": "2-2/5", "video": "2-2", "nombre": "Orientarse, volver aquí. Ahora.", "momento": "5", "voz": "«Mirá con atención lo que tenés alrededor y mencioná, en voz alta y de forma detallada 5 cosas que te rodean:»", "duracion": "", "total": "", "yaHay": ["0:24 Palmas vistas desde abajo", "0:27 Piernas caminando por un sendero de bambú"], "planos": ["Cinco detalles seguidos, uno por corte (hoja, piedra, agua, bambú, sombra)"], "guion": [], "editados": []}, {"id": "2-2/6", "video": "2-2", "nombre": "Orientarse, volver aquí. Ahora.", "momento": "6", "voz": "«…la silla roja de madera con un pelón en la punta,»", "duracion": "", "total": "", "yaHay": ["0:30 Piedras de río", "0:33 Bambú y cielo desde abajo"], "planos": ["Una silla roja de madera, el objeto del guion (falta)"], "guion": [], "editados": []}, {"id": "2-2/7", "video": "2-2", "nombre": "Orientarse, volver aquí. Ahora.", "momento": "7", "voz": "«…el mantel blanco tejido que tiene una mancha de café y está torcido desde el desayuno.»", "duracion": "", "total": "", "yaHay": ["0:36 Bambú desde abajo"], "planos": ["Mantel blanco con mancha de café (falta)"], "guion": [], "editados": []}, {"id": "2-2/8", "video": "2-2", "nombre": "Orientarse, volver aquí. Ahora.", "momento": "8", "voz": "«No hay afán, andá despacio y fijate en los detalles.»", "duracion": "", "total": "", "yaHay": ["0:39–0:42 Manos tocando el agua del río", "0:45 Bambú a contraluz"], "planos": ["Gotas cayendo desde los dedos"], "guion": [], "editados": []}, {"id": "2-2/9", "video": "2-2", "nombre": "Orientarse, volver aquí. Ahora.", "momento": "9", "voz": "«Si tus pensamientos te desbordan constantemente, podés llevar en tu bolsillo un objeto especial,»", "duracion": "", "total": "", "yaHay": ["0:48 Puente colgante, dos personas cruzan", "0:51 Mano sobre una roca"], "planos": ["Pies pasando frente a la cámara en la entrada del Parque del Amor (falta)", "A ras de suelo: una entrada del Parque del Amor, en Pance, con los pies de mucha gente que pasa frente a la cámara (aterrizamos para pisar firme juntos)"], "guion": ["A ras de suelo: una entrada del Parque del Amor, en Pance, con los pies de mucha gente que pasa frente a la cámara (aterrizamos para pisar firme juntos)"], "editados": []}, {"id": "2-2/10", "video": "2-2", "nombre": "Orientarse, volver aquí. Ahora.", "momento": "10", "voz": "«…como una piedra, o una semilla grande,»", "duracion": "", "total": "", "yaHay": ["0:54 Mano sobre una roca mojada"], "planos": ["Mano que guarda una piedra en el bolsillo"], "guion": [], "editados": []}, {"id": "2-2/11", "video": "2-2", "nombre": "Orientarse, volver aquí. Ahora.", "momento": "11", "voz": "«…algo que podás tocar para sentir su textura, aferrándote a la sensación de estar ahí donde estás.»", "duracion": "", "total": "", "yaHay": ["0:57–1:00 Pies descalzos en el río"], "planos": ["Pies sobre piedras, otro ángulo"], "guion": [], "editados": []}, {"id": "2-2/12", "video": "2-2", "nombre": "Orientarse, volver aquí. Ahora.", "momento": "12", "voz": "«El mejor momento de todos es el aquí y el ahora.»", "duracion": "", "total": "", "yaHay": ["1:03–1:06 Montañas verdes y río, vista abierta"], "planos": ["Plano general, ya cubre la frase"], "guion": [], "editados": []}, {"id": "2-3/1", "video": "2-3", "nombre": "¿Alarma corporal?", "momento": "1", "voz": "«¿Después del 10 de agosto sentimos que nos tiemblan las piernas?»", "duracion": "", "total": "", "yaHay": ["0:00–0:03 Dron sobre barrios de ladera"], "planos": ["Piernas quietas sobre el suelo (detalle)", "Dron: el oriente de la ciudad, una gran planicie llena de capas"], "guion": ["Dron: el oriente de la ciudad, una gran planicie llena de capas"], "editados": []}, {"id": "2-3/2", "video": "2-3", "nombre": "¿Alarma corporal?", "momento": "2", "voz": "«¿El piso se nos mueve?»", "duracion": "", "total": "", "yaHay": ["0:06 Ventana colonial con una figura de gato"], "planos": ["Piso o adoquín visto desde arriba"], "guion": [], "editados": []}, {"id": "2-3/3", "video": "2-3", "nombre": "¿Alarma corporal?", "momento": "3", "voz": "«¿Nos sudan las manos o tenemos un tic en el ojo?»", "duracion": "", "total": "", "yaHay": ["0:09 Cables eléctricos enredados en un poste"], "planos": ["Manos frotándose"], "guion": [], "editados": []}, {"id": "2-3/4", "video": "2-3", "nombre": "¿Alarma corporal?", "momento": "4", "voz": "«Las alarmas en nuestros cuerpos se quedaron encendidas. Tratar de callarlas, hacerlas desaparecer no es el mejor camino…»", "duracion": "", "total": "", "yaHay": ["0:12 Adoquines con gente", "0:15–0:18 Niño en un carrito con una adulta"], "planos": ["Manos quietas en el regazo"], "guion": [], "editados": []}, {"id": "2-3/5", "video": "2-3", "nombre": "¿Alarma corporal?", "momento": "5", "voz": "«Intentá esto: respirá suave.»", "duracion": "", "total": "", "yaHay": ["0:21–0:24 Dron sobre la ladera"], "planos": ["Pecho que sube y baja, sin rostro", "Poco a poco, el vuelo muestra que detrás del oriente hay otra ciudad: el centro y la ladera"], "guion": ["Poco a poco, el vuelo muestra que detrás del oriente hay otra ciudad: el centro y la ladera"], "editados": []}, {"id": "2-3/6", "video": "2-3", "nombre": "¿Alarma corporal?", "momento": "6", "voz": "«No contés, ni intentés calmarte a la fuerza. Sólo observá cómo el aire entra y sale de tu cuerpo.»", "duracion": "", "total": "", "yaHay": ["0:27 Dron sobre la ladera", "0:30 Palmera moviéndose"], "planos": ["Hojas moviéndose con el aire"], "guion": [], "editados": []}, {"id": "2-3/7", "video": "2-3", "nombre": "¿Alarma corporal?", "momento": "7", "voz": "«Podés tener un movimiento amable: darte un abrazo, una caricia, o recorrer tu piel lentamente con las manos.»", "duracion": "", "total": "", "yaHay": ["0:33 Señor mayor con su perro", "0:36–0:39 Dos mujeres de espaldas mirando la ciudad"], "planos": ["Manos recorriendo un brazo (detalle)"], "guion": [], "editados": []}, {"id": "2-3/8", "video": "2-3", "nombre": "¿Alarma corporal?", "momento": "8", "voz": "«Luchar contra tu cuerpo puede incrementar las alarmas y traer más frustración.»", "duracion": "", "total": "", "yaHay": ["0:42 Campanario de iglesia", "0:45 Pantalla blanca"], "planos": ["Pies de gente pasando (falta)", "Evitar iglesias (regla del proyecto)", "A ras de suelo: una calle concurrida del oriente, con los pies de mucha gente que pasa frente a la cámara"], "guion": ["A ras de suelo: una calle concurrida del oriente, con los pies de mucha gente que pasa frente a la cámara"], "editados": []}, {"id": "2-3/9", "video": "2-3", "nombre": "¿Alarma corporal?", "momento": "9", "voz": "«Un pequeño gesto de compasión puede ser de ayuda.»", "duracion": "", "total": "", "yaHay": ["0:48 Personas sentadas dibujando"], "planos": ["Mano que acaricia a un perro"], "guion": [], "editados": []}, {"id": "2-3/10", "video": "2-3", "nombre": "¿Alarma corporal?", "momento": "10", "voz": "«Sin embargo, si las alarmas se hacen persistentes o graves, es importante que consultes un especialista.»", "duracion": "", "total": "", "yaHay": ["0:51 Tienda de esquina", "0:54 Grupo en una banca", "0:57 Bandera sobre la ciudad", "1:00–1:03 Dron sobre la ladera"], "planos": ["El cierre ya tiene cuatro cambios, alcanza"], "guion": [], "editados": []}, {"id": "2-4/0", "video": "2-4", "nombre": "Emociones amenaza", "momento": "0", "voz": "0–9 s (antes de la primera frase visible de la voz)", "duracion": "", "total": "", "yaHay": [], "planos": ["Tres o cuatro cortes de dron de unos 2 s sobre el centro y el río (por confirmar con lo ya grabado)", "Cali desde el cielo: sobrevuelo del centro por el Boulevard", "El cordón verde del río Cali lleva hasta La Ermita"], "guion": ["Cali desde el cielo: sobrevuelo del centro por el Boulevard", "El cordón verde del río Cali lleva hasta La Ermita"], "editados": []}, {"id": "2-4/1", "video": "2-4", "nombre": "Emociones amenaza", "momento": "1", "voz": "9–15 s «…sentís… por dejar de lado las emociones difíciles?»", "duracion": "", "total": "", "yaHay": ["Dron sobre el río y la ciudad, bus MIO"], "planos": ["Persona en el bus mirando por la ventana", "Alguien que suspira en una banca", "Manos que bajan el celular"], "guion": [], "editados": []}, {"id": "2-4/2", "video": "2-4", "nombre": "Emociones amenaza", "momento": "2", "voz": "15–20 s «¡Está bien! … no son…»", "duracion": "", "total": "", "yaHay": ["Interior de bus"], "planos": ["Perfil de alguien que frunce el ceño y relaja la cara", "Mano sobre el pecho o el estómago"], "guion": [], "editados": []}, {"id": "2-4/3", "video": "2-4", "nombre": "Emociones amenaza", "momento": "3", "voz": "20–25 s «…darnos información»", "duracion": "", "total": "", "yaHay": ["Dron sobre el río"], "planos": ["Manos escribiendo en una libreta", "Dos personas conversando, plano de quien escucha"], "guion": [], "editados": []}, {"id": "2-4/4", "video": "2-4", "nombre": "Emociones amenaza", "momento": "4", "voz": "25–30 s «…toda la historia… a regularlas»", "duracion": "", "total": "", "yaHay": ["Mano en el pasamanos, muro de ladrillo con «BELLA»"], "planos": ["Dos personas que se miran y asienten"], "guion": [], "editados": []}, {"id": "2-4/5", "video": "2-4", "nombre": "Emociones amenaza", "momento": "5", "voz": "30–37 s «…definir y nombrar… sintiendo»", "duracion": "", "total": "", "yaHay": ["Bus blanco y torre", "Dron sobre el río"], "planos": ["Alguien de espaldas mirando la ciudad que se voltea con una sonrisa leve", "Las imágenes en vuelo muestran los Farallones desde el Boulevard"], "guion": ["Las imágenes en vuelo muestran los Farallones desde el Boulevard"], "editados": []}, {"id": "2-4/6", "video": "2-4", "nombre": "Emociones amenaza", "momento": "6", "voz": "37–43 s «…preguntémonos… de decirnos…»", "duracion": "", "total": "", "yaHay": ["Dron sobre el río"], "planos": ["Abrazo corto entre dos personas que se conocen, con cesión de imagen"], "guion": [], "editados": []}, {"id": "2-4/7", "video": "2-4", "nombre": "Emociones amenaza", "momento": "7", "voz": "44–48 s «Respirá. Mové tu cuerpo»", "duracion": "", "total": "", "yaHay": ["Palomas en la plaza"], "planos": ["Respirar hondo en un parque", "Brazos estirados a contraluz", "Caminar rápido y bajar el ritmo"], "guion": [], "editados": []}, {"id": "2-4/8", "video": "2-4", "nombre": "Emociones amenaza", "momento": "8", "voz": "48–54 s «…o bailar… muy bien»", "duracion": "", "total": "", "yaHay": ["Personas en fila, perro caminando"], "planos": ["Pies que pisan firme en acera o escalón", "Baile de salsa", "Niñas, niños o vecinos jugando, con acudiente"], "guion": [], "editados": []}, {"id": "2-4/9", "video": "2-4", "nombre": "Emociones amenaza", "momento": "9", "voz": "55–65 s «…a sentir… y es ahí donde está de pisar firme juntos»", "duracion": "", "total": "", "yaHay": ["Dron sobre la iglesia y el río"], "planos": ["Vecinos conversando en una tienda", "Grupo caminando junto", "Manos que se toman", "Para cerrar, alguien que mira el cielo y sonríe", "A ras de suelo, sobre el Boulevard: los pies de mucha gente que pasa frente a la cámara", "Aterrizamos para pisar firme juntos"], "guion": ["A ras de suelo, sobre el Boulevard: los pies de mucha gente que pasa frente a la cámara", "Aterrizamos para pisar firme juntos"], "editados": []}, {"id": "2-5/1", "video": "2-5", "nombre": "Pausa informativa", "momento": "1", "voz": "«¿Te has fijado que entramos a las redes a mirar una noticia…»", "duracion": "", "total": "", "yaHay": ["0:00 Dron sobre una avenida", "0:03 Dron sobre tráfico"], "planos": ["Pantalla de celular con titulares", "Dron: el norte de Cali con ritmo pausado"], "guion": ["Dron: el norte de Cali con ritmo pausado"], "editados": []}, {"id": "2-5/2", "video": "2-5", "nombre": "Pausa informativa", "momento": "2", "voz": "«…y cuando menos pensamos estamos pasando entre una y otra sin poder parar?»", "duracion": "", "total": "", "yaHay": ["0:06–0:09 Mercado de calle con cables y sombrillas"], "planos": ["Dedo deslizando una pantalla", "El tráfico, la muchedumbre y los afanes vistos desde arriba, más tranquilos"], "guion": ["El tráfico, la muchedumbre y los afanes vistos desde arriba, más tranquilos"], "editados": []}, {"id": "2-5/3", "video": "2-5", "nombre": "Pausa informativa", "momento": "3", "voz": "«¿Has notado cómo nos sentimos después de ese momento?»", "duracion": "", "total": "", "yaHay": ["0:12 Mujer sentada de espaldas frente a un edificio", "0:15 Hombre con los brazos cruzados (solo torso)"], "planos": ["Manos cansadas frotando los ojos (sin rostro)"], "guion": [], "editados": []}, {"id": "2-5/4", "video": "2-5", "nombre": "Pausa informativa", "momento": "4", "voz": "«Podemos probar hacer una pausa informativa. Funciona así:»", "duracion": "", "total": "", "yaHay": ["0:18 Vendedora con la mano en alto"], "planos": ["Celular que se apaga"], "guion": [], "editados": []}, {"id": "2-5/5", "video": "2-5", "nombre": "Pausa informativa", "momento": "5", "voz": "«…elegimos un horario corto del día para revisar redes y noticieros (ojalá confiables).»", "duracion": "", "total": "", "yaHay": ["0:21 Reloj en la muñeca", "0:24 Dron sobre una plaza con gente"], "planos": ["Reloj en detalle, con el segundero"], "guion": [], "editados": []}, {"id": "2-5/6", "video": "2-5", "nombre": "Pausa informativa", "momento": "6", "voz": "«Después soltamos el celular, nos regalamos unos minutos de pausita…»", "duracion": "", "total": "", "yaHay": ["0:27 Dos mujeres de espaldas junto a la fuente", "0:30 Pareja de espaldas"], "planos": ["Celular boca abajo sobre una mesa"], "guion": [], "editados": []}, {"id": "2-5/7", "video": "2-5", "nombre": "Pausa informativa", "momento": "7", "voz": "«…y retomamos lo que estábamos haciendo.»", "duracion": "", "total": "", "yaHay": ["0:33 Iglesia con árbol florecido"], "planos": ["Gente retomando lo suyo (barrer, cocinar)", "Evitar iglesias (regla del proyecto)"], "guion": [], "editados": []}, {"id": "2-5/8", "video": "2-5", "nombre": "Pausa informativa", "momento": "8", "voz": "«Estar informados no es igual que estar conectados siempre.»", "duracion": "", "total": "", "yaHay": ["0:36–0:39 Cristo Rey con nubes", "0:42 Fundido a blanco"], "planos": ["Pies en la cancha (falta)", "A ras de suelo: una cancha múltiple, con los pies de mucha gente que camina y juega frente a la cámara"], "guion": ["A ras de suelo: una cancha múltiple, con los pies de mucha gente que camina y juega frente a la cámara"], "editados": []}, {"id": "2-6/1", "video": "2-6", "nombre": "Frase de amabilidad", "momento": "1", "voz": "Planteamiento y giro de la voz, sobre imágenes aéreas", "duracion": "", "total": "", "yaHay": [], "planos": ["Dron: tres tomas del sur desde ángulos distintos, cortando cada 2 s", "Dron: el sur de Cali con ritmo pausado", "El tráfico, la muchedumbre y los afanes vistos desde arriba, más tranquilos"], "guion": ["Dron: el sur de Cali con ritmo pausado", "El tráfico, la muchedumbre y los afanes vistos desde arriba, más tranquilos"], "editados": []}, {"id": "2-6/2", "video": "2-6", "nombre": "Frase de amabilidad", "momento": "2", "voz": "Reflexión final: «pisar firme juntos»", "duracion": "", "total": "", "yaHay": [], "planos": ["Pies en el cruce peatonal, desde dos ángulos", "A ras de suelo: el paso peatonal de un semáforo, con los pies de mucha gente que cruza frente a la cámara"], "guion": ["A ras de suelo: el paso peatonal de un semáforo, con los pies de mucha gente que cruza frente a la cámara"], "editados": []}, {"id": "2-7/1", "video": "2-7", "nombre": "Bajo mi control", "momento": "1", "voz": "Planteamiento y giro de la voz, sobre imágenes aéreas", "duracion": "", "total": "", "yaHay": [], "planos": ["Dron: el Boulevard a dos alturas distintas, cortando cada 2 s", "Dron: el centro por el Boulevard, siguiendo el cordón verde del río Cali", "Después, los Farallones vistos desde el Boulevard"], "guion": ["Dron: el centro por el Boulevard, siguiendo el cordón verde del río Cali", "Después, los Farallones vistos desde el Boulevard"], "editados": []}, {"id": "2-7/2", "video": "2-7", "nombre": "Bajo mi control", "momento": "2", "voz": "Reflexión final: «pisar firme juntos»", "duracion": "", "total": "", "yaHay": [], "planos": ["Pies en la cancha, desde dos ángulos", "A ras de suelo: una cancha múltiple, con los pies de mucha gente que camina y juega frente a la cámara"], "guion": ["A ras de suelo: una cancha múltiple, con los pies de mucha gente que camina y juega frente a la cámara"], "editados": []}, {"id": "2-8/1", "video": "2-8", "nombre": "Descanso sin culpa", "momento": "1", "voz": "Planteamiento y giro de la voz, sobre imágenes aéreas", "duracion": "", "total": "", "yaHay": [], "planos": ["Dron: laderas y estaciones del MIO Cable desde ángulos distintos, cortando cada 2 s", "Dron: las laderas, con el tapiz de casas y las estaciones del MIO Cable", "Después, los Farallones detrás de las montañas de casas"], "guion": ["Dron: las laderas, con el tapiz de casas y las estaciones del MIO Cable", "Después, los Farallones detrás de las montañas de casas"], "editados": []}, {"id": "2-8/2", "video": "2-8", "nombre": "Descanso sin culpa", "momento": "2", "voz": "Reflexión final: «pisar firme juntos»", "duracion": "", "total": "", "yaHay": [], "planos": ["Pies de varias personas en calles distintas, cortando cada 2 s", "A ras de suelo: una calle concurrida, con los pies de mucha gente que pasa frente a la cámara"], "guion": ["A ras de suelo: una calle concurrida, con los pies de mucha gente que pasa frente a la cámara"], "editados": []}], "tipos": {"1": {"nombre": "Ayuda - Hexaflex", "desc": "La voz le habla a una sola persona, en voseo y en singular («vos»). Imágenes de la cotidianidad de Cali, con cámara fija, personas nunca de cerca y pocos cortes."}, "2": {"nombre": "Pisar firme juntos - Apropiación", "desc": "La voz habla siempre en plural, desde un «nosotros». Según el guion, los videos empiezan y se desarrollan con imágenes aéreas de la ciudad, tomadas con dron, en vuelos lentos y continuos."}}}</script>
+<script>
+/* ===== CONFIGURACIÓN =====
+   FUENTE: de dónde se descarga la lista actualizada.
+   - "planos.json" → el archivo que está junto a esta app (lo editas tú y lo vuelves a subir).
+   - O la URL de tu Google Sheet publicada como CSV
+     (Archivo → Compartir → Publicar en la web → la hoja → "Valores separados por comas (.csv)").
+*/
+const FUENTE = "../planos.json";
+const CLAVE = "plan-rodaje-ctl";
+
+/* SYNC_URL: enlace de la "Aplicación web" de Apps Script (termina en /exec) para compartir checks entre el equipo.
+   Lo normal es ponerlo en planos.json ("sync": "https://script.google.com/macros/s/…/exec"); esta constante es un respaldo.
+   Si ambos están vacíos, la app funciona como antes: cada teléfono por separado. */
+const SYNC_URL = "";
+const EQUIPO = ["Valentina Hoyos","Alejandra Rivera","Jorge Girón"];
+
+/* ===== Estado local (se guarda en este teléfono; con SYNC se comparte con el equipo) =====
+   marcas:  { llave: {h:1|0, ts, q} }  último estado conocido de cada plano (h=grabado, q=quién, ts=cuándo)
+   custom:  { escena: [{id,t,q,ts}] }  planos agregados por el equipo
+   borrados:{ id: ts }                 planos agregados que ya se borraron
+   cola:    eventos por enviar (se guardan hasta que haya señal) */
+const base = JSON.parse(document.getElementById("datos-base").textContent);
+const DEF = () => ({formato:2,modo:"inicio",serie:null,pos:null,avanceTotal:false,videoActual:null,notas:{},marcas:{},custom:{},nuevos:{},keys:null,sig:null,data:null,filtro:"Todos",ocultar:false,abiertas:{},
+  persona:null,control:"",asig:{},aj:{},cola:[],borrados:{},pin:"",vista:"plan",vistoEn:0,adoptado:false,sub:null,avisosNo:false,deHoja:false});
+let st = cargar();
+ if(!st.control){ st.control="1"; st.persona="Control"; st.adoptado=true; st.vista="control"; } 
+function cargar(){
+  let g={}; try{ g=JSON.parse(localStorage.getItem(CLAVE)||"{}"); }catch(e){}
+  // Formato anterior (escenas y planos): se descarta el avance viejo, pero se conservan nombre, PIN y avisos.
+  if(g.formato!==2) g={persona:g.persona,pin:g.pin,sub:g.sub,avisosNo:g.avisosNo};
+  const s=Object.assign(DEF(),g); s.formato=2;   // al volver a abrir la app se queda donde iba (video y momento); solo empieza en el inicio la primera vez
+  return s;
+}
+function guardar(){ try{ localStorage.setItem(CLAVE, JSON.stringify(st)); }catch(e){} cfgSW(); }
+/* El service worker necesita el enlace del equipo (y el PIN) para pedir el texto de cada aviso. */
+let cfgSWult="";
+function cfgSW(){
+  try{ if(!("caches" in window)) return; const u=(typeof data!=="undefined"&&data&&data.sync)||SYNC_URL||""; if(!u) return;
+    const c=JSON.stringify({url:u,pin:st.pin||""}); if(c===cfgSWult) return; cfgSWult=c;
+    caches.open("rodaje-cfg").then(x=>x.put("cfg",new Response(c))).catch(()=>{}); }catch(e){}
+}
+
+let data = st.data || base;
+let aviso = null;
+const urlSync = () => (data && data.sync) || SYNC_URL || "";
+const equipo = () => (data && data.equipo && data.equipo.length ? data.equipo : EQUIPO);
+const equipoActivo = () => !!urlSync() && !!st.persona;
+const hecho = k => k.startsWith("ya::") || !!(st.marcas[k] && st.marcas[k].h);   // «ya::…» = plano que ya estaba grabado (columna «Ya hay»)
+const corto = n => String(n||"").split(" ")[0];
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+let cambiando=false, errorSync=false, girando=0;
+const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+const instalada = () => navigator.standalone===true || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+function gira(d){ girando+=d; document.getElementById("syncIco").className = girando>0 ? "spin" : ""; }
+
+const norm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\s+/g," ").trim();
+const llave = (esc, txt) => esc + "::" + norm(txt);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function firma(d){ return JSON.stringify(d.momentos.map(m=>[m.id,m.nombre,m.momento,m.voz,m.duracion,m.total,m.yaHay,m.editados,m.planos])); }
+/* «Nuevo» solo para planos propuestos que aparecen en la hoja; los que vienen de «Plano del guion» entran sin etiqueta (son opciones extra, no una lista nueva). */
+function todasLlaves(d){ const k=[]; d.momentos.forEach(m=>{ const gu=new Set(m.guion||[]); m.planos.forEach(p=>{ if(!gu.has(p)) k.push(llave(m.id,p)); }); }); return k; }
+const momento = id => data.momentos.find(m=>m.id==id);
+
+/* ===== Buscar actualización ===== */
+let buscando=false;
+async function sincronizar(manual){
+  if(buscando) return; buscando=true; gira(1);
+  try{
+    // 1) planos.json: configuración (enlace de sync, nombres…) y lista de respaldo
+    let cfg=null;
+    try{
+      const r = await fetch(FUENTE + (FUENTE.includes("?")?"&":"?") + "t=" + Date.now(),{cache:"no-store"});
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      cfg = await r.json();
+      if(cfg && !cfg.momentos) cfg={...cfg,momentos:data.momentos};   // archivo con otro formato: solo se usa la configuración
+    }catch(e){ if(!urlSync()) throw e; }
+    // 2) Si hay Apps Script, la lista sale de la pestaña del desglose en el Google Sheet
+    let nueva=cfg; const url=(cfg&&cfg.sync)||urlSync();
+    if(url){
+      let L=null;
+      try{ L=await traerLista(url); }catch(e){ if(st.deHoja||!cfg) throw e; }
+      if(L && L.ok && L.momentos && L.momentos.length){ nueva={...(cfg||data), momentos:L.momentos, version:L.version||(cfg||data).version}; st.deHoja=true; }
+      else if(st.deHoja||!cfg){ if(L&&L.error=="pin") pedirPin(); throw new Error("lista no disponible"); }
+    }
+    aplicar(nueva, manual);
+  }catch(e){
+    if(st.sig==null) aplicar(data,false);
+    if(manual) toast(navigator.onLine===false ? "Sin internet · usando la última lista" : "No se pudo revisar la lista");
+  }finally{ buscando=false; gira(-1); sincEquipo(manual); }
+}
+async function traerLista(url){
+  const r = await fetch(url+(url.includes("?")?"&":"?")+"accion=lista&pin="+encodeURIComponent(st.pin||"")+"&t="+Date.now(),{cache:"no-store"});
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return r.json();
+}
+function pedirPin(){ setTimeout(()=>{ const p=prompt("PIN del equipo"); if(p!=null){ st.pin=p.trim(); guardar(); sincronizar(true); } },0); }
+function aplicar(nueva, manual){
+  // El enlace de sincronización y los nombres del equipo viajan en la lista, pero no cuentan como "lista nueva".
+  if(nueva.sync!==data.sync || nueva.vapid!==data.vapid || JSON.stringify(nueva.equipo)!==JSON.stringify(data.equipo) || JSON.stringify(nueva.tipos)!==JSON.stringify(data.tipos)){
+    data={...data, sync:nueva.sync, vapid:nueva.vapid, equipo:nueva.equipo, tipos:nueva.tipos}; st.data=data; guardar(); render();
+  }
+  { const ok=new Set(todasLlaves(nueva)); let hubo=false; Object.keys(st.nuevos).forEach(x=>{ if(!ok.has(x)){ delete st.nuevos[x]; hubo=true; } }); if(hubo){ guardar(); render(); } }   // quita «Nuevo» de planos que ya no cuentan (p. ej. los del guion)
+  const sig=firma(nueva);
+  if(sig===st.sig){ if(manual) toast("Ya tienes la lista más reciente"); return; }
+  const k=todasLlaves(nueva);
+  if(st.keys){
+    const antes=new Set(st.keys), ahora=new Set(k);
+    const agregados=k.filter(x=>!antes.has(x)), quitados=st.keys.filter(x=>!ahora.has(x));
+    agregados.forEach(x=>st.nuevos[x]=1);
+    Object.keys(st.nuevos).forEach(x=>{ if(!ahora.has(x)) delete st.nuevos[x]; });
+    aviso={version:nueva.version, agregados:agregados.length, quitados:quitados.length};
+    toast("Lista actualizada");
+  }
+  data=nueva; st.data=nueva; st.sig=sig; st.keys=k; guardar(); render();
+}
+
+/* ===== Eventos: marcar · desmarcar · agregar · borrar =====
+   ev = {evid, ts, quien, tipo, id, escena, texto}. Gana siempre el más reciente (por ts) de cada plano. */
+function aplicarEv(ev){
+  const id=ev.id;
+  if(ev.tipo=="marcar"||ev.tipo=="desmarcar"){
+    const m=st.marcas[id]; if(m && m.ts>=ev.ts) return false;
+    st.marcas[id]={h:ev.tipo=="marcar"?1:0, ts:ev.ts, q:ev.quien||null};
+    if(ev.tipo=="marcar") delete st.nuevos[id];
+    return true;
+  }
+  if(ev.tipo=="seriales"||ev.tipo=="comentario"){
+    const n=(st.notas[id] ||= {}), a=n[ev.tipo]; if(a && a.ts>=ev.ts) return false;
+    n[ev.tipo]={t:ev.texto||"", ts:ev.ts, q:ev.quien||null}; return true;
+  }
+  if(ev.tipo=="asignar"){
+    const a=st.asig[id]; if(a && a.ts>=ev.ts) return false;
+    st.asig[id]={n:ev.texto||"", ts:ev.ts}; return true;
+  }
+  if(ev.tipo=="ajuste"){
+    const a=st.aj[id]; if(a && a.ts>=ev.ts) return false;
+    st.aj[id]={v:ev.texto||"", ts:ev.ts}; return true;
+  }
+  if(ev.tipo=="agregar"){
+    if(st.borrados[id]) return false;
+    const l=(st.custom[ev.escena] ||= []);
+    if(l.some(c=>c.id==id)) return false;
+    l.push({id, t:ev.texto, q:ev.quien||null, ts:ev.ts}); return true;
+  }
+  if(ev.tipo=="borrar"){
+    if(st.borrados[id]) return false;
+    st.borrados[id]=ev.ts; let hubo=false;
+    for(const e in st.custom){ const n=st.custom[e].length; st.custom[e]=st.custom[e].filter(x=>x.id!=id); if(st.custom[e].length!=n) hubo=true; }
+    return hubo;
+  }
+  return false;
+}
+/* ===== Videógrafo por video ===== */
+const esControl = () => true;
+const videografo = v => (st.asig[v]&&st.asig[v].n)||"";
+function asignar(v,nombre){
+  const a=st.asig[v]; let ts=Date.now(); if(a && a.ts>=ts) ts=a.ts+1;
+  const ev={evid:uid(), ts, quien:st.persona||"Control", tipo:"asignar", id:v, escena:v, texto:nombre};
+  aplicarEv(ev); st.cola.push(ev); guardar(); render(); empujar();
+}
+/* Ajustes que solo cambia el Control: «edicion» (planos «Ya hay» en negrilla) y «bloqueo::<video>» (solo edita quien lo tiene asignado). */
+function ajustar(pares){
+  let ts=Date.now();
+  pares.forEach(([id,v])=>{ const a=st.aj[id]; if(a && a.v==v) return; const t2=Math.max(ts++, a?a.ts+1:0);
+    const ev={evid:uid(), ts:t2, quien:st.persona||"Control", tipo:"ajuste", id, escena:"", texto:v}; aplicarEv(ev); st.cola.push(ev); });
+  guardar(); render(); empujar();
+}
+function selVideografo(v){
+  const bl=bloqueado(v);
+  return `<div class="vg2fila"><label class="vg">🎥 Videógrafo <select data-asig="${esc(v)}"><option value="">Sin asignar</option>${equipo().map(n=>`<option${n==videografo(v)?" selected":""}>${esc(n)}</option>`).join("")}</select></label>
+    <button class="bq${bl?" on":""}" data-bloqueo="${esc(v)}" aria-pressed="${bl}">${bl?"🔒 Bloqueado":"🔓 Abierto"}</button></div>`;
+}
+const bloqueado = v => !!(st.aj["bloqueo::"+v] && st.aj["bloqueo::"+v].v=="1");
+const edicion = () => !!(st.aj.edicion && st.aj.edicion.v=="1");
+/* ¿Puede este teléfono editar el video? (Control no edita nunca; el equipo solo si no está bloqueado o es el videógrafo asignado) */
+const puedeEditar = v => esControl() ? false : (!bloqueado(v) || (!!videografo(v) && videografo(v)==st.persona));
+/* Resalta lo que es de cada quien: «mio» = videógrafo asignado a esta persona; «ajeno» = asignado a otra. */
+const dueno = v => { if(esControl()) return ""; const a=videografo(v); return !a?"":(a==st.persona?" mio":" ajeno"); };
+const etiqueta = v => { if(esControl()) return videografo(v)?`<span class="etq">🎥 ${esc(corto(videografo(v)))}</span>`:""; const a=videografo(v);
+  return (a?(a==st.persona?'<span class="etq mio">⭐ Tuyo</span>':`<span class="etq aj">De ${esc(corto(a))}</span>`):"")+(bloqueado(v)?'<span class="etq bq">🔒</span>':""); };
+function sinPermiso(v){ toast(bloqueado(v)&&!videografo(v)?"Video bloqueado por Control":"Video bloqueado: solo "+corto(videografo(v)||"Control")+" lo puede editar"); render(); }
+
+function guardarNota(id,tipo,texto){
+  { const v=(momento(id)||{}).video; if(v && !puedeEditar(v)){ sinPermiso(v); return; } }
+  const a=(st.notas[id]||{})[tipo]; if((a?a.t:"")===texto) return;
+  let ts=Date.now(); if(a && a.ts>=ts) ts=a.ts+1;
+  const ev={evid:uid(), ts, quien:st.persona||null, tipo, id, escena:(momento(id)||{}).video||"", texto};
+  aplicarEv(ev);
+  if(equipoActivo()) st.cola.push(ev);
+  guardar();
+  const pb=document.getElementById("pend"); pb.hidden=!st.cola.length; pb.textContent=st.cola.length;
+  if(equipoActivo()) empujar();
+}
+function registrar(tipo,id,escena,texto){
+  { const v=((momento(escena)||{}).video)||String(escena).split("/")[0]; if(!puedeEditar(v)){ sinPermiso(v); return; } }
+  let ts=Date.now(); const m=st.marcas[id]; if(m && m.ts>=ts) ts=m.ts+1;
+  const ev={evid:uid(), ts, quien:st.persona||null, tipo, id, escena:escena||"", texto:texto||""};
+  aplicarEv(ev);
+  if(equipoActivo()) st.cola.push(ev);
+  guardar(); render(); if(equipoActivo()) empujar();
+}
+/* Lo que ya estaba marcado/agregado en este teléfono antes de elegir nombre pasa a ser de esa persona y se envía. */
+function adoptar(){
+  if(st.adoptado||!st.persona) return;
+  const info={}; data.momentos.forEach(e=>e.planos.forEach(p=>info[llave(e.id,p)]={e:e.id,t:p}));
+  for(const e in st.custom) st.custom[e].forEach(c=>{
+    info[e+"::mio::"+c.id]={e,t:c.t};
+    if(!c.q){ c.q=st.persona; c.ts=c.ts||Date.now();
+      st.cola.push({evid:uid(),ts:c.ts,quien:st.persona,tipo:"agregar",id:c.id,escena:e,texto:c.t}); }
+  });
+  for(const k in st.marcas){ const m=st.marcas[k];
+    if(m.h && !m.q){ m.q=st.persona; const i=info[k]||{e:"",t:""};
+      st.cola.push({evid:uid(),ts:m.ts,quien:st.persona,tipo:"marcar",id:k,escena:i.e,texto:i.t}); } }
+  for(const id in st.notas) for(const tipo in st.notas[id]){ const n=st.notas[id][tipo];
+    if(!n.q && n.t){ n.q=st.persona; st.cola.push({evid:uid(),ts:n.ts,quien:st.persona,tipo,id,escena:(momento(id)||{}).video||"",texto:n.t}); } }
+  st.adoptado=true;
+}
+
+/* ===== Sincronización con el equipo (Google Apps Script) ===== */
+let enviando=false, tEmpuje, tReintento;
+function empujar(){ clearTimeout(tEmpuje); tEmpuje=setTimeout(()=>sincEquipo(false),350); }
+async function sincEquipo(manual){
+  const url=urlSync(); if(!url||!st.persona) return;
+  if(enviando) return; enviando=true; gira(1);
+  let pinMalo=false;
+  try{
+    do{
+      const lote=st.cola.slice(0,200);
+      const ctl=new AbortController(), to=setTimeout(()=>ctl.abort(),20000); let j;
+      try{
+        // text/plain evita la consulta previa (preflight) que Apps Script no responde.
+        const r=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
+          body:JSON.stringify({pin:st.pin||"",eventos:lote}),signal:ctl.signal});
+        if(!r.ok) throw new Error("HTTP "+r.status);
+        j=await r.json();
+      } finally { clearTimeout(to); }
+      if(j.error=="pin"){ pinMalo=true; throw new Error("pin"); }
+      if(!j.ok) throw new Error(j.error||"error");
+      const ids=new Set(lote.map(e=>e.evid)); st.cola=st.cola.filter(e=>!ids.has(e.evid));
+      (j.eventos||[]).forEach(aplicarEv);
+      st.vistoEn=Date.now(); errorSync=false; guardar();
+    } while(st.cola.length);
+  }catch(e){
+    errorSync=true;
+    if(manual && !pinMalo) toast(navigator.onLine===false ? "Sin señal · se enviará cuando vuelva" : "No se pudo sincronizar con el equipo");
+    if(st.cola.length){ clearTimeout(tReintento); tReintento=setTimeout(()=>sincEquipo(false),20000); }
+  }finally{
+    enviando=false; gira(-1); render();
+  }
+  if(pinMalo){ const p=prompt("PIN del equipo"); if(p!=null){ st.pin=p.trim(); guardar(); sincEquipo(true); } }
+}
+
+/* ===== Avisos de lista nueva (notificaciones push) ===== */
+function estadoAvisos(){
+  if(!urlSync() || !data.vapid || !st.persona) return "off";
+  if(iOS && !instalada()) return "instalar";
+  if(!("serviceWorker" in navigator && "PushManager" in window && "Notification" in window)) return "nosoporta";
+  if(Notification.permission==="denied") return "denegado";
+  return st.sub && Notification.permission==="granted" ? "activo" : "pendiente";
+}
+function b64u(s){ const p="=".repeat((4-s.length%4)%4), r=atob((s+p).replace(/-/g,"+").replace(/_/g,"/")); return Uint8Array.from(r,c=>c.charCodeAt(0)); }
+async function activarAvisos(){
+  try{
+    const perm = await Notification.requestPermission();   // debe ir directo tras el toque del usuario
+    if(perm!=="granted"){ render(); toast("Los avisos no se activaron"); return; }
+    const reg = await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64u(data.vapid)});
+    const r = await fetch(urlSync(),{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({pin:st.pin||"",accion:"suscribir",quien:st.persona,sub:sub.toJSON()})});
+    const j = await r.json(); if(!j.ok) throw new Error(j.error||"error");
+    st.sub=sub.endpoint; guardar(); render(); toast("Avisos activados");
+  }catch(e){ render(); toast("No se pudieron activar los avisos"); }
+}
+function htmlAvisos(donde){
+  const e=estadoAvisos();
+  if(e=="off") return "";
+  if(e=="activo") return donde=="equipo" ? `<div class="avisos ok"><b>🔔 Avisos activados</b><p>Te llegará una notificación cuando se publique una lista nueva.</p></div>` : "";
+  if(donde=="plan" && (st.avisosNo || e=="nosoporta" || e=="denegado")) return "";
+  const msg={
+    pendiente:"Recibe una notificación en este teléfono cuando se publique una lista nueva.",
+    instalar:"Para recibir avisos, instala la app: botón Compartir → «Añadir a pantalla de inicio», y ábrela desde su ícono.",
+    nosoporta:"Este teléfono no admite avisos (necesita iOS 16.4 o más reciente).",
+    denegado:"Los avisos están bloqueados. Actívalos en Ajustes → Notificaciones → Rodaje."}[e];
+  return `<div class="avisos"><b>🔔 Avisos de lista nueva</b><p>${msg}</p>${e=="pendiente"?`<div class="acc"><button class="iconbtn" data-avisos>Activar avisos</button>${donde=="plan"?'<button class="iconbtn" data-avisosno>Ahora no</button>':""}</div>`:""}</div>`;
+}
+function verificarSub(){   // si el sistema borró la suscripción, se vuelve a ofrecer
+  if(!st.sub || !("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.ready.then(r=>r.pushManager.getSubscription()).then(s=>{ if(!s){ st.sub=null; guardar(); render(); } }).catch(()=>{});
+}
+
+/* ===== Render ===== */
+const FILTROS=["Todos","Pendiente","Completo","Con notas"];
+function planosDe(e){
+  const gs=new Set(e.guion||[]);
+  return e.planos.map(p=>({k:llave(e.id,p),t:p,mine:false,gu:gs.has(p)}))
+    .concat((st.custom[e.id]||[]).map(c=>({k:e.id+"::mio::"+c.id,t:c.t,mine:true,cid:c.id,q:c.q})))
+    .concat((e.yaHay||[]).map((p,n)=>({k:"ya::"+e.id+"::"+n,t:p,fijo:true})))
+    .concat((e.editados||[]).map((p,n)=>({k:"ya::ed::"+e.id+"::"+n,t:p,fijo:true,ed:true,oculto:!esControl()})));   // negrilla en «Ya hay» = sale de la edición: cuenta para el cálculo, no se muestra al equipo
+}
+const notaDe=(id,t)=>((st.notas[id]||{})[t]||{t:""}).t;
+function pasaFiltro(e, items){
+  const f=st.filtro, comp=hecho(listoK(e.id));
+  if(f=="Pendiente" && comp) return false;
+  if(f=="Completo" && !comp) return false;
+  if(f=="Con notas" && !(notaDe(e.id,"seriales")||notaDe(e.id,"comentario"))) return false;
+  const q=norm(document.getElementById("buscar").value||"");
+  if(q){ const hay=norm([e.video,e.nombre,"momento "+e.momento,e.duracion,e.voz,items.map(i=>i.t).join(" "),notaDe(e.id,"seriales"),notaDe(e.id,"comentario")].join(" ")); if(!hay.includes(q)) return false; }
+  return true;
+}
+function hora(ts){
+  const d=new Date(ts), mismo=d.toDateString()==new Date().toDateString();
+  return d.toLocaleString("es-CO", mismo?{hour:"numeric",minute:"2-digit"}:{weekday:"short",hour:"numeric",minute:"2-digit"});
+}
+function hace(ts){
+  const m=Math.round((Date.now()-ts)/60000);
+  if(m<1) return "ahora"; if(m<60) return "hace "+m+" min"; if(m<1440) return "hace "+Math.round(m/60)+" h"; return hora(ts);
+}
+const listoK = id => "listo::"+id;
+function videoActual(){ const ids=[...new Set(data.momentos.map(m=>m.video))]; return ids.includes(st.videoActual)?st.videoActual:ids[0]; }
+function conteos(v){
+  let pT=0,pH=0,mT=0,mH=0;
+  data.momentos.forEach(m=>{ if(v&&m.video!=v) return; const it=planosDe(m), n=it.filter(i=>hecho(i.k)).length, necs=necesarios(durDe(m));
+    // Meta del momento = planos necesarios (duración ÷ 2 s). Los planos de MÁS no suman al avance ni restan a lo que falta en otros momentos.
+    if(necs!=null){ pT+=necs; pH+=Math.min(n,necs); } else { pT+=it.length; pH+=n; }
+    mT++; if(hecho(listoK(m.id))) mH++; });
+  return {pT,pH,mT,mH};
+}
+function pintarAvance(){
+  const v=st.avanceTotal?null:videoActual(), c=conteos(v), btn=document.getElementById("avance");
+  const tv=v?((data.momentos.find(x=>x.video==v)||{}).total||""):""; btn.innerHTML=`<small>${v?"Video "+esc(v)+(tv?` · <span class="vtot">${esc(tv)}</span>`:""):"Total"}</small><span class="cnts"><b id="hechos">${c.pH}</b> / <span id="total">${c.pT}</span> planos · <b id="mhechos">${c.mH}</b> / <span id="mtotal">${c.mT}</span> momentos</span>`;
+  pintarBarraAvance(v?"v:"+v:"total", c.pH, c.pT);
+
+}
+/* Video "actual" = el abierto que está arriba en la pantalla. */
+let tScroll=0;
+window.addEventListener("scroll",()=>{ if(tScroll) return; tScroll=requestAnimationFrame(()=>{ tScroll=0;
+  const top=document.querySelector("header").getBoundingClientRect().bottom+8; let cur=null;
+  document.querySelectorAll(".scene.open").forEach(s=>{ const b=s.getBoundingClientRect(); if(b.bottom>top && !cur) cur=s; });
+  if(cur && cur.dataset.vid!==st.videoActual){ st.videoActual=cur.dataset.vid; pintarAvance(); }
+}); },{passive:true});
+/* Duración del momento: columna «Duración (aprox.)»; si está vacía, se calcula del rango de la voz («28–33 s»). */
+function durDe(m){
+  let d=(m.duracion||"").trim();
+  if(!d){ const x=/(\d+)\s*[–-]\s*(\d+)\s*s/.exec(m.voz||""); if(x && +x[2]>+x[1]) d=(+x[2]-+x[1])+" s"; }
+  if(!d) d=durEstimada(m.voz);
+  return d;
+}
+/* Segundos de la duración (acepta «3,5 s», «10.9 s»…) o null */
+/* Sin «Duración» en la hoja: se estima por las palabras de la voz en off (calibrado con el video 1-2: ≈0,6 s + 0,3 s por palabra). Va con «≈». */
+function durEstimada(voz){
+  const w=(voz||"").replace(/[«»“”"()]/g," ").replace(/\d+\s*[–-]\s*\d+\s*s/g," ").split(/\s+/).filter(x=>/[\p{L}\d]/u.test(x)).length;
+  if(!w) return ""; const s=Math.max(1.5,Math.round((0.6+0.3*w)*2)/2);
+  return "≈"+String(s).replace(".",",")+" s";
+}
+function segDe(d){ const n=/^\s*≈?\s*(\d+(?:[.,]\d+)?)\s*s/.exec(d||""); return n?parseFloat(n[1].replace(",",".")):null; }
+/* Planos necesarios para cubrir el momento cambiando de plano cada ~2 s (mínimo 1) */
+function necesarios(d){ const s=segDe(d); return s==null?null:Math.max(1,Math.round(s/2)); }
+function porPlano(m,d){
+  const n=/^\s*≈?\s*(\d+(?:[.,]\d+)?)\s*s/.exec(d||""); if(!n||!m.planos.length) return "";
+  return "≈"+(Math.round(parseFloat(n[1].replace(",","."))/m.planos.length*10)/10).toString().replace(".",",")+" s c/u";
+}
+function autoalto(el){ el.style.height="auto"; el.style.height=Math.max(44,el.scrollHeight)+"px"; }
+let ultVideoMio=null, llegando=false;
+function render(){
+  const team=!!urlSync(), vistaEq=team && !!st.persona && st.vista=="equipo";
+  const vistaCtl=team && st.vista=="control"; document.body.classList.add("control");
+  document.body.classList.toggle("team",team); document.body.classList.toggle("edicion",edicion());
+  { /* Al llegar a un video asignado a esta persona, toda la pantalla cambia de tono (según el estilo) */
+    const vm = st.modo=="uno" && data.momentos.length ? data.momentos[momActual()].video : null, mio = !!vm && !esControl() && !!videografo(vm) && videografo(vm)==st.persona;
+    document.documentElement.classList.toggle("mio-v",mio);
+    if(mio && vm!==ultVideoMio){ llegando=true; toast("⭐ Este video es tuyo"); }
+    ultVideoMio = mio ? vm : null; }
+  document.body.classList.toggle("uno",st.modo!="lista");
+  if(st.modo!="lista" && data.momentos.length){ const mm=data.momentos[momActual()]; st.pos=mm.id; st.videoActual=mm.video; }
+  document.body.classList.toggle("vista-equipo",vistaEq||vistaCtl);
+  document.getElementById("ttxt").textContent = data.proyecto || "Plan de rodaje";
+  { const yo=document.getElementById("yo"); yo.hidden=!(team&&st.persona); yo.textContent=corto(st.persona); yo.title=st.persona||""; }
+  document.getElementById("sub").textContent = (data.mensaje||"").replace(/\.$/,"");
+  pintarAvance();
+  document.querySelectorAll("#vistas button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v==(vistaCtl?"control":vistaEq?"equipo":"plan"))));
+  const pb=document.getElementById("pend"); pb.hidden=!st.cola.length; pb.textContent=st.cola.length;
+
+  document.getElementById("filtros").innerHTML = '<button class="chip" data-modo="inicio">Inicio</button><button class="chip" data-modo="uno">Uno por uno</button>' + FILTROS.map(d=>`<button class="chip" aria-pressed="${st.filtro==d}" data-f="${d}">${d}</button>`).join("");
+
+  // Si una sincronización repinta mientras alguien escribe un plano, no se pierde el texto.
+  const keep={}; let foco=null;
+  document.querySelectorAll("#app [data-add] input").forEach(i=>{ const id=i.form.dataset.add; if(i.value) keep[id]=i.value; if(i===document.activeElement) foco=id; });
+  const fo=document.activeElement, nota=fo&&fo.dataset&&fo.dataset.nota ? {k:fo.dataset.nota,v:fo.value,a:fo.selectionStart,b:fo.selectionEnd} : null;
+  document.getElementById("app").innerHTML = vistaCtl ? htmlControl() : vistaEq ? htmlEquipo() : htmlPlan();
+  if(nota){ const el=document.querySelector(`[data-nota="${CSS.escape(nota.k)}"]`); if(el){ el.value=nota.v; el.focus({preventScroll:true}); try{ el.setSelectionRange(nota.a,nota.b); }catch(e){} } }
+  for(const id in keep){ const el=document.querySelector(`[data-add="${CSS.escape(id)}"] input`); if(el) el.value=keep[id]; }
+  if(foco){ const el=document.querySelector(`[data-add="${CSS.escape(foco)}"] input`); if(el) el.focus(); }
+  document.querySelectorAll("textarea[data-nota]").forEach(autoalto);
+  if(llegando){ llegando=false; const v=document.querySelector(".vtit"); if(v) v.classList.add("llega"); }
+  renderModal();
+  revisarCubiertos(); animarBarras();
+}
+function footHTML(plan){
+  const team=!!urlSync();
+  return `<div class="foot">`+
+    `${plan?`<button id="toggleOcultar">${st.ocultar?"Mostrar":"Ocultar"} planos grabados</button> · `:""}`+
+    `<button id="reset">${team?"Reiniciar este teléfono":"Borrar mi avance"}</button></div>`;
+}
+function htmlMomento(m){
+  const todos=planosDe(m), items=todos.filter(i=>!i.oculto), prop=items.filter(i=>!i.fijo), ya=items.filter(i=>i.fijo), n=todos.filter(i=>hecho(i.k)).length;
+  const listo=hecho(listoK(m.id)), team=!!urlSync(), hayNuevo=items.some(i=>st.nuevos[i.k]), d=durDe(m), pp=porPlano(m,d), lm=st.marcas[listoK(m.id)];
+  const nota=(t,ph)=>{ const a=(st.notas[m.id]||{})[t]; if(esControl()) return a&&a.t?`<div class="ro"><b>${ph}</b>${esc(a.t)}</div>`:""; return `<textarea${bl?" readonly":""} data-nota="${esc(m.id+"|"+t)}" rows="1" maxlength="1500" aria-label="${ph}" placeholder="${ph}">${esc(a?a.t:"")}</textarea>`; };
+  const bl=!puedeEditar(m.video)&&!esControl(), necs=necesarios(d), cubierto=necs!=null&&n>=necs, agregando=!bl&&!!st.abiertas["a:"+m.id], yaAb=!!st.abiertas["y:"+m.id]||edicion();
+  const li=i=>{ const mk=st.marcas[i.k], ok=hecho(i.k);
+    const quien = team && ok && mk ? `<span class="who">✓ ${esc(hora(mk.ts))}</span>` : "";
+    return `<li class="shot${ok?" checked":""}${i.fijo?" ya":""}">
+      <label><input type="checkbox" data-k="${esc(i.k)}" data-e="${esc(m.id)}" data-t="${esc(i.t)}" ${ok?"checked":""}${i.fijo||esControl()||bl?" disabled":""}>
+      <span class="col"><span class="txt">${esc(i.t)}${i.ed?'<span class="tag gu" title="En negrilla en la hoja: sale de la edición">Edición</span>':""}${i.gu?'<span class="tag gu" title="Viene de «Plano del guion»">Guion</span>':""}${st.nuevos[i.k]?'<span class="tag new">Nuevo</span>':""}</span>${/^\s*apertura\b/i.test(i.t)?'<span class="apert"><b>🎬 Plano de apertura</b> Debe ser un plano pensado para que entre graficación sobre él.</span>':""}${quien}</span></label>
+      ${i.mine&&!bl?`<button class="del" data-del="${esc(m.id)}" data-cid="${esc(i.cid)}" aria-label="Borrar plano">×</button>`:""}
+    </li>`; };
+  return `<article class="mom${listo?" done":""}${cubierto?" cubierto":""}${dueno(m.video)}" data-id="${esc(m.id)}">
+    <div class="mhead${cubierto?" cubierto":""}"><span class="mn"><span class="mw">Momento </span><span class="mc">M</span>${esc(m.momento)}</span>${d?`<span class="dur${d.startsWith("≈")?" est":""}" title="${d.startsWith("≈")?"Duración estimada por la voz en off (la hoja no la trae)":"Duración del momento"}"><span class="ic">⏱ </span>${esc(d)}</span>`:""}${hayNuevo?'<span class="tag new">Nuevo</span>':""}
+      <span class="cnt${cubierto?" lleno":""}"${cubierto&&n>necs?` title="${n-necs} plano${n-necs==1?"":"s"} de más: no suman al avance"`:""}>${necs!=null?(cubierto?`<span class="l">✓ suficientes</span><span class="c">✓</span>`+(n>necs?" +"+(n-necs):""):`${n}/${necs}<span class="l"> planos</span>`):n+" de "+items.length+" plano"+(items.length==1?"":"s")}</span>
+      <button class="mas"${bl?" hidden":""} data-addbtn="${esc(m.id)}" aria-pressed="${agregando}" aria-label="Agregar plano" title="Agregar plano">+</button></div>
+    ${m.voz?`<p class="voz">${esc(m.voz)}</p>`:""}
+    ${items.length?"":`<p class="info">Sin planos propuestos todavía.</p>`}
+    <ul class="shots">${prop.filter(i=>!(st.ocultar && hecho(i.k))).map(li).join("")}</ul>
+    ${ya.length?`<button class="yabtn" data-ya="${esc(m.id)}" aria-expanded="${yaAb}">✓ Ya grabados (${ya.length}) ${yaAb?"▾":"▸"}</button>${yaAb?`<ul class="shots">${ya.map(li).join("")}</ul>`:""}`:""}
+    ${agregando?`<form class="add" data-add="${esc(m.id)}"><input name="t" maxlength="300" placeholder="Describe el plano…" enterkeyhint="done" autocomplete="off"><button>Agregar</button></form>`:""}
+    ${nota("seriales","Seriales de video")}
+    ${nota("comentario","Comentarios")}
+    ${`<p class="info">${listo?"✓ <b>Listo</b>"+(lm?" · "+esc(hora(lm.ts)):""):"Aún no está listo"}</p>`}
+    <div class="fin"></div></article>`;
+}
+function banners(){
+  let h=htmlAvisos("plan");
+  if(aviso){
+    const partes=[]; if(aviso.agregados) partes.push(`${aviso.agregados} plano${aviso.agregados>1?"s":""} nuevo${aviso.agregados>1?"s":""}`);
+    if(aviso.quitados) partes.push(`${aviso.quitados} quitado${aviso.quitados>1?"s":""}`);
+    h+=`<div class="banner"><div><b>Lista actualizada</b><p>${esc(aviso.version||"")}${partes.length?" · "+partes.join(" · "):" · cambios en voz en off o momentos"}. Tus checks se conservan.</p></div><button class="iconbtn" id="cerrarAviso">OK</button></div>`;
+  }
+  return h;
+}
+function momActual(){ const ms=data.momentos, i=ms.findIndex(m=>m.id==st.pos); return i<0?0:i; }
+let desplegado=false;
+function htmlDespliegue(){
+  const S=series(), ks=Object.keys(S), actual=(data.momentos[momActual()]||{video:""}).video, cur=String(actual).split("-")[0];
+  const sel=S[st.serie]?st.serie:cur;
+  let h=`<div class="desp"><div class="tipos">`+ks.map(k=>`<button class="chip" aria-pressed="${k==sel}" data-serie="${esc(k)}">${esc(k)}${tipoN(k)?" · "+esc(tipoN(k)):""}</button>`).join("")+`</div>`;
+  h+=[...new Set(S[sel].map(x=>x.video))].map(v=>{ const c=conteos(v), nom=S[sel].find(x=>x.video==v).nombre, ok=c.mT>0&&c.mH==c.mT;
+    return `<button class="vrow${ok?" ok":""}${dueno(v)}" data-irvideo="${esc(v)}"${v==actual?' style="border-color:var(--accent)"':""}><span class="num">${esc(v)}</span><span class="vn">${esc(nom)}${etiqueta(v)}</span><span class="vc">${c.mH}/${c.mT}${ok?" ✓":""}</span></button>`; }).join("");
+  return h+`</div>`;
+}
+function htmlUno(){
+  const ms=data.momentos, i=momActual(), m=ms[i], delVideo=ms.filter(x=>x.video==m.video), mi=delVideo.indexOf(m);
+  const b=(act,txt,off)=>`<button class="navb" data-nav="${act}"${off?" disabled":""}>${txt}</button>`;
+  const nav=`<div class="navfijo">${b("mom:-1","‹ Anterior",i==0)}<div class="navt"><b>Momento ${esc(m.momento)}</b><small>${mi+1} de ${delVideo.length} en este video</small></div>${b("mom:1","Siguiente ›",i==ms.length-1)}</div>`;
+  return banners()+`<button class="vtit${dueno(m.video)}" data-abrirvideos aria-expanded="${desplegado}">${esc(m.video)} · ${esc(m.nombre)} <span>${desplegado?"▴":"▾"}</span></button>`+selVideografo(m.video)+(desplegado?htmlDespliegue():"")+htmlMomento(m)+footHTML(true)+`<div class="espacio"></div>`+nav;
+}
+const tipoN = k => ((data.tipos||{})[k]||{}).nombre||"";
+const tipoD = k => ((data.tipos||{})[k]||{}).desc||"";
+function series(){ const o={}; data.momentos.forEach(m=>{ const s=String(m.video).split("-")[0]; (o[s] ||= []).push(m); }); return o; }
+function htmlInicio(){
+  const S=series(), ks=Object.keys(S);
+  let h=banners();
+  if(st.serie && S[st.serie]){
+    const vids=[...new Set(S[st.serie].map(m=>m.video))];
+    h+=`<div class="navv"><button class="navb" data-serie="">‹ Tipos</button><div class="navt"><b>Tipo ${esc(st.serie)}${tipoN(st.serie)?" · "+esc(tipoN(st.serie)):""}</b><small>${vids.length} video${vids.length==1?"":"s"}</small></div></div>`+(tipoD(st.serie)?`<p class="tdesc">${esc(tipoD(st.serie))}</p>`:"");
+    h+=vids.map(v=>{ const c=conteos(v), nom=S[st.serie].find(m=>m.video==v).nombre, ok=c.mT>0&&c.mH==c.mT;
+      return `<button class="vrow${ok?" ok":""}${dueno(v)}" data-irvideo="${esc(v)}"><span class="num">${esc(v)}</span><span class="vn">${esc(nom)}${etiqueta(v)}</span><span class="vc">${c.mH}/${c.mT}${ok?" ✓":""}</span></button>`; }).join("");
+  }else{
+    h+=`<div class="linea">¿Qué tipo de video?</div><div class="series">`+ks.map(k=>{ const ms=S[k], nv=new Set(ms.map(m=>m.video)).size, mh=ms.filter(m=>hecho(listoK(m.id))).length;
+      return `<button class="serie" data-serie="${esc(k)}"><b>${esc(k)}</b>${tipoN(k)?`<span class="tn">${esc(tipoN(k))}</span>`:""}<span>${nv} videos</span><small>${mh}/${ms.length} momentos</small></button>`; }).join("")+`</div>`;
+  }
+  return h+`<button class="modo" data-modo="uno">Continuar donde iba</button><button class="modo" data-modo="lista">Ver lista de videos</button>`+footHTML(true);
+}
+function htmlPlan(){ return st.modo=="lista" ? htmlLista() : st.modo=="inicio" ? htmlInicio() : htmlUno(); }
+function htmlLista(){
+  let h=banners();
+  const busca=!!norm(document.getElementById("buscar").value||""), filtra=st.filtro!="Todos";
+  const videos=[]; data.momentos.forEach(m=>{ let v=videos[videos.length-1]; if(!v||v.id!=m.video){ v={id:m.video,nombre:m.nombre,ms:[]}; videos.push(v); } v.ms.push(m); });
+  let vis=0;
+  for(const v of videos){
+    const todos=v.ms.map(m=>planosDe(m)).flat(), n=v.ms.filter(m=>hecho(listoK(m.id))).length, done=n==v.ms.length;
+    const mostrar=v.ms.filter(m=>pasaFiltro(m,planosDe(m))); if(!mostrar.length) continue; vis++;
+    const abierta=st.abiertas[v.id] || busca || filtra, hayNuevo=todos.some(i=>st.nuevos[i.k]);
+    h+=`<section class="scene${done?" done":""}${abierta?" open":""}${dueno(v.id)}" data-vid="${esc(v.id)}">
+      <button class="shead" data-toggle="${esc(v.id)}" aria-expanded="${abierta}">
+        <span class="num">${esc(v.id)}</span>
+        <span class="stitle"><strong>${esc(v.nombre)}</strong>${etiqueta(v.id)}<span>${v.ms.length} momento${v.ms.length>1?"s":""}</span></span>
+        <span class="count">${hayNuevo?'<span class="dot"></span>':""}${n}/${v.ms.length}${done?" ✓":""}</span>
+      </button>
+      <div class="sbody">${selVideografo(v.id)}${mostrar.map(htmlMomento).join("")}</div></section>`;
+  }
+  if(!vis) h+=`<div class="empty">No hay momentos con este filtro.</div>`;
+  return h + footHTML(true);
+}
+
+/* ===== Vista Equipo ===== */
+function statsEquipo(){
+  const por={}, ensure=n=>por[n]||(por[n]={n,hechos:0,cred:0,listos:0,agregados:0,ult:0});
+  equipo().forEach(ensure);
+  let total=0; const recientes=[];
+  data.momentos.forEach(e=>{
+    const it=planosDe(e), necs=necesarios(durDe(e)), fijos=it.filter(i=>i.fijo).length, marcados=[];
+    total+=necs!=null?necs:it.length;
+    it.forEach(i=>{ const m=st.marcas[i.k];
+      if(m && m.h){ const p=ensure(m.q||"Sin nombre"); p.hechos++; p.ult=Math.max(p.ult,m.ts); recientes.push({e,i,m}); marcados.push(m); }
+      if(i.mine && i.q) ensure(i.q).agregados++;
+    });
+    // la barra de cada persona solo recibe crédito por los planos que faltaban para la meta: los de más no suman
+    let cupo=necs!=null?Math.max(0,necs-fijos):Infinity;
+    marcados.sort((x,y)=>x.ts-y.ts).forEach(m=>{ if(cupo>0){ ensure(m.q||"Sin nombre").cred++; cupo--; } });
+  });
+  for(const k in st.marcas){ const m=st.marcas[k]; if(k.startsWith('listo::') && m.h){ const p=ensure(m.q||'Sin nombre'); p.listos++; p.ult=Math.max(p.ult,m.ts); } }
+  recientes.sort((a,b)=>b.m.ts-a.m.ts);
+  return {por:Object.values(por).filter(p=>equipo().includes(p.n)), total, recientes};   // quien ya no está en el equipo (p. ej. marcas viejas) no sale como tarjeta
+}
+function htmlEquipo(){
+  const s=statsEquipo(), off=errorSync||navigator.onLine===false, pend=st.cola.length;
+  let h=htmlAvisos("equipo")+`<div class="estado${off?" off":""}"><i class="pt"></i><span>${off?"Sin conexión con el equipo":(st.vistoEn?"Sincronizado "+hace(st.vistoEn):"Aún sin sincronizar")}${pend?` · ${pend} por enviar`:""}</span></div>`;
+  h+=`<div class="linea">Avance por persona</div>`;
+  s.por.forEach(p=>{
+    const pc=s.total?Math.min(100,+(p.cred/s.total*100).toFixed(2)):0, yo=p.n==st.persona;
+    h+=`<div class="pcard${yo?" tuyo":""}"><div class="fila"><strong>${esc(p.n)}${yo?" (tú)":""}</strong><span class="n">${p.hechos} plano${p.hechos==1?"":"s"} · ${p.listos} momento${p.listos==1?"":"s"}</span></div>
+      <div class="bar"><i style="width:${pc}%"></i></div>
+      <div class="sub">${p.ult?"Último: "+esc(hace(p.ult)):"Aún sin marcar nada"}${p.agregados?` · agregó ${p.agregados}`:""}</div></div>`;
+  });
+  h+=`<div class="linea">Últimos grabados</div>`;
+  if(!s.recientes.length) h+=`<div class="empty">Todavía no hay planos marcados.</div>`;
+  s.recientes.slice(0,20).forEach(r=>{
+    h+=`<button class="reciente" data-ir="${esc(r.e.id)}"><span class="num">${esc(r.e.video)}·${esc(r.e.momento)}</span><span class="t">${esc(r.i.t)}<small>${esc(r.m.q||"?")} · ${esc(hora(r.m.ts))}</small></span></button>`;
+  });
+  return h + footHTML(false);
+}
+function htmlControl(){
+  const off=errorSync||navigator.onLine===false, pend=st.cola.length;
+  let h=`<div class="estado${off?" off":""}"><i class="pt"></i><span>${off?"Sin conexión":(st.vistoEn?"Sincronizado "+hace(st.vistoEn):"Aún sin sincronizar")}${pend?` · ${pend} por enviar`:""}</span></div>`;
+  const vids=[]; data.momentos.forEach(m=>{ if(!vids.includes(m.video)) vids.push(m.video); });
+  const porV=vids.map(v=>{ const c=conteos(v), ms=data.momentos.filter(m=>m.video==v); let ult=0, ser=0, com=0;
+    ms.forEach(m=>{ planosDe(m).forEach(i=>{ const k=st.marcas[i.k]; if(k&&k.h&&!i.fijo) ult=Math.max(ult,k.ts); }); const lk=st.marcas[listoK(m.id)]; if(lk&&lk.h) ult=Math.max(ult,lk.ts);
+      if(notaDe(m.id,"seriales")) ser++; if(notaDe(m.id,"comentario")) com++; });
+    return {v,nombre:ms[0].nombre,c,ult,ser,com,vg:videografo(v)}; });
+  const sin=porV.filter(x=>!x.vg).length;
+  const nBl=vids.filter(bloqueado).length;
+  h+=`<div class="linea">Ajustes</div><div class="ccard ajustes">
+    <button class="sw" data-aj="edicion" aria-pressed="${edicion()}"><span>Fase de edición<small>Los planos de «Ya hay» salen en negrilla en todos los teléfonos del equipo</small></span><i></i></button>
+    <div class="sub" style="margin-top:10px">Bloqueo · ${nBl} de ${vids.length} videos bloqueados. Bloqueado = solo edita quien tiene el video asignado.</div>
+    <div class="fila2"><button data-bloqtodos="1">🔒 Bloquear todos</button><button data-bloqtodos="0">🔓 Desbloquear todos</button></div></div>
+  <div class="linea">Videógrafo por persona</div>`;
+  equipo().forEach(n=>{ const mis=porV.filter(x=>x.vg==n), pT=mis.reduce((a,x)=>a+x.c.pT,0), pH=mis.reduce((a,x)=>a+x.c.pH,0);
+    h+=`<div class="ccard"><div class="fila"><strong>${esc(n)}</strong><span class="n">${mis.length} video${mis.length==1?"":"s"} · ${pH}/${pT} planos</span></div>${pT?`<div class="bar"><i style="width:${Math.round(pH/pT*100)}%"></i></div>`:""}<div class="sub">${mis.length?mis.map(x=>esc(x.v)).join(", "):"Sin videos asignados"}</div></div>`; });
+  h+=`<div class="linea">Videos${sin?` · ${sin} sin videógrafo`:""}</div>`;
+  porV.forEach(x=>{ const ok=x.c.mT>0&&x.c.mH==x.c.mT, pc=x.c.pT?Math.round(x.c.pH/x.c.pT*100):0;
+    h+=`<div class="ccard${ok?" ok":!x.vg?" sin":""}"><div class="fila"><strong>${esc(x.v)} · ${esc(x.nombre)}</strong><span class="n">${x.c.mH}/${x.c.mT} mom.${ok?" ✓":""}</span></div>
+      <div class="bar"><i style="width:${pc}%"></i></div>
+      <div class="sub">${x.c.pH}/${x.c.pT} planos${x.ult?" · último "+esc(hace(x.ult)):""}${x.ser?` · ${x.ser} con seriales`:""}${x.com?` · ${x.com} con comentarios`:""}</div>
+      ${selVideografo(x.v)}<button class="modo" data-irvideo="${esc(x.v)}" style="margin:6px 0 0">Ver video</button></div>`; });
+  return h+footHTML(false);
+}
+let modalPrev="";
+function renderModal(){ const m=document.getElementById("modal"); if(modalPrev!==""){ m.innerHTML=""; modalPrev=""; } }
+
+/* ===== Interacción ===== */
+/* El permiso de notificaciones solo se puede pedir tras un toque del usuario (regla de iOS): se pide en el primer toque útil. */
+let autoIntentado=false;
+function intentoAuto(){ if(autoIntentado || st.avisosNo || estadoAvisos()!="pendiente") return; autoIntentado=true; activarAvisos(); }
+document.addEventListener("click",ev=>{
+  if(!ev.target.closest("[data-avisos],[data-avisosno],#modal")) intentoAuto();
+  const t=ev.target.closest("[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,[data-aj],[data-bloqueo],[data-bloqtodos],#cerrarAviso,#reset,#toggleOcultar"); if(!t) return;
+  if(t.dataset.toggle){ const id=t.dataset.toggle; st.abiertas[id]=!st.abiertas[id]; if(st.abiertas[id]) st.videoActual=id; guardar(); pintarAvance();
+    t.parentElement.classList.toggle("open",st.abiertas[id]); t.setAttribute("aria-expanded",st.abiertas[id]); return; }
+  if(t.id=='avance'){ st.avanceTotal=!st.avanceTotal; guardar(); render(); return; }
+  if(t.dataset.abrirvideos!==undefined){ desplegado=!desplegado; if(desplegado) st.serie=String((data.momentos[momActual()]||{video:""}).video).split("-")[0]; render(); return; }
+  if(t.dataset.serie!==undefined){ st.serie=t.dataset.serie||null; guardar(); render(); window.scrollTo(0,0); return; }
+  if(t.dataset.irvideo){ const j=data.momentos.findIndex(x=>x.video==t.dataset.irvideo); if(j>=0){ st.modo="uno"; st.pos=data.momentos[j].id; st.videoActual=data.momentos[j].video; guardar(); } desplegado=false; render(); window.scrollTo(0,0); return; }
+  if(t.dataset.ya){ const k="y:"+t.dataset.ya; st.abiertas[k]=!st.abiertas[k]; guardar(); render(); return; }
+  if(t.dataset.modo){ st.modo=t.dataset.modo; guardar(); render(); window.scrollTo(0,0); return; }
+  if(t.dataset.nav){ const [k,d]=t.dataset.nav.split(":"), dd=+d, ms=data.momentos, i=momActual(); let j=i;
+    if(k=="mom") j=i+dd; else { const vids=[...new Set(ms.map(x=>x.video))], vi=vids.indexOf(ms[i].video)+dd; if(vi<0||vi>=vids.length) return; j=ms.findIndex(x=>x.video==vids[vi]); }
+    if(j<0||j>=ms.length) return; desplegado=false; st.pos=ms[j].id; st.videoActual=ms[j].video; guardar(); render(); window.scrollTo(0,0); return; }
+  if(t.dataset.avisos!==undefined){ activarAvisos(); return; }
+  if(t.dataset.avisosno!==undefined){ st.avisosNo=true; guardar(); render(); return; }
+  if(t.dataset.f){ st.filtro=t.dataset.f; guardar(); render(); return; }
+  if(t.dataset.v){ st.vista=t.dataset.v; guardar(); render(); window.scrollTo(0,0); return; }
+  if(t.dataset.cambiar!==undefined){ cambiando=true; render(); return; }
+  if(t.dataset.aj){ ajustar([[t.dataset.aj, t.dataset.aj=="edicion" ? (edicion()?"0":"1") : "1"]]); return; }
+  if(t.dataset.bloqueo){ const v=t.dataset.bloqueo; ajustar([["bloqueo::"+v, bloqueado(v)?"0":"1"]]); return; }
+  if(t.dataset.bloqtodos!==undefined){ const vs=[...new Set(data.momentos.map(m=>m.video))], val=t.dataset.bloqtodos;
+    if(val=="1" && !confirm("¿Bloquear los "+vs.length+" videos? Solo podrá editar cada uno quien lo tenga asignado.")) return;
+    ajustar(vs.map(v=>["bloqueo::"+v,val])); toast(val=="1"?"Todos los videos bloqueados":"Todos los videos desbloqueados"); return; }
+  if(t.id=="cancelarPersona"){ cambiando=false; render(); return; }
+  if(t.dataset.persona){ st.control=""; st.vista="plan"; st.persona=t.dataset.persona; cambiando=false; adoptar(); guardar(); render(); intentoAuto(); sincEquipo(true); return; }
+  if(t.dataset.ir){ const id=t.dataset.ir, m=momento(id); st.vista="plan"; st.filtro="Todos"; st.modo="uno"; st.pos=id; if(m) st.abiertas[m.video]=true; document.getElementById("buscar").value=""; guardar(); render();
+    const el=document.querySelector(`[data-id="${CSS.escape(id)}"]`); if(el) el.scrollIntoView({block:"start"}); return; }
+  if(t.dataset.listo){ const id=t.dataset.listo; registrar(hecho(listoK(id))?"desmarcar":"marcar", listoK(id), id, "Momento listo"); return; }
+  if(t.dataset.addbtn){ const id=t.dataset.addbtn; st.abiertas["a:"+id]=!st.abiertas["a:"+id]; guardar(); render(); const el=document.querySelector(`[data-add="${CSS.escape(id)}"] input`); if(el) el.focus(); return; }
+  if(t.dataset.del){
+    const c=(st.custom[t.dataset.del]||[]).find(x=>x.id==t.dataset.cid);
+    if(c && c.q && c.q!==st.persona && !confirm("Este plano lo agregó "+corto(c.q)+". ¿Borrarlo para todo el equipo?")) return;
+    registrar("borrar", t.dataset.cid, t.dataset.del, c?c.t:""); return; }
+  if(t.id=="cerrarAviso"){ aviso=null; render(); return; }
+  if(t.id=="toggleOcultar"){ st.ocultar=!st.ocultar; guardar(); render(); return; }
+  if(t.id=="reset"){
+    const team=!!urlSync();
+    const msg = team ? "¿Reiniciar este teléfono? Se borra lo guardado aquí y se vuelve a bajar lo del equipo."+(st.cola.length?" Los "+st.cola.length+" cambios sin enviar se perderán.":"")
+                     : "¿Borrar todos tus checks, notas y planos agregados en este teléfono?";
+    if(confirm(msg)){ st.marcas={}; st.custom={}; st.nuevos={}; st.borrados={}; st.notas={}; st.cola=[]; st.vistoEn=0; st.adoptado=true; guardar(); render(); if(team) sincEquipo(true); }
+  }
+});
+document.addEventListener("change",ev=>{
+  const el=ev.target;
+  if(el.dataset&&el.dataset.asig!==undefined){ asignar(el.dataset.asig,el.value); return; }
+  const k=el.dataset&&el.dataset.k; if(!k) return;
+  festejar=el.checked; registrar(el.checked?"marcar":"desmarcar", k, el.dataset.e, el.dataset.t);
+});
+document.addEventListener("submit",ev=>{
+  const f=ev.target.closest("[data-add]"); if(!f) return; ev.preventDefault();
+  const v=f.t.value.trim(); if(!v) return; const id=f.dataset.add;
+  f.t.value=""; registrar("agregar", uid(), id, v);
+  const nf=document.querySelector(`[data-add="${CSS.escape(id)}"] input`); nf&&nf.focus();
+});
+document.getElementById("buscar").addEventListener("input",render);
+/* Seriales y comentarios: se guardan solos (0,7 s después de escribir y al salir del cuadro), sin repintar la pantalla. */
+const tNotas={};
+function volcarNota(k){ const el=document.querySelector(`[data-nota="${CSS.escape(k)}"]`); if(!el) return; const [id,tipo]=k.split("|"); guardarNota(id,tipo,el.value); }
+document.addEventListener("input",ev=>{ const k=ev.target.dataset&&ev.target.dataset.nota; if(!k) return; autoalto(ev.target); clearTimeout(tNotas[k]); tNotas[k]=setTimeout(()=>volcarNota(k),700); });
+document.addEventListener("focusout",ev=>{ const el=ev.target, k=el.dataset&&el.dataset.nota; if(!k) return; clearTimeout(tNotas[k]); const [id,tipo]=k.split("|"); guardarNota(id,tipo,el.value); });
+document.getElementById("btnSync").addEventListener("click",()=>sincronizar(true));
+/* Compartir = «sábana de montaje»: por video y momento, solo lo ya grabado (planos marcados, extras del equipo, seriales, notas, listo). */
+function sabanaMontaje(){
+  const ctl=esControl(), L=[], vids=[...new Set(data.momentos.map(m=>m.video))]; let nM=0,nP=0;
+  const una=t=>String(t||"").replace(/\s*\n\s*/g," · ").trim();
+  vids.forEach(v=>{
+    const ms=data.momentos.filter(m=>m.video==v), B=[];
+    ms.forEach(m=>{
+      const it=planosDe(m), gr=it.filter(i=>!i.fijo&&hecho(i.k)), ya=it.filter(i=>i.fijo&&!i.ed), ed=ctl?it.filter(i=>i.ed):[];
+      const s=notaDe(m.id,"seriales"), c=notaDe(m.id,"comentario"), lk=st.marcas[listoK(m.id)], listo=!!(lk&&lk.h);
+      if(!gr.length&&!listo&&!s&&!c) return;
+      nM++; nP+=gr.length;
+      const d=durDe(m);
+      B.push("");
+      B.push(`Momento ${m.momento}${d?" · "+d:""}${listo?" · ✓ LISTO"+(lk.q?" ("+corto(lk.q)+")":""):""}`);
+      if(m.voz) B.push(`  Voz: ${una(m.voz)}`);
+      gr.forEach(i=>{ const mk=st.marcas[i.k]; B.push(`  ✓ ${i.t}${i.mine?" [extra]":""}${mk&&mk.q?" — "+corto(mk.q)+", "+hora(mk.ts):""}`); });
+      ya.forEach(i=>B.push(`  ● ${i.t} [ya existía]`));
+      ed.forEach(i=>B.push(`  ● ${i.t} [en edición]`));
+      if(s) B.push(`  Seriales: ${una(s)}`);
+      if(c) B.push(`  Nota: ${una(c)}`);
+    });
+    if(B.length){ const vg=videografo(v); L.push("", `══ VIDEO ${v} · ${ms[0].nombre}${vg?" · "+corto(vg):""}`); L.push(...B); }
+  });
+  if(!nM) return "";
+  return `${data.proyecto} — SÁBANA DE MONTAJE\n${new Date().toLocaleString("es-CO",{weekday:"long",day:"numeric",month:"long",hour:"numeric",minute:"2-digit"})}\n${nM} momentos con material · ${nP} planos grabados`+L.join("\n");
+}
+document.getElementById("btnShare").addEventListener("click",async()=>{
+  const txt=sabanaMontaje(); if(!txt){ toast("Aún no hay nada grabado para compartir"); return; }
+  try{ if(navigator.share){ await navigator.share({title:"Sábana de montaje",text:txt}); return; } }catch(e){ if(e.name=="AbortError") return; }
+  try{ await navigator.clipboard.writeText(txt); toast("Sábana de montaje copiada"); }catch(e){ toast("No se pudo copiar"); }
+});
+let tt; function toast(m,ms){ const el=document.getElementById("toast"); el.textContent=m; el.classList.add("show"); clearTimeout(tt); tt=setTimeout(()=>el.classList.remove("show"),ms||2200); }
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState=="visible") sincronizar(false); });
+window.addEventListener("online",()=>sincronizar(false));
+
+/* ===== Barra bajo Plan/Equipo: avance de planos del VIDEO o de TODO el proyecto (lo que muestre el botón de avance) ===== */
+let sbarPrev=null;
+function pintarBarraAvance(key,h,tot){
+  const i=document.querySelector("#sbar i"); if(!i) return;
+  const w=tot?h/tot*100:0; i.style.width=w+"%"; document.getElementById("sbar").title=`${h} de ${tot} planos`;
+  if(sbarPrev && sbarPrev.key===key && h>sbarPrev.h){ subir(i,true); brote(i,"+"+(h-sbarPrev.h)); }
+  sbarPrev={key,h};
+}
+/* «+1» que sale de la punta de la barra al crecer; cada estilo lo pinta distinto */
+function brote(i,txt){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const r=i.getBoundingClientRect(), b=document.createElement("span"); b.className="brote"; b.textContent=txt;
+  b.style.left=Math.min(innerWidth-24,Math.max(24,r.right))+"px"; b.style.top=(r.top+r.height/2)+"px"; document.body.appendChild(b); setTimeout(()=>b.remove(),1300);
+}
+/* Efecto de avance: se reinicia solo si la animación anterior ya terminó, para no parpadear al desplazar */
+function subir(i,fuerte){ if(i._sube){ clearTimeout(i._sube); i.classList.remove("sube"); void i.offsetWidth; } i.classList.add("sube"); if(fuerte){ i.parentNode.classList.remove("late"); void i.offsetWidth; i.parentNode.classList.add("late"); } i._sube=setTimeout(()=>{ i.classList.remove("sube"); i.parentNode.classList.remove("late"); i._sube=null; },1100); }
+const barrasPrev={}, barrasHasta={};
+function animarBarras(){
+  const vistas={};
+  document.querySelectorAll(".bar>i").forEach(i=>{
+    const c=i.closest(".pcard,.ccard"), nom=c&&c.querySelector("strong"), base=(c?c.className.split(" ")[0]:"x")+"|"+(nom?nom.textContent:"");
+    vistas[base]=(vistas[base]||0)+1; const key=base+"|"+vistas[base], w=parseFloat(i.style.width)||0, p=barrasPrev[key]; barrasPrev[key]=w;
+    if(p!=null && w>p){ i.style.transition="none"; i.style.width=p+"%"; void i.offsetWidth; i.style.transition=""; i.style.width=w+"%"; barrasHasta[key]=Date.now()+1100; setTimeout(()=>{ if(i.isConnected) brote(i,"▲"); },500); }
+    if(barrasHasta[key]>Date.now()){ i.classList.add("sube"); setTimeout(()=>i.classList.remove("sube"),barrasHasta[key]-Date.now()); }   // sobrevive a repintados (p. ej. la sincronización)
+  });
+}
+
+/* ===== Celebración: cuando un momento llega a los planos suficientes (regla de 2 s), cada estilo tiene su efecto ===== */
+let visPrev=new Set(), festejar=false;   // solo se celebra lo que marcas tú en este teléfono, no lo que llega por sincronización
+/* Si la fila del momento no cabe en ESTE teléfono (otra tipografía, pantalla angosta), acorta los letreros: primero quita el ⏱, luego «Momento 6» → «M6» y, solo si aún no cabe, «✓ suficientes» → «✓». Nada queda cortado ni cambia la altura. */
+function ajustarMhead(){
+  document.querySelectorAll(".mhead").forEach(h=>{
+    h.classList.remove("ap","ap2","ap3");
+    for(const c of ["ap2","ap3","ap"]){ if(h.scrollWidth<=h.clientWidth) break; h.classList.add(c); }   // orden: quitar ⏱, «Momento»→«M», y solo al final «suficientes»→«✓»
+  });
+}
+addEventListener("resize",ajustarMhead);
+function revisarCubiertos(){
+  ajustarMhead();
+  // Cada vez que un momento que ya cumple su tiempo APARECE (abrir la app, abrir el video, volver a él, marcar el plano que lo completa) sale el efecto.
+  const vis=[...document.querySelectorAll(".mom.cubierto")].filter(el=>el.offsetParent).map(el=>el.dataset.id);
+  const nuevos=vis.filter(id=>!visPrev.has(id)), marcando=festejar; festejar=false; visPrev=new Set(vis);
+  if(esControl()||!nuevos.length) return;
+  const m=momento(nuevos[0]); celebrar(document.querySelector(`.mom[data-id="${CSS.escape(nuevos[0])}"]`));
+  toast(`🎯 ${m.video} · Momento ${m.momento}: ${marcando?"ya hay planos suficientes":"ya cumple su tiempo"}. Puedes seguir grabando o marcarlo listo.`,4200);
+}
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"){ visPrev=new Set(); revisarCubiertos(); } });
+function celebrar(el){
+  const sk=document.documentElement.dataset.skin||"papel", W=innerWidth, H=innerHeight;
+  const rc=el?el.getBoundingClientRect():null, ox=rc?Math.min(W-30,Math.max(30,rc.right-60)):W/2, oy=rc?Math.min(H-40,Math.max(60,rc.top+22)):H/3;
+  if(el){ el.classList.remove("festejo"); void el.offsetWidth; el.classList.add("festejo"); setTimeout(()=>el.classList.remove("festejo"),1600); }
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cv=document.createElement("canvas"), dpr=Math.min(2,devicePixelRatio||1); cv.className="fiesta"; cv.width=W*dpr; cv.height=H*dpr; document.body.appendChild(cv);
+  const g=cv.getContext("2d"); g.scale(dpr,dpr);
+  const R=(a,b)=>a+Math.random()*(b-a), P=[], pick=a=>a[Math.random()*a.length|0];
+  let grav=.22, drag=.985, dur=2600, glow=0, extra=null;
+  if(sk=="neon"){ grav=.03; drag=.955; glow=14; dur=1900;
+    for(let i=0;i<80;i++){ const a=R(0,6.283), v=R(3,11); P.push({x:ox,y:oy,vx:Math.cos(a)*v,vy:Math.sin(a)*v,s:R(1.5,3),c:pick(["#00e5ff","#ff3df2","#39ff88","#ffffff"]),f:"streak"}); }
+    extra=(k)=>{ for(let j=0;j<3;j++){ const p=k-j*.12; if(p<=0||p>=1) continue; g.strokeStyle=`rgba(0,229,255,${(1-p)*.8})`; g.lineWidth=2; g.shadowBlur=18; g.shadowColor="#00e5ff"; g.beginPath(); g.arc(ox,oy,p*Math.max(W,H)*.55,0,6.283); g.stroke(); } };
+  } else if(sk=="cine"){ grav=.035; drag=.995; glow=8; dur=3200;
+    for(let i=0;i<70;i++) P.push({x:R(0,W),y:R(-H*.4,0),vx:R(-.4,.4),vy:R(.6,2),s:R(1.5,4),c:pick(["#e2b65a","#f6dc9a","#fff3d1","#b8893a"]),f:"star",tw:R(0,6)});
+    extra=(k)=>{ const a=Math.sin(Math.min(1,k*1.6)*Math.PI)*.22, rg=g.createRadialGradient(ox,oy,0,ox,oy,W*.8); rg.addColorStop(0,`rgba(255,220,150,${a})`); rg.addColorStop(1,"rgba(255,220,150,0)"); g.fillStyle=rg; g.fillRect(0,0,W,H); };
+  } else if(sk=="editorial"){ grav=.28; drag=.98; dur=2400;
+    for(let i=0;i<55;i++) P.push({x:R(0,W),y:R(-60,-10),vx:R(-1.5,1.5),vy:R(1,4),s:R(5,10),c:pick(["#111","#111","#e0201b","#fbfaf6"]),f:"strip",r:R(0,6),vr:R(-.2,.2)});
+    const sello=document.createElement("div"); sello.className="sello"; sello.textContent="¡Suficientes!"; sello.style.left=ox+"px"; sello.style.top=oy+"px"; document.body.appendChild(sello); setTimeout(()=>sello.remove(),1500);
+  } else if(sk=="aurora"){ grav=-.05; drag=.99; dur=3000;
+    for(let i=0;i<40;i++) P.push({x:ox+R(-80,80),y:oy+R(-10,30),vx:R(-1.2,1.2),vy:R(-2.5,-.5),s:R(5,16),c:pick(["106,76,255","255,79,134","255,138,92","120,200,255"]),f:"orb"});
+  } else {
+    for(let i=0;i<110;i++){ const a=R(-2.6,-.55), v=R(6,14); P.push({x:ox,y:oy,vx:Math.cos(a)*v,vy:Math.sin(a)*v,s:R(5,9),c:pick(["#e4572e","#2e8b57","#f2c14e","#3a7bd5","#c94fbf"]),f:"rect",r:R(0,6),vr:R(-.3,.3)}); }
+  }
+  const t0=performance.now();
+  (function paso(t){
+    const k=(t-t0)/dur; g.clearRect(0,0,W,H); if(extra) extra(k); g.shadowBlur=glow;
+    const al=k<.75?1:Math.max(0,(1-k)/.25);
+    for(const p of P){ p.vx*=drag; p.vy=p.vy*drag+grav; p.x+=p.vx; p.y+=p.vy; if(p.vr) p.r+=p.vr;
+      g.globalAlpha=al;
+      if(p.f=="rect"||p.f=="strip"){ g.save(); g.translate(p.x,p.y); g.rotate(p.r); g.scale(1,Math.cos(p.r*2)); g.fillStyle=p.c; if(p.f=="strip"){ g.fillRect(-p.s/2,-1.5,p.s,3); } else g.fillRect(-p.s/2,-p.s/3,p.s,p.s*.66); g.restore(); }
+      else if(p.f=="streak"){ g.strokeStyle=p.c; g.shadowColor=p.c; g.lineWidth=p.s; g.lineCap="round"; g.beginPath(); g.moveTo(p.x,p.y); g.lineTo(p.x-p.vx*3,p.y-p.vy*3); g.stroke(); }
+      else if(p.f=="star"){ const s=p.s*(.6+.4*Math.sin(t/120+p.tw)); g.fillStyle=p.c; g.shadowColor=p.c; g.beginPath(); for(let j=0;j<8;j++){ const rr=j%2?s*.35:s*1.6, a=j*Math.PI/4; g.lineTo(p.x+Math.cos(a)*rr,p.y+Math.sin(a)*rr); } g.fill(); }
+      else if(p.f=="orb"){ const rg=g.createRadialGradient(p.x,p.y,0,p.x,p.y,p.s); rg.addColorStop(0,`rgba(${p.c},.75)`); rg.addColorStop(1,`rgba(${p.c},0)`); g.fillStyle=rg; g.beginPath(); g.arc(p.x,p.y,p.s,0,6.283); g.fill(); }
+    }
+    g.globalAlpha=1; if(k<1) requestAnimationFrame(paso); else cv.remove();
+  })(t0);
+  if(navigator.vibrate) try{ navigator.vibrate(30); }catch(e){}
+}
+
+/* ===== Estilos (skins) ===== */
+const SKINS=["papel","neon","cine","editorial","aurora"], SKIN_K="rodaje-skin:"+location.pathname;
+function skinActual(){ try{ return JSON.parse(localStorage.getItem(SKIN_K)||"{}"); }catch(e){ return {}; } }
+function ponerSkin(s,aj){
+  const k=skinActual(); if(s!==undefined) k.s=s; if(aj!==undefined) k.a=aj?"1":"0"; delete k.b;
+  try{ localStorage.setItem(SKIN_K,JSON.stringify(k)); }catch(e){}
+  const h=document.documentElement; if(k.s && k.s!="papel") h.dataset.skin=k.s; else delete h.dataset.skin;
+  h.style.filter=""; h.classList.toggle("sin-aj",k.a==="0"); document.getElementById("opAjeno").setAttribute("aria-pressed",String(k.a!=="0"));
+  document.querySelectorAll(".sk").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.skin==(k.s||"papel"))));
+  const mt=document.querySelector('meta[name="theme-color"]'); if(mt) mt.content=getComputedStyle(h).getPropertyValue("--bg").trim()||"#f6f3ee";
+}
+document.getElementById("btnSkin").addEventListener("click",ev=>{ ev.stopPropagation(); const p=document.getElementById("skinpop"); p.hidden=!p.hidden; ev.currentTarget.setAttribute("aria-expanded",String(!p.hidden));
+  if(!p.hidden){ const hb=document.querySelector("header").getBoundingClientRect(); p.style.top=(hb.bottom-4)+"px"; } });
+document.getElementById("skinpop").addEventListener("click",ev=>{ ev.stopPropagation(); const b=ev.target.closest(".sk"); if(b) ponerSkin(b.dataset.skin); if(ev.target.closest("#opAjeno")) ponerSkin(undefined, skinActual().a==="0"); });
+document.addEventListener("click",()=>{ const p=document.getElementById("skinpop"); if(!p.hidden){ p.hidden=true; document.getElementById("btnSkin").setAttribute("aria-expanded","false"); } });
+ponerSkin();
+
+render(); sincronizar(false); verificarSub();
+if("serviceWorker" in navigator && location.protocol=="https:"){ try{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }catch(e){} }
+</script>
+</body>
+</html>
