@@ -1565,7 +1565,7 @@ function animarBarras(){
 }
 
 /* ===== Celebración: cuando un momento llega a los planos suficientes (regla de 2 s), cada estilo tiene su efecto ===== */
-let visPrev=new Set(), festejar=false;   // solo se celebra lo que marcas tú en este teléfono, no lo que llega por sincronización
+let visPrev=new Set(), festejar=false, primeraRev=true;   // solo se celebra lo que marcas tú en este teléfono, no lo que llega por sincronización
 /* Si la fila del momento no cabe en ESTE teléfono (otra tipografía, pantalla angosta), acorta los letreros: primero quita el ⏱, luego «Momento 6» → «M6» y, solo si aún no cabe, «✓ suficientes» → «✓». Nada queda cortado ni cambia la altura. */
 function ajustarMhead(){
   document.querySelectorAll(".mhead").forEach(h=>{
@@ -1576,8 +1576,9 @@ function ajustarMhead(){
 addEventListener("resize",ajustarMhead);
 function revisarCubiertos(){
   ajustarMhead();
-  // Cada vez que un momento que ya cumple su tiempo APARECE (abrir la app, abrir el video, volver a él, marcar el plano que lo completa) sale el efecto.
+  // El efecto sale cuando un momento que cumple su tiempo APARECE por un cambio de momento/video o al marcar el plano que lo completa; no al abrir la app ni al volver a ella.
   const vis=[...document.querySelectorAll(".mom.cubierto")].filter(el=>el.offsetParent).map(el=>el.dataset.id);
+  if(primeraRev){ primeraRev=false; festejar=false; visPrev=new Set(vis); return; }   // al abrir la app no se celebra lo que ya estaba cumplido
   const nuevos=vis.filter(id=>!visPrev.has(id)), marcando=festejar; festejar=false; visPrev=new Set(vis);
   if(revisarLogros(marcando, marcando && nuevos.length)) return;   // video o proyecto completo: celebración grande (ya incluye sonido)
   if(!nuevos.length){ if(marcando) efecto(1); return; }
@@ -1654,7 +1655,7 @@ function logro(nivel,tit,sub){
   celebrar(null,nivel==4?3:2);
   if(nivel==4){ [500,1100,1800,2600].forEach((ms,i)=>setTimeout(()=>{ const f=document.createElement("div"); f.style.cssText=`position:fixed;left:${[.2,.8,.35,.65][i]*W}px;top:${[.3,.25,.6,.5][i]*H}px;width:1px;height:1px`; document.body.appendChild(f); celebrar(f,2); setTimeout(()=>f.remove(),100); },ms)); }
 }
-document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"){ visPrev=new Set(); revisarCubiertos(); } });
+/* Volver a la app ya no repite el efecto: solo sale al cambiar de momento o al marcar el plano que completa el momento. */
 function celebrar(el,M){ M=M||1;
   const sk=document.documentElement.dataset.skin||"papel", W=innerWidth, H=innerHeight;
   const rc=el?el.getBoundingClientRect():null, ox=rc?Math.min(W-30,Math.max(30,rc.right-60)):W/2, oy=rc?Math.min(H-40,Math.max(60,rc.top+22)):H/3;
