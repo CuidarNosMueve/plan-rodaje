@@ -640,6 +640,7 @@ function cfgSW(){
 }
 
 let data = st.data || base;
+let swReg=null, recargandoSW=false, VERS="";   // actualización del programa (ver más abajo)
 /* Usuario de prueba: ve videos FALSOS (no los del Sheet) para probar actualizaciones y avisos sin ensuciar el plan real. */
 const NOM_PRUEBA="Usuario de prueba", esPrueba=()=>st.persona===NOM_PRUEBA;
 function datosPrueba(){
@@ -1050,7 +1051,9 @@ function footHTML(plan){
   return `<div class="foot">`+
     `${HAY&&soloRes()?`<button id="toggleVerTodos" class="vt">${st.verTodos?"Ver solo los resaltados":"Ver todos los videos"}${!st.verTodos&&ocultosN()?" ("+ocultosN()+" ocultos)":""}</button><br>`:""}`+
     `${plan?`<button id="toggleOcultar">${st.ocultar?"Mostrar":"Ocultar"} planos grabados</button> · `:""}`+
-    `<button id="reset">${team?"Reiniciar este teléfono":"Borrar mi avance"}</button></div>`;
+    `<button id="reset">${team?"Reiniciar este teléfono":"Borrar mi avance"}</button><br>`+
+    `<button id="forzar" class="vt" style="margin-top:8px">⟳ Forzar actualización del programa</button>`+
+    `<div class="sub" style="text-align:center;margin-top:6px">${VERS?"Versión instalada: "+esc(VERS):"Versión: sin copia guardada"}</div></div>`;
 }
 /* Premisa del video (columna «Premisa» del Sheet, en cualquiera de sus filas) y planos genéricos (fila «Planos genéricos» al final del Sheet). */
 const porAsignarSheet = () => [...new Set(data.momentos.map(m=>m.video))].map(v=>{ const g=miembros(respDe(v)).join("|"), e=miembros(edDe(v)).join("|");
@@ -1584,7 +1587,12 @@ ponerSkin();
 
 render(); sincronizar(false); verificarSub();
 /* Actualización del programa: al abrir, al volver a la app y al recargar los datos se busca la versión nueva; si hay, la app se reinicia sola (sin perder lo escrito: todo se guarda). */
-let swReg=null, recargandoSW=false;
+try{ if("caches" in window) caches.keys().then(ks=>{ const k=ks.find(x=>/^(rodaje|control)-v\d+$/.test(x)); if(k){ VERS=k; try{ render(); }catch(e){} } }).catch(()=>{}); }catch(e){}
+document.addEventListener("click",async ev=>{ const b=ev.target.closest&&ev.target.closest("#forzar"); if(!b) return;
+  b.textContent="Actualizando…"; b.disabled=true;
+  try{ const rs=await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r=>r.unregister())); }catch(e){}
+  try{ const ks=await caches.keys(); await Promise.all(ks.filter(k=>k!="rodaje-cfg").map(k=>caches.delete(k))); }catch(e){}
+  location.reload(); });
 function revisarPrograma(){ try{ if(swReg) swReg.update().catch(()=>{}); }catch(e){} }
 function recargarSiLibre(){ if(recargandoSW) return; const f=document.activeElement; if(f&&/^(TEXTAREA|INPUT)$/.test(f.tagName)){ f.addEventListener("blur",()=>setTimeout(recargarSiLibre,400),{once:true}); return; } recargandoSW=true; location.reload(); }
 if("serviceWorker" in navigator && location.protocol=="https:"){ try{
