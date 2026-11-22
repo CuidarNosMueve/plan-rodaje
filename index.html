@@ -639,7 +639,7 @@ let aviso = null;
 const urlSync = () => (data && data.sync) || SYNC_URL || "";
 let NUEVOS=[];   // personas nuevas (escribieron su nombre con «Nuevo usuario»): salen para elegir y para asignar
 function calcNuevos(){
-  const base=(data && data.equipo && data.equipo.length ? data.equipo : EQUIPO), pri=n=>norm(n).split(" ")[0], tengo=new Set(base.map(pri)), out=[];
+  const base=(data && data.equipo && data.equipo.length ? data.equipo : EQUIPO).concat(EQUIPO), pri=n=>norm(n).split(" ")[0], tengo=new Set(base.map(pri)), out=[];
   const add=n=>{ n=String(n||"").trim(); if(!n||n=="Control"||n=="Hoja"||n=="Sin nombre"||n==NOM_PRUEBA) return; const k=pri(n); if(tengo.has(k)) return; tengo.add(k); out.push(n); };
   (st.extra||[]).forEach(add); if(st.persona) add(st.persona);
   for(const k in st.marcas) add(st.marcas[k].q);
@@ -647,7 +647,9 @@ function calcNuevos(){
   for(const e in st.custom) st.custom[e].forEach(c=>add(c.q));
   NUEVOS=out;
 }
-const equipo = () => (data && data.equipo && data.equipo.length ? data.equipo : EQUIPO).concat(NUEVOS);
+const equipo = () => { const base=(data && data.equipo && data.equipo.length ? data.equipo : EQUIPO).slice(), pri=n=>norm(n).split(" ")[0], tengo=new Set(base.map(pri));
+  EQUIPO.forEach(n=>{ if(!tengo.has(pri(n))){ base.push(n); tengo.add(pri(n)); } });   // los nombres que trae la app siempre cuentan, aunque el teléfono guarde una lista vieja
+  return base.concat(NUEVOS); };
 const equipoActivo = () => !!urlSync() && !!st.persona;
 let GENC={}, PK={};   // GENC: planos cubiertos con una toma de un plano genérico {llave del plano → marca}; PK: llave → {momento, plano}
 const marcaDe = k => st.marcas[k] || GENC[k] || null;
