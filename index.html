@@ -1367,7 +1367,7 @@ let pendMom=null;   // momento al que van los clips que se importan después de 
 function hojaCam(html){ document.getElementById("recpick")?.remove(); const d=document.createElement("div"); d.id="recpick"; d.innerHTML=`<div class="sheet" role="dialog" aria-modal="true">${html}</div>`; document.body.appendChild(d); d.addEventListener("click",e=>{ if(e.target===d) d.remove(); }); return d; }
 function momDentro(){ const ms=MOMS(); return st.vista=="plan" && st.modo=="uno" && ms.length ? ms[momActual()] : null; }
 function abrirSelector(simple){ const i=document.getElementById("recin"); if(simple) i.setAttribute("capture","environment"); else i.removeAttribute("capture"); i.click(); }
-function lanzarAtajo(){ const m=momDentro(); st.camAt=Date.now(); st.camMom=m?m.id:null; guardar(); location.href="shortcuts://run-shortcut?name="+encodeURIComponent(ATAJO_NOM); }
+function lanzarAtajo(){ const m=momDentro(); st.camAt=Date.now(); st.camMom=m?m.id:null; guardar(); const vuelta=location.href.split("#")[0].split("?")[0]; location.href="shortcuts://x-callback-url/run-shortcut?name="+encodeURIComponent(ATAJO_NOM)+"&x-success="+encodeURIComponent(vuelta)+"&x-cancel="+encodeURIComponent(vuelta)+"&x-error="+encodeURIComponent(vuelta); }
 function instalarCam(){
   const d=hojaCam(`<h2>🎥 Paso único: la cámara del rodaje</h2><p>Para grabar con la <b>cámara nativa del iPhone</b> (con todos sus lentes y modos), instala una vez el atajo «${ATAJO_NOM}»:</p>
     <p>1. Toca <b>Instalar</b> → en Atajos toca <b>Añadir atajo</b>.<br>2. Vuelve a esta app y toca <b>Ya lo instalé</b>.</p>
