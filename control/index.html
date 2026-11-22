@@ -207,7 +207,7 @@ body.uno .filters, body.uno .search{display:none}
 .foot .vt{border:1px solid var(--line);border-radius:999px;padding:9px 16px;margin-bottom:6px;font-size:13px;font-weight:700;color:var(--ink);text-decoration:none;background:var(--card)}
 .foot button{background:none;border:0;color:var(--muted);text-decoration:underline;font-size:12px;cursor:pointer;padding:6px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(calc(100% + 140px + env(safe-area-inset-bottom)));opacity:0;visibility:hidden;pointer-events:none;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:18px;font-size:14px;line-height:1.35;font-weight:600;transition:transform .25s,opacity .25s,visibility 0s linear .25s;z-index:9;white-space:normal;text-align:center;width:max-content;max-width:calc(100vw - 32px);box-sizing:border-box;box-shadow:0 8px 28px rgba(0,0,0,.25)}   /* el aviso puede ocupar 2–3 líneas: nunca se corta */
-.toast{z-index:120 !important}.toast.show{transform:translateX(-50%) translateY(0);opacity:1;visibility:visible;transition:transform .25s,opacity .25s,visibility 0s}
+.toast{z-index:120 !important}.toast.show{pointer-events:auto;touch-action:none}.toast.show{transform:translateX(-50%) translateY(0);opacity:1;visibility:visible;transition:transform .25s,opacity .25s,visibility 0s}
 .spin{animation:spin 1s linear infinite;display:inline-block} @keyframes spin{to{transform:rotate(360deg)}}
 
 /* ----- Equipo ----- */
@@ -1563,6 +1563,15 @@ document.addEventListener("click",ev=>{ if(TEC.t&&!(TEC.el&&TEC.el.contains(ev.t
     if(d>85){ poner(85,"Actualizando…"); try{ sincronizar(true); }catch(e){} revisarPrograma(); setTimeout(ocultar,1400); } else ocultar(); d=0; },{passive:true});
   document.addEventListener("touchcancel",()=>{ activo=false; ocultar(); },{passive:true});
 })();
+/* Deslizar a los lados = cambiar de momento (usa los mismos botones de siguiente/anterior) */
+(function(){ let x0=0,y0=0,ok=false,t0=0;
+  document.addEventListener("touchstart",ev=>{ const e=ev.target;
+    ok = ev.touches.length==1 && !document.body.classList.contains("con-tec") && !(e.closest&&e.closest("textarea,input,select,#teclado,.modal,#modal *,#recpick,.logro,[data-noswipe]")) && !!momDentro();
+    if(ok){ x0=ev.touches[0].clientX; y0=ev.touches[0].clientY; t0=Date.now(); } },{passive:true});
+  document.addEventListener("touchend",ev=>{ if(!ok) return; ok=false; const c=ev.changedTouches[0], dx=c.clientX-x0, dy=c.clientY-y0;
+    if(Math.abs(dx)<70||Math.abs(dy)>Math.abs(dx)*0.6||Date.now()-t0>700) return;
+    const b=document.querySelector('[data-nav="mom:'+(dx<0?1:-1)+'"]'); if(b&&!b.disabled) b.click(); },{passive:true});
+})();
 document.getElementById("btnSync").addEventListener("click",()=>sincronizar(true));
 /* Compartir = «sábana de montaje»: por video y momento, solo lo ya grabado (planos marcados, extras del equipo, seriales, notas, listo). */
 function sabanaMontaje(){
@@ -1595,6 +1604,12 @@ document.getElementById("btnShare").addEventListener("click",async()=>{
   try{ if(navigator.share){ await navigator.share({title:"Sábana de montaje",text:txt}); return; } }catch(e){ if(e.name=="AbortError") return; }
   try{ await navigator.clipboard.writeText(txt); toast("Sábana de montaje copiada"); }catch(e){ toast("No se pudo copiar"); }
 });
+(function(){ const el=document.getElementById("toast"); if(!el) return; let y0=0,d=0;
+  el.addEventListener("touchstart",ev=>{ ev.stopPropagation(); y0=ev.touches[0].clientY; d=0; el.style.transition="none"; },{passive:true});
+  el.addEventListener("touchmove",ev=>{ ev.stopPropagation(); d=Math.max(0,ev.touches[0].clientY-y0); el.style.transform="translateX(-50%) translateY("+d+"px)"; },{passive:true});
+  const fin=()=>{ el.style.transition=""; el.style.transform=""; if(d>20){ el.classList.remove("show"); clearTimeout(tt); } d=0; };
+  el.addEventListener("touchend",ev=>{ ev.stopPropagation(); fin(); },{passive:true}); el.addEventListener("touchcancel",fin,{passive:true});
+})();
 let tt; function toast(m,ms){ const el=document.getElementById("toast"); el.textContent=m; el.classList.add("show"); clearTimeout(tt); tt=setTimeout(()=>el.classList.remove("show"),ms||2200); }
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState=="visible") sincronizar(false); });
 window.addEventListener("online",()=>sincronizar(false));
