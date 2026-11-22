@@ -1,15 +1,19 @@
 // Guarda la app para abrirla sin internet. La lista (planos.json o la hoja) siempre se pide fresca.
-const CACHE = "control-v37";
+const CACHE = "control-v39";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icon-180.png", "icon-512.png"];
-self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))); self.skipWaiting(); });
+self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: "reload" }))))); self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))); self.clients.claim(); });
+// Primero la red (para abrir siempre la versión nueva); si no hay internet o tarda más de 4 s, la copia guardada.
 self.addEventListener("fetch", e => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== location.origin || url.pathname.endsWith("planos.json")) return;
   e.respondWith(caches.open(CACHE).then(async c => {
     const hit = await c.match(e.request, { ignoreSearch: true });
-    const red = fetch(e.request).then(r => { if (r.ok) c.put(e.request, r.clone()); return r; }).catch(() => hit);
-    return hit || red;
+    try {
+      const r = await Promise.race([fetch(e.request, { cache: "no-cache" }), new Promise((_, no) => setTimeout(no, 4000))]);
+      if (r.ok) c.put(e.request, r.clone());
+      return r;
+    } catch (err) { return hit || fetch(e.request); }
   }));
 });
 
