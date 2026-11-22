@@ -1306,6 +1306,7 @@ function htmlEquipo(){
 function htmlControl(){
   const off=errorSync||navigator.onLine===false, pend=st.cola.length;
   let h=`<div class="estado${off?" off":""}"><i class="pt"></i><span>${off?"Sin conexión":(st.vistoEn?"Sincronizado "+hace(st.vistoEn):"Aún sin sincronizar")}${pend?` · ${pend} por enviar`:""}</span></div>`;
+  { const ac=equipo().filter(activoAhora); h+=`<div class="ccard"><div class="fila"><strong>🟢 Con la app abierta</strong><span class="n">${ac.length} de ${equipo().length}</span></div><div class="sub">${ac.length?ac.map(esc).join(" · "):"Nadie en este momento"}</div>${equipo().filter(n=>!activoAhora(n)&&pres[n]).map(n=>`<div class="sub">${esc(n)} · visto ${esc(hace(pres[n]))}</div>`).join("")}</div>`; }
   const vids=[]; data.momentos.forEach(m=>{ if(!vids.includes(m.video)) vids.push(m.video); });
   const porV=vids.map(v=>{ const c=conteos(v), ms=data.momentos.filter(m=>m.video==v); let ult=0, ser=0, com=0, yh=0;
     ms.forEach(m=>{ planosDe(m).forEach(i=>{ const k=marcaDe(i.k); if(k&&k.h&&!i.fijo) ult=Math.max(ult,k.ts); if(i.fijo&&!i.ed&&hecho(i.k)) yh++; }); const lk=st.marcas[listoK(m.id)]; if(lk&&lk.h) ult=Math.max(ult,lk.ts);
@@ -1331,7 +1332,7 @@ function htmlControl(){
     ${(()=>{ const n=porAsignarSheet().length; return vids.some(v=>respDe(v)||edDe(v))?`<div class="sub" style="margin-top:8px">Los responsables de las columnas «Responsable Grabación» y «Responsable Edición» del Sheet se aplican solos${n?" · aplicando "+n+"…":""}.</div>`:""; })()}</div>`;
   h+=`<div class="linea">Videógrafo por persona</div>`;
   equipo().forEach(n=>{ const mis=porV.filter(x=>x.vg.includes(n)), pT=mis.reduce((a,x)=>a+x.c.pT,0), pH=mis.reduce((a,x)=>a+x.c.pH,0);
-    h+=`<div class="ccard"><div class="fila"><strong>${esc(n)}</strong><span class="n">${mis.length} video${mis.length==1?"":"s"} · ${pH}/${pT} planos</span></div><div class="sub">📹 Grabó ${pl(nQ[n]||0)} nuevo${(nQ[n]||0)==1?"":"s"}</div>${pT?`<div class="bar"><i style="width:${Math.round(pH/pT*100)}%"></i></div>`:""}${mis.length?mis.map(x=>{ const g=(nV[x.v]||0)+x.yh; return `<div class="fila pv"><span>${esc(x.v)}</span><i class="mb"><i style="width:${x.c.pT?Math.min(100,Math.round(g/x.c.pT*100)):0}%"></i></i><span class="n"><b>${g}</b> de ${x.c.pT}</span></div>`; }).join(""):`<div class="sub">Sin videos asignados</div>`}</div>`; });
+    h+=`<div class="ccard"><div class="fila"><strong>${activoAhora(n)?"🟢 ":""}${esc(n)}</strong><span class="n">${mis.length} video${mis.length==1?"":"s"} · ${pH}/${pT} planos</span></div><div class="sub">📹 Grabó ${pl(nQ[n]||0)} nuevo${(nQ[n]||0)==1?"":"s"}</div>${pT?`<div class="bar"><i style="width:${Math.round(pH/pT*100)}%"></i></div>`:""}${mis.length?mis.map(x=>{ const g=(nV[x.v]||0)+x.yh; return `<div class="fila pv"><span>${esc(x.v)}</span><i class="mb"><i style="width:${x.c.pT?Math.min(100,Math.round(g/x.c.pT*100)):0}%"></i></i><span class="n"><b>${g}</b> de ${x.c.pT}</span></div>`; }).join(""):`<div class="sub">Sin videos asignados</div>`}</div>`; });
   h+=`<div class="linea">Edición por persona</div>`;
   equipo().forEach(n=>{ const mis=[...new Set(data.momentos.map(m=>m.video))].filter(v=>egs(v).includes(n)); h+=`<div class="ccard"><div class="fila"><strong>${esc(n)}</strong><span class="n">${mis.length} video${mis.length==1?"":"s"} para editar</span></div>${mis.length?mis.map(v=>{ const x=porV.find(y=>y.v==v), g=x?(nV[v]||0)+x.yh:0, t=x?x.c.pT:0; return `<div class="fila pv"><span>${esc(v)}</span><i class="mb"><i style="width:${t?Math.min(100,Math.round(g/t*100)):0}%"></i></i><span class="n"><b>${g}</b> de ${t}</span></div>`; }).join(""):`<div class="sub">Sin videos de edición</div>`}</div>`; });
   h+=`<div class="linea">Videos${sin?` · ${sin} sin videógrafo`:""}</div>`;
@@ -1563,15 +1564,44 @@ document.addEventListener("click",ev=>{ if(TEC.t&&!(TEC.el&&TEC.el.contains(ev.t
     if(d>85){ poner(85,"Actualizando…"); try{ sincronizar(true); }catch(e){} revisarPrograma(); setTimeout(ocultar,1400); } else ocultar(); d=0; },{passive:true});
   document.addEventListener("touchcancel",()=>{ activo=false; ocultar(); },{passive:true});
 })();
-/* Deslizar a los lados = cambiar de momento (usa los mismos botones de siguiente/anterior) */
-(function(){ let x0=0,y0=0,ok=false,t0=0;
-  document.addEventListener("touchstart",ev=>{ const e=ev.target;
-    ok = ev.touches.length==1 && !document.body.classList.contains("con-tec") && !(e.closest&&e.closest("textarea,input,select,#teclado,.modal,#modal *,#recpick,.logro,[data-noswipe]")) && !!momDentro();
-    if(ok){ x0=ev.touches[0].clientX; y0=ev.touches[0].clientY; t0=Date.now(); } },{passive:true});
-  document.addEventListener("touchend",ev=>{ if(!ok) return; ok=false; const c=ev.changedTouches[0], dx=c.clientX-x0, dy=c.clientY-y0;
-    if(Math.abs(dx)<70||Math.abs(dy)>Math.abs(dx)*0.6||Date.now()-t0>700) return;
-    const b=document.querySelector('[data-nav="mom:'+(dx<0?1:-1)+'"]'); if(b&&!b.disabled) b.click(); },{passive:true});
+/* Deslizar a los lados = cambiar de momento: la pantalla sigue al dedo y debajo aparece el momento siguiente/anterior */
+(function(){ let x0=0,y0=0,t0=0,modo=0,dx=0,fant=null,ok=false,fdir=0; // modo: 0 indeciso, 1 horizontal, -1 vertical
+  const main=()=>document.getElementById("app"), W=()=>window.innerWidth;
+  function limpiar(){ const m=main(); if(m){ m.style.transition=""; m.style.transform=""; m.style.position=""; m.style.zIndex=""; m.style.background=""; m.style.boxShadow=""; m.style.willChange=""; } if(fant){ fant.remove(); fant=null; } document.documentElement.style.overflowX=""; }
+  function fantasma(d){ const ms=MOMS(), i=momActual(), j=i+d; if(j<0||j>=ms.length) return false;
+    const old=st.pos; let h=""; try{ st.pos=ms[j].id; h=htmlPlan(); }catch(e){ h=""; } finally{ st.pos=old; }
+    if(!h) return false; const m=main(); fant=document.createElement("main"); fant.id="fantasma"; fant.innerHTML=h; fant.setAttribute("aria-hidden","true");
+    fant.querySelectorAll(".navfijo,[id]").forEach(e=>{ if(e.classList.contains("navfijo")) e.remove(); else e.removeAttribute("id"); });
+    fant.style.cssText="position:absolute;left:0;right:0;top:"+m.offsetTop+"px;pointer-events:none;z-index:0;overflow:hidden";
+    m.parentNode.insertBefore(fant,m); m.style.position="relative"; m.style.zIndex="1"; m.style.background="var(--bg)"; m.style.boxShadow="0 0 18px rgba(0,0,0,.35)"; m.style.willChange="transform"; document.documentElement.style.overflowX="hidden"; return true; }
+  document.addEventListener("touchstart",ev=>{ const e=ev.target; limpiar();
+    ok = ev.touches.length==1 && ev.touches[0].clientX>24 && ev.touches[0].clientX<W()-24 && !document.body.classList.contains("con-tec") && !(e.closest&&e.closest("textarea,input,select,#teclado,.modal,#modal *,#recpick,.logro,#toast,[data-noswipe]")) && !!momDentro();
+    modo=0; dx=0; fdir=0; if(ok){ x0=ev.touches[0].clientX; y0=ev.touches[0].clientY; t0=Date.now(); } },{passive:true});
+  document.addEventListener("touchmove",ev=>{ if(!ok||modo==-1) return; const c=ev.touches[0], ddx=c.clientX-x0, ddy=c.clientY-y0;
+    if(modo==0){ if(Math.abs(ddx)<10&&Math.abs(ddy)<10) return; if(Math.abs(ddx)>Math.abs(ddy)*1.4){ modo=1; } else { modo=-1; return; } }
+    dx=ddx; const d=dx<0?1:-1; const m=main();
+    if(fdir!==d){ limpiar(); fdir=d; fant=null; if(!fantasma(d)) fant=null; }
+    m.style.transition="none"; m.style.transform="translateX("+(fant?dx:dx*0.25)+"px)"; },{passive:true});
+  function fin(){ if(!ok) return; ok=false; const m=main(); if(modo!=1||!m){ limpiar(); return; }
+    const rapido=Date.now()-t0<350 && Math.abs(dx)>45, pasa=(Math.abs(dx)>W()*0.28||rapido) && !!fant;
+    if(pasa){ const dir=dx<0?1:-1; m.style.transition="transform .2s ease-out"; m.style.transform="translateX("+(dx<0?-W():W())+"px)";
+      setTimeout(()=>{ limpiar(); const b=document.querySelector('[data-nav="mom:'+dir+'"]'); if(b&&!b.disabled) b.click(); },200); }
+    else { m.style.transition="transform .2s ease-out"; m.style.transform="translateX(0)"; setTimeout(limpiar,210); }
+    modo=0; }
+  document.addEventListener("touchend",fin,{passive:true}); document.addEventListener("touchcancel",()=>{ ok=false; limpiar(); },{passive:true});
 })();
+/* ===== Quién tiene la app abierta: cada teléfono avisa que está activo y Control lo ve ===== */
+let pres={}, presTxt="";
+const activoAhora=n=>{ const t=pres[n]; return !!t && Date.now()-t<150000; };
+async function latido(salio){
+  const url=urlSync(), quien=esControl()?"Control":st.persona; if(!url||!quien) return;
+  try{ const r=await fetch(url,{method:"POST",keepalive:!!salio,headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({pin:st.pin||"",accion:"latido",quien,salio:!!salio})});
+    const j=await r.json(); if(j&&j.ok&&j.presencia){ pres=j.presencia; const t=JSON.stringify(Object.keys(pres).filter(activoAhora).sort());
+      if(esControl()&&t!==presTxt&&!document.querySelector(".modal")){ presTxt=t; render(); } } }catch(e){}
+}
+setInterval(()=>{ if(document.visibilityState=="visible") latido(false); }, esControl()?30000:60000);
+document.addEventListener("visibilitychange",()=>{ latido(document.visibilityState!="visible"); });
+setTimeout(()=>latido(false),2500);
 document.getElementById("btnSync").addEventListener("click",()=>sincronizar(true));
 /* Compartir = «sábana de montaje»: por video y momento, solo lo ya grabado (planos marcados, extras del equipo, seriales, notas, listo). */
 function sabanaMontaje(){
