@@ -559,7 +559,7 @@ html[data-skin="aurora"] .ccard{backdrop-filter:blur(18px) saturate(1.5);-webkit
     <button class="iconbtn" id="btnSync" aria-label="Actualizar lista y equipo"><span id="syncIco">↻</span><span class="pend" id="pend" hidden></span></button>
   </div>
   <div class="progress"><button class="avance" id="avance" aria-label="Cambiar entre planos de hoy y planos totales"></button></div>
-  <div class="vistas" id="vistas"><button data-v="plan">Plan</button><button data-v="equipo">Equipo</button><button data-v="control">Control</button><button data-v="genericos" class="vgen">Planos genéricos</button></div>
+  <div class="vistas" id="vistas"><button data-v="plan">Plan</button><button data-v="equipo">Equipo</button><button data-v="control">Control</button></div>
   <div class="sbar" id="sbar" aria-hidden="true"><i></i></div>
 </header>
 <nav class="filters" id="filtros" aria-label="Filtros"></nav>
@@ -996,7 +996,7 @@ function render(){
   { const yo=document.getElementById("yo"); yo.hidden=!(team&&st.persona); yo.textContent=corto(st.persona); yo.title=st.persona||""; }
   document.getElementById("sub").textContent = (data.mensaje||"").replace(/\.$/,"");
   pintarAvance();
-  document.querySelectorAll("#vistas button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v==(vistaCtl?"control":vistaGen?"genericos":vistaEq?"equipo":"plan"))));
+  document.querySelectorAll("#vistas button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v==(vistaCtl?"control":vistaEq?"equipo":"plan"))));
   const pb=document.getElementById("pend"); pb.hidden=!st.cola.length; pb.textContent=st.cola.length;
 
   document.getElementById("filtros").innerHTML = '<button class="chip" data-modo="inicio">Inicio</button><button class="chip" data-modo="uno">Uno por uno</button>' + FILTROS.map(d=>`<button class="chip" aria-pressed="${st.filtro==d}" data-f="${d}">${d}</button>`).join("");
@@ -1124,7 +1124,7 @@ let desplegado=false;
 function htmlDespliegue(){
   const S=series(), ks=Object.keys(S), actual=(MOMS()[momActual()]||{video:""}).video, cur=String(actual).split("-")[0];
   const sel=S[st.serie]?st.serie:cur;
-  let h=`<div class="desp"><div class="tipos">`+ks.map(k=>`<button class="chip" aria-pressed="${k==sel}" data-serie="${esc(k)}">${esc(k)}${tipoN(k)?" · "+esc(tipoN(k)):""}</button>`).join("")+`</div>`;
+  let h=`<div class="desp"><div class="tipos">`+ks.map(k=>`<button class="chip" aria-pressed="${k==sel}" data-serie="${esc(k)}">${esc(k)}${tipoN(k)?" · "+esc(tipoN(k)):""}</button>`).join("")+(urlSync()?`<button class="chip" aria-pressed="false" data-vgen="1">Planos genéricos</button>`:"")+`</div>`;
   h+=[...new Set(S[sel].map(x=>x.video))].map(v=>{ const c=conteos(v), nom=S[sel].find(x=>x.video==v).nombre, ok=c.mT>0&&c.mH==c.mT;
     return `<button class="vrow${ok?" ok":""}${dueno(v)}" data-irvideo="${esc(v)}"${v==actual?' style="border-color:var(--accent)"':""}><span class="num">${esc(v)}</span><span class="vn">${esc(nom)}${etiqueta(v)}</span><span class="vc">${c.mH}/${c.mT}${ok?" ✓":""}</span></button>`; }).join("");
   return h+`</div>`;
@@ -1258,11 +1258,12 @@ let autoIntentado=false;
 function intentoAuto(){ if(autoIntentado || st.avisosNo || estadoAvisos()!="pendiente") return; autoIntentado=true; activarAvisos(); }
 document.addEventListener("click",ev=>{
   if(!ev.target.closest("[data-avisos],[data-avisosno],#modal")) intentoAuto();
-  const t=ev.target.closest("[data-nuevou],[data-ctlver],[data-edv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,[data-aj],[data-bloqueo],[data-bloqtodos],#cerrarAviso,#reset,#toggleOcultar"); if(!t) return;
+  const t=ev.target.closest("[data-vgen],[data-nuevou],[data-ctlver],[data-edv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,[data-aj],[data-bloqueo],[data-bloqtodos],#cerrarAviso,#reset,#toggleOcultar"); if(!t) return;
   if(t.dataset.toggle){ const id=t.dataset.toggle; st.abiertas[id]=!st.abiertas[id]; if(st.abiertas[id]) st.videoActual=id; guardar(); pintarAvance();
     t.parentElement.classList.toggle("open",st.abiertas[id]); t.setAttribute("aria-expanded",st.abiertas[id]); return; }
   if(t.id=='avance'){ st.avanceTotal=!st.avanceTotal; guardar(); render(); return; }
   if(t.dataset.abrirvideos!==undefined){ desplegado=!desplegado; if(desplegado) st.serie=String((MOMS()[momActual()]||{video:""}).video).split("-")[0]; render(); return; }
+  if(t.dataset.vgen){ st.vista="genericos"; desplegado=false; guardar(); render(); window.scrollTo(0,0); return; }
   if(t.dataset.serie!==undefined){ st.serie=t.dataset.serie||null; guardar(); render(); window.scrollTo(0,0); return; }
   if(t.dataset.irvideo){ const j=MOMS().findIndex(x=>x.video==t.dataset.irvideo); if(j>=0){ st.modo="uno"; st.pos=MOMS()[j].id; st.videoActual=MOMS()[j].video; guardar(); } desplegado=false; render(); window.scrollTo(0,0); return; }
   if(t.dataset.ya){ const k="y:"+t.dataset.ya; st.abiertas[k]=!st.abiertas[k]; guardar(); render(); return; }
