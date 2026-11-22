@@ -1270,15 +1270,16 @@ function htmlControl(){
   h+=`<div class="linea">Planos grabados</div><div class="ccard"><div class="fila"><strong>📹 ${pl(nTot)} nuevo${nTot==1?"":"s"}</strong><span class="n">sin contar los «Ya hay»</span></div><div class="sub">${nTot?"Último "+esc(hace(nUlt.ts))+" · ":""}${Object.keys(nV).length} video${Object.keys(nV).length==1?"":"s"} con planos grabados</div>
     ${(()=>{ const cv=String((MOMS()[momActual()]||{}).video||""); if(!cv) return ""; const c=conteos(cv), t=conteos(); return `<div class="fila" style="margin-top:8px"><span>Video ${esc(cv)} (el que estás viendo)</span><span class="n">${pl(nV[cv]||0)} nuevo${(nV[cv]||0)==1?"":"s"} · ${c.pH}/${c.pT} planos</span></div><div class="fila"><span>Total del proyecto</span><span class="n">${pl(nTot)} nuevo${nTot==1?"":"s"} · ${t.pH}/${t.pT} planos</span></div>`; })()}</div>`;
   const nBl=vids.filter(bloqueado).length;
-  h+=`<div class="linea">Ajustes</div><div class="ccard ajustes">
+  h+=`<button class="modo" data-ctlaj="1" aria-expanded="${!!st.ctlAj}" style="margin:6px 0 10px">⚙ Ajustes ${st.ctlAj?"▲":"▼"}</button>`;
+  if(st.ctlAj) h+=`<div class="ccard ajustes">
     <button class="sw" data-aj="edicion" aria-pressed="${edicion()}"><span>Fase de edición<small>Los planos de «Ya hay» salen en negrilla en todos los teléfonos del equipo</small></span><i></i></button>
     ${HAY?`<button class="sw" data-aj="sinres" aria-pressed="${soloRes()}"><span>Solo videos resaltados<small>Los videos sin color en el Sheet se ocultan en los teléfonos (cada quien puede usar «Ver todos los videos»)</small></span><i></i></button>`:""}
     <div class="stepper"><span>Segundos por plano<small>Planos necesarios por momento = duración ÷ este número. Cambia el total de todos.</small></span><span class="stp"><button data-seg="-0.5" aria-label="Menos">−</button><b>${String(segPlano()).replace(".",",")} s</b><button data-seg="0.5" aria-label="Más">+</button></span></div>
     <div class="sub" style="margin-top:10px">Bloqueo · ${nBl} de ${vids.length} videos bloqueados. Bloqueado = solo edita quien tiene el video asignado.</div>
     <div class="fila2"><button data-bloqtodos="1">🔒 Bloquear todos</button><button data-bloqtodos="0">🔓 Desbloquear todos</button></div>
-    ${HAY?`<div class="sub" style="margin-top:8px">${vids.filter(v=>!RES[v]).length} videos sin resaltar</div><div class="fila2"><button data-bloqres="1">🔒 Bloquear sin resaltar</button><button data-bloqres="0">🔓 Desbloquear sin resaltar</button></div>`:""}
-    ${(()=>{ const n=porAsignarSheet().length; return vids.some(v=>respDe(v)||edDe(v))?`<div class="sub" style="margin-top:8px">Columnas «Responsable» (grabación) y «Editor» del Sheet · ${n} video${n==1?"":"s"} por asignar</div><div class="fila2"><button data-asr="1"${n?"":" disabled"}>👥 Asignar según el Sheet</button></div>`:""; })()}</div>
-  <div class="linea">Videógrafo por persona</div>`;
+    ${HAY?`<div class="sub" style="margin-top:8px">${vids.filter(v=>!RES[v]).length} videos sin resaltar</div><div class="fila2"><button data-ocres="1">🙈 Ocultar sin resaltar</button><button data-ocres="0">👁 Mostrar sin resaltar</button></div><div class="fila2" style="margin-top:6px"><button data-bloqres="1">🔒 Bloquear sin resaltar</button><button data-bloqres="0">🔓 Desbloquear sin resaltar</button></div>`:""}
+    ${(()=>{ const n=porAsignarSheet().length; return vids.some(v=>respDe(v)||edDe(v))?`<div class="sub" style="margin-top:8px">Columnas «Responsable» (grabación) y «Editor» del Sheet · ${n} video${n==1?"":"s"} por asignar</div><div class="fila2"><button data-asr="1"${n?"":" disabled"}>👥 Asignar según el Sheet</button></div>`:""; })()}</div>`;
+  h+=`<div class="linea">Videógrafo por persona</div>`;
   equipo().forEach(n=>{ const mis=porV.filter(x=>x.vg.includes(n)), pT=mis.reduce((a,x)=>a+x.c.pT,0), pH=mis.reduce((a,x)=>a+x.c.pH,0);
     h+=`<div class="ccard"><div class="fila"><strong>${esc(n)}</strong><span class="n">${mis.length} video${mis.length==1?"":"s"} · ${pH}/${pT} planos</span></div><div class="sub">📹 Grabó ${pl(nQ[n]||0)} nuevo${(nQ[n]||0)==1?"":"s"}</div>${pT?`<div class="bar"><i style="width:${Math.round(pH/pT*100)}%"></i></div>`:""}<div class="sub">${mis.length?mis.map(x=>esc(x.v)).join(", "):"Sin videos asignados"}</div></div>`; });
   h+=`<div class="linea">Edición por persona</div>`;
@@ -1302,7 +1303,7 @@ let autoIntentado=false;
 function intentoAuto(){ if(autoIntentado || st.avisosNo || estadoAvisos()!="pendiente") return; autoIntentado=true; activarAvisos(); }
 document.addEventListener("click",ev=>{
   if(!ev.target.closest("[data-avisos],[data-avisosno],#modal")) intentoAuto();
-  const t=ev.target.closest("[data-vgen],[data-nuevou],[data-ctlver],[data-edv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,[data-aj],[data-bloqueo],[data-bloqtodos],#cerrarAviso,#reset,#toggleOcultar"); if(!t) return;
+  const t=ev.target.closest("[data-vgen],[data-nuevou],[data-ctlver],[data-ctlaj],[data-ocres],[data-edv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,[data-aj],[data-bloqueo],[data-bloqtodos],#cerrarAviso,#reset,#toggleOcultar"); if(!t) return;
   if(t.dataset.toggle){ const id=t.dataset.toggle; st.abiertas[id]=!st.abiertas[id]; if(st.abiertas[id]) st.videoActual=id; guardar(); pintarAvance();
     t.parentElement.classList.toggle("open",st.abiertas[id]); t.setAttribute("aria-expanded",st.abiertas[id]); return; }
   if(t.id=='avance'){ st.avanceTotal=!st.avanceTotal; guardar(); render(); return; }
@@ -1320,6 +1321,8 @@ document.addEventListener("click",ev=>{
   if(t.dataset.f){ st.filtro=t.dataset.f; guardar(); render(); return; }
   if(t.dataset.v){ st.vista=t.dataset.v; guardar(); render(); window.scrollTo(0,0); return; }
   if(t.dataset.cambiar!==undefined){ cambiando=true; render(); return; }
+  if(t.dataset.ctlaj){ st.ctlAj=!st.ctlAj; guardar(); render(); return; }
+  if(t.dataset.ocres){ const v=t.dataset.ocres; ajustar([["sinres",v]]); toast(v=="1"?"Los videos sin resaltar se ocultan en los teléfonos":"Los videos sin resaltar se muestran otra vez"); return; }
   if(t.dataset.ctlver){ st.ctlVer=!st.ctlVer; guardar(); render(); return; }
   if(t.dataset.edv){ const v=t.dataset.edv, n=t.dataset.edn, a=egs(v), i=a.indexOf(n); if(i<0) a.push(n); else a.splice(i,1); ajustar([["editor::"+v,a.join("|")]]); return; }
   if(t.dataset.asv){ const v=t.dataset.asv, n=t.dataset.asn, a=vgs(v), i=a.indexOf(n); if(i<0) a.push(n); else a.splice(i,1); asignar(v,a.join("|")); return; }
