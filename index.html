@@ -590,12 +590,23 @@ function cfgSW(){
 }
 
 let data = st.data || base;
+/* Usuario de prueba: ve videos FALSOS (no los del Sheet) para probar actualizaciones y avisos sin ensuciar el plan real. */
+const NOM_PRUEBA="Usuario de prueba", esPrueba=()=>st.persona===NOM_PRUEBA;
+function datosPrueba(){
+  const real=st.data||base, mk=(v,nom,n,voz,pl)=>({id:"PRUEBA-"+v+"/"+n,video:"PRUEBA-"+v,nombre:nom,momento:String(n),voz,duracion:"",total:"",yaHay:[],planos:pl,color:"",premisa:"Video falso para probar la app.",responsable:"",editor:""});
+  return {...real, momentos:[
+    mk("A","Video de prueba A",1,"«Esto es una prueba de la app.»",["Plano de prueba A1","Plano de prueba A2","Plano de prueba A3"]),
+    mk("A","Video de prueba A",2,"«Segundo momento de prueba.»",["Plano de prueba A4","Plano de prueba A5"]),
+    mk("B","Video de prueba B",1,"«Otro video falso para probar avisos.»",["Plano de prueba B1","Plano de prueba B2","Plano de prueba B3"]),
+    mk("B","Video de prueba B",2,"«Cierre del video de prueba.»",["Plano de prueba B4","Plano de prueba B5"])]};
+}
+if(esPrueba()) data=datosPrueba();
 let aviso = null;
 const urlSync = () => (data && data.sync) || SYNC_URL || "";
 let NUEVOS=[];   // personas nuevas (escribieron su nombre con «Nuevo usuario»): salen para elegir y para asignar
 function calcNuevos(){
   const base=(data && data.equipo && data.equipo.length ? data.equipo : EQUIPO), pri=n=>norm(n).split(" ")[0], tengo=new Set(base.map(pri)), out=[];
-  const add=n=>{ n=String(n||"").trim(); if(!n||n=="Control"||n=="Hoja"||n=="Sin nombre") return; const k=pri(n); if(tengo.has(k)) return; tengo.add(k); out.push(n); };
+  const add=n=>{ n=String(n||"").trim(); if(!n||n=="Control"||n=="Hoja"||n=="Sin nombre"||n==NOM_PRUEBA) return; const k=pri(n); if(tengo.has(k)) return; tengo.add(k); out.push(n); };
   (st.extra||[]).forEach(add); if(st.persona) add(st.persona);
   for(const k in st.marcas) add(st.marcas[k].q);
   for(const k in st.notas) for(const t in st.notas[k]) add(st.notas[k][t].q);
@@ -656,6 +667,7 @@ async function traerLista(url){
 }
 function pedirPin(){ setTimeout(()=>{ const p=prompt("PIN del equipo"); if(p!=null){ st.pin=p.trim(); guardar(); sincronizar(true); } },0); }
 function aplicar(nueva, manual){
+  if(esPrueba()){ if(manual) toast("Modo prueba: usas videos falsos"); return; }   // en modo prueba no se cambia la lista
   // El enlace de sincronización y los nombres del equipo viajan en la lista, pero no cuentan como "lista nueva".
   if((nueva.genericos!==undefined && JSON.stringify(nueva.genericos)!==JSON.stringify(data.genericos||[])) || nueva.sync!==data.sync || nueva.vapid!==data.vapid || JSON.stringify(nueva.equipo)!==JSON.stringify(data.equipo) || JSON.stringify(nueva.tipos)!==JSON.stringify(data.tipos)){
     data={...data, sync:nueva.sync, vapid:nueva.vapid, equipo:nueva.equipo, tipos:nueva.tipos, genericos:nueva.genericos!==undefined?nueva.genericos:data.genericos}; st.data=data; guardar(); render();
@@ -1193,7 +1205,7 @@ function renderModal(){
     ? `<div class="modal"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="qn"><h2 id="qn">¿Quién eres?</h2>
        <p>Lo que marques en este teléfono quedará a tu nombre y el equipo podrá verlo.</p>
        ${equipo().map(n=>`<button class="nombre${n==st.persona?" sel":""}" data-persona="${esc(n)}">${esc(n)}</button>`).join("")}
-       <button class="nombre nuevo" data-nuevou="1">＋ Nuevo usuario</button>
+       <button class="nombre nuevo" data-nuevou="1">🧪 Usuario de prueba</button>
        ${cambiando?'<button class="nombre cancel" id="cancelarPersona">Cancelar</button>':""}</div></div>` : "";
   if(html!==modalPrev){ m.innerHTML=html; modalPrev=html; }
 }
@@ -1223,10 +1235,9 @@ document.addEventListener("click",ev=>{
   if(t.dataset.v){ st.vista=t.dataset.v; guardar(); render(); window.scrollTo(0,0); return; }
   if(t.dataset.cambiar!==undefined){ cambiando=true; render(); return; }
   if(t.id=="cancelarPersona"){ cambiando=false; render(); return; }
-  if(t.dataset.nuevou){ const n=(prompt("Escribe tu nombre")||"").trim().slice(0,40); if(!n) return;
-    (st.extra ||= []); if(!st.extra.includes(n)) st.extra.push(n);
-    st.persona=n; cambiando=false; adoptar(); guardar(); render(); intentoAuto(); sincEquipo(true); return; }
-  if(t.dataset.persona){ st.persona=t.dataset.persona; cambiando=false; adoptar(); guardar(); render(); intentoAuto(); sincEquipo(true); return; }
+  if(t.dataset.nuevou){
+    st.persona=NOM_PRUEBA; data=datosPrueba(); st.modo="inicio"; cambiando=false; toast("Modo prueba: videos falsos. Lo que marques llega al equipo como prueba.");  adoptar(); guardar(); render(); intentoAuto(); sincEquipo(true); return; }
+  if(t.dataset.persona){ st.persona=t.dataset.persona; data=st.data||base; cambiando=false; adoptar(); guardar(); render(); intentoAuto(); sincEquipo(true); return; }
   if(t.dataset.ir){ const id=t.dataset.ir, m=momento(id); st.vista="plan"; st.filtro="Todos"; st.modo="uno"; st.pos=id; if(m) st.abiertas[m.video]=true; document.getElementById("buscar").value=""; guardar(); render();
     const el=document.querySelector(`[data-id="${CSS.escape(id)}"]`); if(el) el.scrollIntoView({block:"start"}); return; }
   if(t.dataset.listo){ const id=t.dataset.listo; registrar(hecho(listoK(id))?"desmarcar":"marcar", listoK(id), id, "Momento listo"); return; }
