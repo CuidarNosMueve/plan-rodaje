@@ -679,21 +679,24 @@ function aplicarEv(ev){
 }
 /* ===== Videógrafo por video ===== */
 const esControl = () => false;   // (en la app del equipo siempre es falso)
-const videografo = v => (st.asig[v]&&st.asig[v].n)||"";
+/* Un video puede tener VARIOS videógrafos: el valor guardado es «Nombre A|Nombre B» (un solo nombre = como antes). */
+const vgs = v => ((st.asig[v]&&st.asig[v].n)||"").split("|").map(x=>x.trim()).filter(Boolean);
+const videografo = v => vgs(v).join("|");
+const listaNombres = (a,corto_) => { const n=a.map(x=>corto_?corto(x):x); return n.length<2?(n[0]||""):n.slice(0,-1).join(", ")+" y "+n[n.length-1]; };
 
 const bloqueado = v => !!(st.aj["bloqueo::"+v] && st.aj["bloqueo::"+v].v=="1");
 const edicion = () => !!(st.aj.edicion && st.aj.edicion.v=="1");
 /* ¿Puede este teléfono editar el video? (Control no edita nunca; el equipo solo si no está bloqueado o es el videógrafo asignado) */
-const puedeEditar = v => esControl() ? false : (!bloqueado(v) || (!!videografo(v) && videografo(v)==st.persona));
+const puedeEditar = v => esControl() ? false : (!bloqueado(v) || vgs(v).includes(st.persona));
 /* Resalta lo que es de cada quien: «mio» = videógrafo asignado a esta persona; «ajeno» = asignado a otra. */
-const dueno = v => { if(esControl()) return ""; const a=videografo(v); return !a?"":(a==st.persona?" mio":" ajeno"); };
-const etiqueta = v => { if(esControl()) return videografo(v)?`<span class="etq">🎥 ${esc(corto(videografo(v)))}</span>`:""; const a=videografo(v);
-  return (a?(a==st.persona?'<span class="etq mio">⭐ Tuyo</span>':`<span class="etq aj">De ${esc(corto(a))}</span>`):"")+(bloqueado(v)?'<span class="etq bq">🔒</span>':""); };
-function sinPermiso(v){ toast(bloqueado(v)&&!videografo(v)?"Video bloqueado por Control":"Video bloqueado: solo "+corto(videografo(v)||"Control")+" lo puede editar"); render(); }
+const dueno = v => { if(esControl()) return ""; const a=vgs(v); return !a.length?"":(a.includes(st.persona)?" mio":" ajeno"); };
+const etiqueta = v => { const a=vgs(v); if(esControl()) return a.length?`<span class="etq">🎥 ${esc(listaNombres(a,true))}</span>`:""; 
+  return (a.length?(a.includes(st.persona)?'<span class="etq mio">⭐ Tuyo</span>':`<span class="etq aj">De ${esc(listaNombres(a,true))}</span>`):"")+(bloqueado(v)?'<span class="etq bq">🔒</span>':""); };
+function sinPermiso(v){ toast(bloqueado(v)&&!vgs(v).length?"Video bloqueado por Control":"Video bloqueado: solo "+(vgs(v).length?listaNombres(vgs(v),true):"Control")+(vgs(v).length>1?" lo pueden editar":" lo puede editar")); render(); }
 function selVideografo(v){
-  const a=videografo(v), bl=bloqueado(v), yo=st.persona;
-  if(a && a==yo) return `<div class="vg mio">⭐ <b>Este video es tuyo</b>${bl?" · 🔒 solo tú lo puedes editar":""}</div>`;
-  if(a) return `<div class="vg aj">🎥 Es de <b>${esc(corto(a))}</b>${bl?" · 🔒 bloqueado: solo "+esc(corto(a))+" lo puede editar":" · puedes editarlo, pero no es tuyo"}</div>`;
+  const a=vgs(v), bl=bloqueado(v), yo=st.persona, otros=a.filter(x=>x!=yo);
+  if(a.includes(yo)) return `<div class="vg mio">⭐ <b>Este video es tuyo</b>${otros.length?" · con "+esc(listaNombres(otros,true)):""}${bl?(otros.length?" · 🔒 solo ustedes lo pueden editar":" · 🔒 solo tú lo puedes editar"):""}</div>`;
+  if(a.length) return `<div class="vg aj">🎥 Es de <b>${esc(listaNombres(a,true))}</b>${bl?" · 🔒 bloqueado: solo "+esc(listaNombres(a,true))+(a.length>1?" lo pueden editar":" lo puede editar"):" · puedes editarlo, pero no es tuyo"}</div>`;
   return bl?`<div class="vg aj">🔒 Bloqueado por Control</div>`:"";
 }
 function guardarNota(id,tipo,texto){
@@ -882,7 +885,7 @@ function render(){
   
   document.body.classList.toggle("team",team); document.body.classList.toggle("edicion",edicion());
   { /* Al llegar a un video asignado a esta persona, toda la pantalla cambia de tono (según el estilo) */
-    const vm = st.modo=="uno" && data.momentos.length ? data.momentos[momActual()].video : null, mio = !!vm && !esControl() && !!videografo(vm) && videografo(vm)==st.persona;
+    const vm = st.modo=="uno" && data.momentos.length ? data.momentos[momActual()].video : null, mio = !!vm && !esControl() && vgs(vm).includes(st.persona);
     document.documentElement.classList.toggle("mio-v",mio);
     if(mio && vm!==ultVideoMio){ llegando=true; toast("⭐ Este video es tuyo"); }
     ultVideoMio = mio ? vm : null; }
@@ -1138,7 +1141,7 @@ function sabanaMontaje(){
       if(s) B.push(`  Seriales: ${una(s)}`);
       if(c) B.push(`  Nota: ${una(c)}`);
     });
-    if(B.length){ const vg=videografo(v); L.push("", `══ VIDEO ${v} · ${ms[0].nombre}${vg?" · "+corto(vg):""}`); L.push(...B); }
+    if(B.length){ const vg=vgs(v); L.push("", `══ VIDEO ${v} · ${ms[0].nombre}${vg.length?" · "+listaNombres(vg,true):""}`); L.push(...B); }
   });
   if(!nM) return "";
   return `${data.proyecto} — SÁBANA DE MONTAJE\n${new Date().toLocaleString("es-CO",{weekday:"long",day:"numeric",month:"long",hour:"numeric",minute:"2-digit"})}\n${nM} momentos con material · ${nP} planos grabados`+L.join("\n");
