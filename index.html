@@ -528,6 +528,11 @@ html[data-skin="aurora"] .modal .sheet{background:rgba(255,255,255,.9)}
 #teclado .tk-side button{font-size:15px;min-height:0;flex:1}
 #teclado .tk-side .ok{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 body.con-tec{padding-bottom:300px}
+
+/* Jalar hacia abajo para recargar (datos + programa) */
+#ptr{position:fixed;left:0;right:0;top:0;z-index:70;display:flex;justify-content:center;pointer-events:none;transform:translateY(-60px);opacity:0;transition:opacity .15s}
+#ptr span{margin-top:calc(env(safe-area-inset-top) + 10px);background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:99px;padding:8px 16px;font-weight:800;font-size:14px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+#ptr.on{opacity:1}
 </style>
 </head>
 <body>
@@ -648,6 +653,7 @@ const momento = id => data.momentos.find(m=>m.id==id);
 /* ===== Buscar actualización ===== */
 let buscando=false;
 async function sincronizar(manual){
+  if(manual) revisarPrograma();
   if(buscando) return; buscando=true; gira(1);
   try{
     // 1) planos.json: configuración (enlace de sync, nombres…) y lista de respaldo
@@ -1323,6 +1329,23 @@ document.addEventListener("focusin",ev=>{ const t=ev.target;
   if(t.matches&&t.matches('textarea[data-nota$="|seriales"]')&&!t.readOnly){ tecMostrar(t); return; }
   if(!(TEC.el&&TEC.el.contains(t))) tecOcultar(); });
 document.addEventListener("click",ev=>{ if(TEC.t&&!(TEC.el&&TEC.el.contains(ev.target))&&!(ev.target.matches&&ev.target.matches('textarea[data-nota$="|seriales"]'))){ const g=TEC.t; tecOcultar(); g.blur(); } });
+
+/* ===== Jalar hacia abajo para recargar (como en cualquier página): datos + programa ===== */
+(function(){
+  const el=document.createElement("div"); el.id="ptr"; el.innerHTML="<span></span>"; document.body.appendChild(el);
+  const tx=el.firstChild; let y0=0, d=0, activo=false;
+  const poner=(d,t)=>{ tx.textContent=t; el.classList.add("on"); el.style.transform="translateY("+Math.min(d*0.45,50)+"px)"; };
+  const ocultar=()=>{ el.classList.remove("on"); el.style.transform="translateY(-60px)"; };
+  document.addEventListener("touchstart",ev=>{
+    if(window.scrollY>1||ev.touches.length!=1||(ev.target.closest&&ev.target.closest("textarea,input,select,#teclado,.modal,#modal *"))||document.body.classList.contains("con-tec")){ activo=false; return; }
+    activo=true; y0=ev.touches[0].clientY; d=0; },{passive:true});
+  document.addEventListener("touchmove",ev=>{ if(!activo) return; d=ev.touches[0].clientY-y0;
+    if(window.scrollY>1||d<=8){ if(d<=8) ocultar(); return; }
+    poner(d, d>85?"↓ Suelta para actualizar":"↓ Jala para actualizar"); },{passive:true});
+  document.addEventListener("touchend",()=>{ if(!activo) return; activo=false;
+    if(d>85){ poner(85,"Actualizando…"); try{ sincronizar(true); }catch(e){} revisarPrograma(); setTimeout(ocultar,1400); } else ocultar(); d=0; },{passive:true});
+  document.addEventListener("touchcancel",()=>{ activo=false; ocultar(); },{passive:true});
+})();
 document.getElementById("btnSync").addEventListener("click",()=>sincronizar(true));
 /* Compartir = «sábana de montaje»: por video y momento, solo lo ya grabado (planos marcados, extras del equipo, seriales, notas, listo). */
 function sabanaMontaje(){
@@ -1464,7 +1487,16 @@ document.addEventListener("click",()=>{ const p=document.getElementById("skinpop
 ponerSkin();
 
 render(); sincronizar(false); verificarSub();
-if("serviceWorker" in navigator && location.protocol=="https:"){ try{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }catch(e){} }
+/* Actualización del programa: al abrir, al volver a la app y al recargar los datos se busca la versión nueva; si hay, la app se reinicia sola (sin perder lo escrito: todo se guarda). */
+let swReg=null, recargandoSW=false;
+function revisarPrograma(){ try{ if(swReg) swReg.update().catch(()=>{}); }catch(e){} }
+function recargarSiLibre(){ if(recargandoSW) return; const f=document.activeElement; if(f&&/^(TEXTAREA|INPUT)$/.test(f.tagName)){ f.addEventListener("blur",()=>setTimeout(recargarSiLibre,400),{once:true}); return; } recargandoSW=true; location.reload(); }
+if("serviceWorker" in navigator && location.protocol=="https:"){ try{
+  const habia=!!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>{ swReg=r; revisarPrograma(); }).catch(()=>{});
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{ if(habia) { toast("Actualizando la app…"); setTimeout(recargarSiLibre,700); } });
+  document.addEventListener("visibilitychange",()=>{ if(document.visibilityState=="visible") revisarPrograma(); });
+}catch(e){} }
 </script>
 </body>
 </html>
