@@ -189,6 +189,7 @@ body.uno .filters, body.uno .search{display:none}
 .gcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}.gcard p{margin:6px 0 4px;font-size:14px;line-height:1.4}.gcard small{color:var(--muted)}
 .vgc.ed.on{background:#6d4bd8;border-color:#6d4bd8}.vg.ed{border-left:4px solid #6d4bd8}.etq.ed{background:#efe9fd;color:#4a2fa8}
 .nombre.nuevo{border-style:dashed}
+.vtodos{display:block;margin:-2px 0 10px auto;padding:6px 12px;border:1px solid var(--line,rgba(128,128,128,.35));background:transparent;border-radius:999px;font:inherit;font-size:13px;font-weight:600;color:var(--ink)}
 .mios{display:flex;gap:6px;align-items:center;justify-content:space-between;width:100%;margin:0 0 8px;padding:9px 12px;border:1.5px solid var(--accent);background:var(--card);border-radius:12px;font:inherit;font-size:14px;font-weight:700;color:inherit;text-align:left}.mios span{font-weight:500;color:var(--muted);font-size:12px}
 .mv{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:10px}.mv>b{display:block;margin-bottom:6px}.mv.ed{border-left:4px solid #6d4bd8}
 .ginfo{margin:0 8px 10px;font-size:13px;color:var(--muted);line-height:1.4}
@@ -837,8 +838,12 @@ function calcRes(){ RES={}; (data.momentos||[]).forEach(m=>{ if(m.color && /^#[0
   let el=document.getElementById("rcs"); if(!el){ el=document.createElement("style"); el.id="rcs"; document.head.appendChild(el); }
   el.textContent=[...new Set(Object.values(RES))].map(c=>`.rc-${c.slice(1)}{--rc:${c}}`).join(""); }
 /* Con videos resaltados en el Sheet, los demás se ocultan por defecto (botón «Ver todos los videos»). Los videos asignados a esta persona siempre se ven. */
-const MOMS = () => { const ms=data.momentos; if(!HAY||st.verTodos||!soloRes()) return ms; return ms.filter(m=>RES[m.video]||(!esControl()&&vgs(m.video).includes(st.persona))); };
-const ocultosN = () => HAY&&!st.verTodos&&soloRes() ? new Set(data.momentos.map(m=>m.video)).size-new Set(MOMS().map(m=>m.video)).size : 0;
+/* Cada persona ve solo los videos que tiene designados (grabar o editar). Con «Ver todos los videos» ve la lista completa. */
+const esMio = v => !!st.persona && (vgs(v).includes(st.persona) || egs(v).includes(st.persona));
+const tieneMios = () => !esControl() && !!st.persona && data.momentos.some(m=>esMio(m.video));
+const soloMios = () => tieneMios() && !st.verTodos;
+const MOMS = () => { const ms=data.momentos; if(soloMios()) return ms.filter(m=>esMio(m.video)); if(!HAY||st.verTodos||!soloRes()) return ms; return ms.filter(m=>RES[m.video]||(!esControl()&&vgs(m.video).includes(st.persona))); };
+const ocultosN = () => !st.verTodos&&(soloMios()||(HAY&&soloRes())) ? new Set(data.momentos.map(m=>m.video)).size-new Set(MOMS().map(m=>m.video)).size : 0;
 const dueno = v => { let s=""; if(!esControl()){ const a=vgs(v); if(a.length) s=a.includes(st.persona)?" mio":" ajeno"; }
   if(HAY){ if(RES[v]) s+=" resalt rc-"+RES[v].slice(1); else if(s.indexOf("mio")<0) s+=" opaco"; }
   return s; };
@@ -1067,7 +1072,7 @@ function render(){
 function footHTML(plan){
   const team=!!urlSync();
   return `<div class="foot">`+
-    `${HAY&&soloRes()?`<button id="toggleVerTodos" class="vt">${st.verTodos?"Ver solo los resaltados":"Ver todos los videos"}${!st.verTodos&&ocultosN()?" ("+ocultosN()+" ocultos)":""}</button><br>`:""}`+
+    `${tieneMios()||(HAY&&soloRes())?`<button id="toggleVerTodos" class="vt">${st.verTodos?(tieneMios()?"Ver solo mis videos":"Ver solo los resaltados"):"Ver todos los videos"}${!st.verTodos&&ocultosN()?" ("+ocultosN()+" ocultos)":""}</button><br>`:""}`+
     `${plan?`<button id="toggleOcultar">${st.ocultar?"Mostrar":"Ocultar"} planos grabados</button> · `:""}`+
     `<button id="reset">${team?"Reiniciar este teléfono":"Borrar mi avance"}</button><br>`+
     `<button id="forzar" class="vt" style="margin-top:8px">⟳ Forzar actualización del programa</button>`+
@@ -1184,7 +1189,7 @@ function htmlMisVideos(){
 }
 function banners(){
   let h=htmlAvisos("plan");
-  { const {g,e}=misVideos(); if(g.length||e.length) h+=`<button class="mios" data-v="equipo">Te tocan: ${g.length?"🎥 grabar "+g.length:""}${g.length&&e.length?" · ":""}${e.length?"✂️ editar "+e.length:""} <span>ver cuáles ›</span></button>`; }
+  { const {g,e}=misVideos(); if(g.length||e.length) h+=`<button class="mios" data-v="equipo">Te tocan: ${g.length?"🎥 grabar "+g.length:""}${g.length&&e.length?" · ":""}${e.length?"✂️ editar "+e.length:""} <span>ver cuáles ›</span></button><button class="vtodos" data-vertodos="1">${st.verTodos?"👤 Ver solo mis videos":"📋 Ver todos los videos"+(ocultosN()?" ("+ocultosN()+" más)":"")}</button>`; }
   if(aviso){
     const partes=[]; if(aviso.agregados) partes.push(`${aviso.agregados} plano${aviso.agregados>1?"s":""} nuevo${aviso.agregados>1?"s":""}`);
     if(aviso.quitados) partes.push(`${aviso.quitados} quitado${aviso.quitados>1?"s":""}`);
@@ -1335,7 +1340,7 @@ let autoIntentado=false;
 function intentoAuto(){ if(autoIntentado || st.avisosNo || estadoAvisos()!="pendiente") return; autoIntentado=true; activarAvisos(); }
 document.addEventListener("click",ev=>{
   if(!ev.target.closest("[data-avisos],[data-avisosno],[data-avisosok],#modal")) intentoAuto();
-  const t=ev.target.closest("[data-vgen],[data-nuevou],[data-ctlver],[data-ctlaj],[data-ocres],[data-edv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,[data-aj],[data-bloqueo],[data-bloqtodos],#cerrarAviso,#reset,#toggleOcultar,[data-avisosok]"); if(!t) return;
+  const t=ev.target.closest("[data-vgen],[data-nuevou],[data-ctlver],[data-ctlaj],[data-ocres],[data-edv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-vertodos],[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,[data-aj],[data-bloqueo],[data-bloqtodos],#cerrarAviso,#reset,#toggleOcultar,[data-avisosok]"); if(!t) return;
   if(t.dataset.toggle){ const id=t.dataset.toggle; st.abiertas[id]=!st.abiertas[id]; if(st.abiertas[id]) st.videoActual=id; guardar(); pintarAvance();
     t.parentElement.classList.toggle("open",st.abiertas[id]); t.setAttribute("aria-expanded",st.abiertas[id]); return; }
   if(t.id=='avance'){ st.avanceTotal=!st.avanceTotal; guardar(); render(); return; }
@@ -1389,6 +1394,7 @@ document.addEventListener("click",ev=>{
   if(t.id=="cerrarAviso"){ aviso=null; render(); return; }
   if(t.id=="cerrarPremisa"){ const o=document.getElementById("pmover"); if(o) o.remove(); return; }
   if(t.dataset.premisa){ abrirPremisa(t.dataset.premisa); return; }
+  if(t.dataset.vertodos){ st.verTodos=!st.verTodos; const ms=MOMS(); if(ms.length&&!ms.some(m=>m.id==st.pos)){ st.pos=ms[0].id; st.videoActual=ms[0].video; } guardar(); render(); window.scrollTo(0,0); toast(st.verTodos?"Mostrando todos los videos":"Mostrando solo tus videos"); return; }
   if(t.id=="toggleVerTodos"){ st.verTodos=!st.verTodos; guardar(); render(); window.scrollTo(0,0); return; }
   if(t.id=="toggleOcultar"){ st.ocultar=!st.ocultar; guardar(); render(); return; }
   if(t.id=="reset"){
