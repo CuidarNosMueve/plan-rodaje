@@ -750,7 +750,7 @@ function aplicar(nueva, manual){
 function aplicarEv(ev){
   const id=ev.id;
   /* Responsables (asignar) y ajustes: solo los define Control. Lo que llegue de cualquier otra persona se ignora. */
-  if((ev.tipo=="asignar"||ev.tipo=="ajuste") && String(ev.quien||"").trim()!="Control") return false;
+  if((ev.tipo=="asignar"||ev.tipo=="ajuste") && ev.ts>1795375000000 && String(ev.quien||"").trim()!="Control") return false;   // (1795375000000 = 22-nov-2026 14:16 Bogotá: lo anterior se respeta tal cual)
   if(ev.tipo=="marcar"||ev.tipo=="desmarcar"){
     const m=st.marcas[id]; if(m && m.ts>=ev.ts) return false;
     st.marcas[id]={h:ev.tipo=="marcar"?1:0, ts:ev.ts, q:ev.quien||null}; if(id.startsWith("gen::")) st.marcas[id].t=ev.texto||"";
@@ -803,14 +803,14 @@ function autoAsignarSheet(){
 }
 function asignar(v,nombre){
   const a=st.asig[v]; let ts=Date.now(); if(a && a.ts>=ts) ts=a.ts+1;
-  const ev={evid:uid(), ts, quien:st.persona||"Control", tipo:"asignar", id:v, escena:v, texto:nombre};
+  const ev={evid:uid(), ts, quien:"Control", tipo:"asignar", id:v, escena:v, texto:nombre};
   aplicarEv(ev); st.cola.push(ev); guardar(); render(); empujar();
 }
 /* Ajustes que solo cambia el Control: «edicion» (planos «Ya hay» en negrilla) y «bloqueo::<video>» (solo edita quien lo tiene asignado). */
 function ajustar(pares){
   let ts=Date.now();
   pares.forEach(([id,v])=>{ const a=st.aj[id]; if(a && a.v==v) return; const t2=Math.max(ts++, a?a.ts+1:0);
-    const ev={evid:uid(), ts:t2, quien:st.persona||"Control", tipo:"ajuste", id, escena:"", texto:v}; aplicarEv(ev); st.cola.push(ev); });
+    const ev={evid:uid(), ts:t2, quien:"Control", tipo:"ajuste", id, escena:"", texto:v}; aplicarEv(ev); st.cola.push(ev); });
   guardar(); render(); empujar();
 }
 function selVideografo(v){
@@ -851,7 +851,7 @@ function guardarNota(id,tipo,texto){
   { const v=(momento(id)||{}).video; if(v && !puedeEditar(v)){ sinPermiso(v); return; } }
   const a=(st.notas[id]||{})[tipo]; if((a?a.t:"")===texto) return;
   let ts=Date.now(); if(a && a.ts>=ts) ts=a.ts+1;
-  const ev={evid:uid(), ts, quien:st.persona||null, tipo, id, escena:(momento(id)||{}).video||"", texto};
+  const ev={evid:uid(), ts, quien:esControl()?"Control":(st.persona||null), tipo, id, escena:(momento(id)||{}).video||"", texto};
   aplicarEv(ev);
   if(equipoActivo()) st.cola.push(ev);
   guardar();
@@ -861,7 +861,7 @@ function guardarNota(id,tipo,texto){
 function registrar(tipo,id,escena,texto){
   { const v=((momento(escena)||{}).video)||String(escena).split("/")[0]; if(!puedeEditar(v)){ sinPermiso(v); return; } }
   let ts=Date.now(); const m=st.marcas[id]; if(m && m.ts>=ts) ts=m.ts+1;
-  const ev={evid:uid(), ts, quien:st.persona||null, tipo, id, escena:escena||"", texto:texto||""};
+  const ev={evid:uid(), ts, quien:esControl()?"Control":(st.persona||null), tipo, id, escena:escena||"", texto:texto||""};
   aplicarEv(ev);
   if(equipoActivo()) st.cola.push(ev);
   guardar(); render(); if(equipoActivo()) empujar();
