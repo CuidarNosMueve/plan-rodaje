@@ -120,7 +120,7 @@ html[data-skin="aurora"] .apert{border-radius:14px;border-left-width:0;backgroun
 .tag.gu{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent);margin-left:6px}
 .sbar.late{animation:late .6s ease-out}
 @keyframes late{0%{transform:scaleY(1)}30%{transform:scaleY(1.35)}60%{transform:scaleY(.92)}100%{transform:scaleY(1)}}
-.sbar{transform-origin:50% 100%}
+.sbar{transform-origin:50% 100%;transition:opacity .7s ease 1.6s}.sbar.completa{opacity:0}
 .brote{position:fixed;z-index:9998;pointer-events:none;transform:translate(-50%,-50%);font:800 15px/1 -apple-system,system-ui,sans-serif;color:#fff;background:var(--accent);padding:4px 8px;border-radius:99px;box-shadow:0 4px 14px rgba(0,0,0,.2);animation:brote 1.25s cubic-bezier(.2,.8,.3,1) forwards}
 @keyframes brote{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}20%{opacity:1;transform:translate(-50%,-90%) scale(1.15)}70%{opacity:1;transform:translate(-50%,-180%) scale(1)}100%{opacity:0;transform:translate(-50%,-240%) scale(.9)}}
 html[data-skin="neon"] .brote{background:transparent;color:#eaffff;border:1px solid var(--accent);border-radius:3px;font-family:var(--mono);text-shadow:0 0 8px var(--accent);box-shadow:0 0 14px var(--accent),inset 0 0 10px rgba(0,229,255,.35)}
@@ -1541,7 +1541,7 @@ setInterval(()=>{ if(document.visibilityState=="visible" && navigator.onLine!==f
 let sbarPrev=null;
 function pintarBarraAvance(key,h,tot){
   const i=document.querySelector("#sbar i"); if(!i) return;
-  const w=tot?h/tot*100:0; i.style.width=w+"%"; document.getElementById("sbar").title=`${h} de ${tot} planos`;
+  const w=tot?h/tot*100:0; i.style.width=w+"%"; document.getElementById("sbar").title=`${h} de ${tot} planos`; document.getElementById("sbar").classList.toggle("completa", tot>0 && h>=tot);
   if(sbarPrev && sbarPrev.key===key && h>sbarPrev.h){ subir(i,true); brote(i,"+"+(h-sbarPrev.h)); }
   sbarPrev={key,h};
 }
