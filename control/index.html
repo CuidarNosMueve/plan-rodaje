@@ -266,7 +266,7 @@ body.vista-equipo .filters, body.vista-equipo .search{display:none}
 .vg.mio,.vg.aj{display:block;line-height:1.35}
 .vg.mio{background:color-mix(in srgb,var(--accent) 12%,var(--card));border:1px solid var(--accent);border-radius:10px;padding:8px 10px;color:var(--ink)}
 .vg.aj{background:var(--line);border-radius:10px;padding:8px 10px}
-.vrow.resalt{outline:3px solid var(--rc);outline-offset:-3px}   /* el contorno solo en la lista de videos; dentro del video ya no */
+.vrow.resalt{}   /* sin contorno */
 .vrow.opaco,.scene.opaco{opacity:.5}
 .mom.opaco{opacity:.58;filter:saturate(.4)}
 .vtit.opaco{opacity:.6}
@@ -1090,9 +1090,9 @@ function htmlMomento(m){
   const nota=(t,ph)=>{ const a=(st.notas[m.id]||{})[t]; return `<textarea${bl?" readonly":""} data-nota="${esc(m.id+"|"+t)}" rows="1" maxlength="1500"${t=="seriales"?' inputmode="tel"':""} aria-label="${ph}" placeholder="${ph}">${esc(a?a.t:"")}</textarea>`; };
   const bl=!puedeEditar(m.video)&&!esControl(), necs=necesarios(d), cubierto=necs!=null&&n>=necs, agregando=!bl&&!!st.abiertas["a:"+m.id], yaAb=!!st.abiertas["y:"+m.id]||edicion();
   const li=i=>{ const mk=marcaDe(i.k), ok=hecho(i.k);
-    const quien = team && ok && mk ? `<span class="who">✓ ${esc(hora(mk.ts))}</span>` : "";
+    const quien = team && ok && mk ? `<span class="who">✓ ${mk.q=="Control"?"Grabado por administrador · ":""}${esc(hora(mk.ts))}</span>` : "";
     return `<li class="shot${ok?" checked":""}${i.fijo?" ya":""}">
-      <label><input type="checkbox" data-k="${esc(i.k)}" data-e="${esc(m.id)}" data-t="${esc(i.t)}" ${ok?"checked":""}${i.fijo||GENC[i.k]||esControl()||bl?" disabled":""}>
+      <label><input type="checkbox" data-k="${esc(i.k)}" data-e="${esc(m.id)}" data-t="${esc(i.t)}" ${ok?"checked":""}${i.fijo||GENC[i.k]||(esControl()&&ok)||bl?" disabled":""}>
       <span class="col"><span class="txt">${esc(i.t)}${i.ed?'<span class="tag gu" title="En negrilla en la hoja: sale de la edición">Edición</span>':""}${i.gu?'<span class="tag gu" title="Viene de «Plano del guion»">Guion</span>':""}${GENC[i.k]?'<span class="tag gu" title="Lo cubrió una toma de un plano genérico">Genérico</span>':""}${st.nuevos[i.k]?'<span class="tag new">Nuevo</span>':""}</span>${/^\s*apertura\b/i.test(i.t)?'<span class="apert"><b>🎬 Plano de apertura</b> Debe ser un plano pensado para que entre graficación sobre él.</span>':""}${quien}</span></label>
       ${i.mine&&!bl?`<button class="del" data-del="${esc(m.id)}" data-cid="${esc(i.cid)}" aria-label="Borrar plano">×</button>`:""}
     </li>`; };
@@ -1202,12 +1202,12 @@ function statsEquipo(){
     const it=planosDe(e), necs=necesarios(durDe(e)), fijos=it.filter(i=>i.fijo).length, marcados=[];
     total+=necs!=null?necs:it.length;
     it.forEach(i=>{ const m=marcaDe(i.k);
-      if(m && m.h){ const p=ensure(m.q||"Sin nombre"); p.hechos++; p.ult=Math.max(p.ult,m.ts); recientes.push({e,i,m}); marcados.push(m); }
+      if(m && m.h){ const p=ensure(m.q=="Control"?"Administrador":(m.q||"Sin nombre")); p.hechos++; p.ult=Math.max(p.ult,m.ts); recientes.push({e,i,m}); marcados.push(m); }
       if(i.mine && i.q) ensure(i.q).agregados++;
     });
     // la barra de cada persona solo recibe crédito por los planos que faltaban para la meta: los de más no suman
     let cupo=necs!=null?Math.max(0,necs-fijos):Infinity;
-    marcados.sort((x,y)=>x.ts-y.ts).forEach(m=>{ if(cupo>0){ ensure(m.q||"Sin nombre").cred++; cupo--; } });
+    marcados.sort((x,y)=>x.ts-y.ts).forEach(m=>{ if(cupo>0){ ensure(m.q=="Control"?"Administrador":(m.q||"Sin nombre")).cred++; cupo--; } });
   });
   for(const k in st.marcas){ const m=st.marcas[k]; if(k.startsWith('listo::') && m.h){ const p=ensure(m.q||'Sin nombre'); p.listos++; p.ult=Math.max(p.ult,m.ts); } }
   recientes.sort((a,b)=>b.m.ts-a.m.ts);
@@ -1241,7 +1241,7 @@ function htmlControl(){
   const sin=porV.filter(x=>!x.vg.length).length;
   /* Planos grabados NUEVOS: los marcados en la app (los «Ya hay» no cuentan). Por total, por video y por quien los marcó. */
   let nTot=0; const nV={}, nQ={}, nUlt={ts:0};
-  data.momentos.forEach(m=>planosDe(m).forEach(i=>{ const k=marcaDe(i.k); if(k&&k.h&&!i.fijo){ nTot++; nV[m.video]=(nV[m.video]||0)+1; const q=k.q||"Sin nombre"; nQ[q]=(nQ[q]||0)+1; nUlt.ts=Math.max(nUlt.ts,k.ts); } }));
+  data.momentos.forEach(m=>planosDe(m).forEach(i=>{ const k=marcaDe(i.k); if(k&&k.h&&!i.fijo){ nTot++; nV[m.video]=(nV[m.video]||0)+1; const q=k.q=="Control"?"Administrador":(k.q||"Sin nombre"); nQ[q]=(nQ[q]||0)+1; nUlt.ts=Math.max(nUlt.ts,k.ts); } }));
   const pl=n=>n+" plano"+(n==1?"":"s");
   h+=`<div class="linea">Planos grabados</div><div class="ccard"><div class="fila"><strong>📹 ${pl(nTot)} nuevo${nTot==1?"":"s"}</strong><span class="n">sin contar los «Ya hay»</span></div><div class="sub">${nTot?"Último "+esc(hace(nUlt.ts))+" · ":""}${Object.keys(nV).length} video${Object.keys(nV).length==1?"":"s"} con planos grabados</div>
     ${(()=>{ const cv=String((MOMS()[momActual()]||{}).video||""); if(!cv) return ""; const c=conteos(cv), t=conteos(); return `<div class="fila" style="margin-top:8px"><span>Video ${esc(cv)} (el que estás viendo)</span><span class="n">${pl(nV[cv]||0)} nuevo${(nV[cv]||0)==1?"":"s"} · ${c.pH}/${c.pT} planos</span></div><div class="fila"><span>Total del proyecto</span><span class="n">${pl(nTot)} nuevo${nTot==1?"":"s"} · ${t.pH}/${t.pT} planos</span></div>`; })()}</div>`;
@@ -1346,6 +1346,7 @@ document.addEventListener("change",ev=>{
     festejar=true; registrar("marcar","gen::"+el.dataset.gnew+"::"+uid(),c.m.id,c.i.k); return; }
   if(el.dataset&&el.dataset.gtk){ const m=st.marcas[el.dataset.gtk], p=m&&PK[m.t]; registrar("desmarcar",el.dataset.gtk,p?p.m.id:"",m?m.t:""); return; }
   const k=el.dataset&&el.dataset.k; if(!k) return;
+  if(esControl() && !el.checked){ render(); return; }   // el administrador solo puede marcar, no desmarcar
   festejar=el.checked; registrar(el.checked?"marcar":"desmarcar", k, el.dataset.e, el.dataset.t);
 });
 document.addEventListener("submit",ev=>{
