@@ -300,7 +300,6 @@ body.edicion .shot.ya .txt{font-weight:800}
 .vg select{flex:1;min-width:0;height:36px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font-size:15px;padding:0 8px}
 .ctl-solo{display:none}
 body.control .ctl-solo{display:block}
-body.control .mas, body.control .del{display:none}
 .ro{margin-top:10px;padding:10px 12px;border:1px dashed var(--line);border-radius:10px;font-size:13px;color:var(--muted);white-space:pre-wrap}
 .ro b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
 .ctl-badge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:99px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;vertical-align:middle}
@@ -781,7 +780,7 @@ const segPlano = () => { const x=parseFloat(ajV("segplano","2")); return x>=1&&x
 const soloRes = () => ajV("sinres","1")!="0";                                              // ¿se ocultan los videos sin resaltar? (lo cambia Control)
 const edicion = () => !!(st.aj.edicion && st.aj.edicion.v=="1");
 /* ¿Puede este teléfono editar el video? (Control no edita nunca; el equipo solo si no está bloqueado o es el videógrafo asignado) */
-const puedeEditar = v => esControl() ? false : (!bloqueado(v) || vgs(v).includes(st.persona));
+const puedeEditar = v => esControl() ? true : (!bloqueado(v) || vgs(v).includes(st.persona));
 /* Resalta lo que es de cada quien: «mio» = videógrafo asignado a esta persona; «ajeno» = asignado a otra. */
 /* Videos resaltados con color en el Sheet: se resaltan igual en la app; si hay resaltados, los demás salen opacos (se apaga con «Atenuar videos de otros»). */
 let RES={}, HAY=false;
@@ -1088,7 +1087,7 @@ function abrirPremisa(v){
 function htmlMomento(m){
   const todos=planosDe(m), items=todos.filter(i=>!i.oculto), prop=items.filter(i=>!i.fijo), ya=items.filter(i=>i.fijo), n=todos.filter(i=>hecho(i.k)).length;
   const listo=hecho(listoK(m.id)), team=!!urlSync(), hayNuevo=items.some(i=>st.nuevos[i.k]), d=durDe(m), pp=porPlano(m,d), lm=st.marcas[listoK(m.id)];
-  const nota=(t,ph)=>{ const a=(st.notas[m.id]||{})[t]; if(esControl()) return a&&a.t?`<div class="ro"><b>${ph}</b>${esc(a.t)}</div>`:""; return `<textarea${bl?" readonly":""} data-nota="${esc(m.id+"|"+t)}" rows="1" maxlength="1500"${t=="seriales"?' inputmode="tel"':""} aria-label="${ph}" placeholder="${ph}">${esc(a?a.t:"")}</textarea>`; };
+  const nota=(t,ph)=>{ const a=(st.notas[m.id]||{})[t]; return `<textarea${bl?" readonly":""} data-nota="${esc(m.id+"|"+t)}" rows="1" maxlength="1500"${t=="seriales"?' inputmode="tel"':""} aria-label="${ph}" placeholder="${ph}">${esc(a?a.t:"")}</textarea>`; };
   const bl=!puedeEditar(m.video)&&!esControl(), necs=necesarios(d), cubierto=necs!=null&&n>=necs, agregando=!bl&&!!st.abiertas["a:"+m.id], yaAb=!!st.abiertas["y:"+m.id]||edicion();
   const li=i=>{ const mk=marcaDe(i.k), ok=hecho(i.k);
     const quien = team && ok && mk ? `<span class="who">✓ ${esc(hora(mk.ts))}</span>` : "";
