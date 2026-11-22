@@ -746,6 +746,8 @@ function aplicar(nueva, manual){
    ev = {evid, ts, quien, tipo, id, escena, texto}. Gana siempre el más reciente (por ts) de cada plano. */
 function aplicarEv(ev){
   const id=ev.id;
+  /* Responsables (asignar) y ajustes: solo los define Control. Lo que llegue de cualquier otra persona se ignora. */
+  if((ev.tipo=="asignar"||ev.tipo=="ajuste") && String(ev.quien||"").trim()!="Control") return false;
   if(ev.tipo=="marcar"||ev.tipo=="desmarcar"){
     const m=st.marcas[id]; if(m && m.ts>=ev.ts) return false;
     st.marcas[id]={h:ev.tipo=="marcar"?1:0, ts:ev.ts, q:ev.quien||null}; if(id.startsWith("gen::")) st.marcas[id].t=ev.texto||"";
