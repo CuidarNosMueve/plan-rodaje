@@ -1264,10 +1264,10 @@ function htmlControl(){
   const off=errorSync||navigator.onLine===false, pend=st.cola.length;
   let h=`<div class="estado${off?" off":""}"><i class="pt"></i><span>${off?"Sin conexión":(st.vistoEn?"Sincronizado "+hace(st.vistoEn):"Aún sin sincronizar")}${pend?` · ${pend} por enviar`:""}</span></div>`;
   const vids=[]; data.momentos.forEach(m=>{ if(!vids.includes(m.video)) vids.push(m.video); });
-  const porV=vids.map(v=>{ const c=conteos(v), ms=data.momentos.filter(m=>m.video==v); let ult=0, ser=0, com=0;
-    ms.forEach(m=>{ planosDe(m).forEach(i=>{ const k=marcaDe(i.k); if(k&&k.h&&!i.fijo) ult=Math.max(ult,k.ts); }); const lk=st.marcas[listoK(m.id)]; if(lk&&lk.h) ult=Math.max(ult,lk.ts);
+  const porV=vids.map(v=>{ const c=conteos(v), ms=data.momentos.filter(m=>m.video==v); let ult=0, ser=0, com=0, yh=0;
+    ms.forEach(m=>{ planosDe(m).forEach(i=>{ const k=marcaDe(i.k); if(k&&k.h&&!i.fijo) ult=Math.max(ult,k.ts); if(i.fijo&&!i.ed&&hecho(i.k)) yh++; }); const lk=st.marcas[listoK(m.id)]; if(lk&&lk.h) ult=Math.max(ult,lk.ts);
       if(notaDe(m.id,"seriales")) ser++; if(notaDe(m.id,"comentario")) com++; });
-    return {v,nombre:ms[0].nombre,c,ult,ser,com,vg:vgs(v)}; });
+    return {v,nombre:ms[0].nombre,c,ult,ser,com,yh,vg:vgs(v)}; });
   const sin=porV.filter(x=>!x.vg.length).length;
   /* Planos grabados NUEVOS: los marcados en la app (los «Ya hay» no cuentan). Por total, por video y por quien los marcó. */
   let nTot=0; const nV={}, nQ={}, nUlt={ts:0};
@@ -1295,6 +1295,7 @@ function htmlControl(){
   if(HAY) h+=`<button class="modo" data-ctlver="1" style="margin:0 0 8px">${st.ctlVer?"🙈 Ocultar los "+porV.filter(x=>!RES[x.v]).length+" videos sin resaltar":"👁 Ver los "+oculN+" videos sin resaltar (ocultos)"}</button>`;
   porV.filter(x=>!HAY||st.ctlVer||RES[x.v]).forEach(x=>{ const ok=x.c.mT>0&&x.c.mH==x.c.mT, pc=x.c.pT?Math.round(x.c.pH/x.c.pT*100):0;
     h+=`<div class="ccard${ok?" ok":!x.vg.length?" sin":""}"><div class="fila"><strong>${RES[x.v]?`<i class="rdot" style="background:${RES[x.v]}" title="Resaltado en el Sheet"></i>`:""}${esc(x.v)} · ${esc(x.nombre)}</strong><span class="n">${x.c.mH}/${x.c.mT} mom.${ok?" ✓":""}</span></div>
+      <div class="fila" style="margin-top:6px"><strong style="font-size:17px">${(nV[x.v]||0)+x.yh} de ${x.c.pT} planos</strong><span class="n">${nV[x.v]||0} nuevo${(nV[x.v]||0)==1?"":"s"} + ${x.yh} «Ya hay»</span></div>
       <div class="bar"><i style="width:${pc}%"></i></div>
       <div class="sub">${HAY&&!RES[x.v]?"sin resaltar · ":""}${respDe(x.v)?"Sheet grabación: "+esc(respDe(x.v))+" · ":""}${edDe(x.v)?"Sheet edición: "+esc(edDe(x.v))+" · ":""}${x.c.pH}/${x.c.pT} planos${nV[x.v]?" · "+pl(nV[x.v])+" nuevo"+(nV[x.v]==1?"":"s"):""}${x.ult?" · último "+esc(hace(x.ult)):""}${x.ser?` · ${x.ser} con seriales`:""}${x.com?` · ${x.com} con comentarios`:""}</div>
       ${selVideografo(x.v)}<button class="modo" data-irvideo="${esc(x.v)}" style="margin:6px 0 0">Ver video</button></div>`; });
