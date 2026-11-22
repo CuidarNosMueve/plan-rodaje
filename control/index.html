@@ -786,6 +786,16 @@ const videografo = v => vgs(v).join("|");
 /* Edición: aparte de la grabación. Se guarda como ajuste «editor::<video>» = «A|B» (lo cambia Control; no da permiso de grabar). */
 const egs = v => String((st.aj["editor::"+v]&&st.aj["editor::"+v].v)||"").split("|").map(x=>x.trim()).filter(Boolean);
 const listaNombres = (a,corto_) => { const n=a.map(x=>corto_?corto(x):x); return n.length<2?(n[0]||""):n.slice(0,-1).join(", ")+" y "+n[n.length-1]; };
+/* Responsables según el Sheet: se aplican solos. Solo se aplica lo que cambió en el Sheet desde la última vez (st.asr), para no pisar lo que se acaba de asignar en la app. */
+function autoAsignarSheet(){
+  if(autoAsignarSheet.on || st.cola.length || esPrueba()) return;
+  st.asr ||= {}; const sig=x=>(x.g||"")+"#"+(x.e==null?"":x.e);
+  const vs=porAsignarSheet().filter(x=>st.asr[x.v]!==sig(x)); if(!vs.length) return;
+  autoAsignarSheet.on=true;
+  try{ const pares=[]; vs.forEach(x=>{ st.asr[x.v]=sig(x); if(x.g) asignar(x.v,x.g); if(x.e!=null) pares.push(["editor::"+x.v,x.e]); }); if(pares.length) ajustar(pares); guardar();
+    toast("Responsables del Sheet aplicados ("+vs.length+" video"+(vs.length==1?"":"s")+")"); }
+  finally{ autoAsignarSheet.on=false; }
+}
 function asignar(v,nombre){
   const a=st.asig[v]; let ts=Date.now(); if(a && a.ts>=ts) ts=a.ts+1;
   const ev={evid:uid(), ts, quien:st.persona||"Control", tipo:"asignar", id:v, escena:v, texto:nombre};
@@ -1013,6 +1023,7 @@ function autoalto(el){ el.style.height="auto"; el.style.height=Math.max(44,el.sc
 let ultVideoMio=null, llegando=false;
 function render(){
   calcNuevos(); calcRes(); calcGen();
+   if(typeof autoAsignarSheet==="function" && !autoAsignarSheet.on && !st.cola.length) setTimeout(autoAsignarSheet,60); 
   const team=!!urlSync(), vistaEq=team && !!st.persona && st.vista=="equipo", vistaGen=team && st.vista=="genericos";
   const vistaCtl=team && st.vista=="control"; document.body.classList.add("control");
   document.body.classList.toggle("team",team); document.body.classList.toggle("edicion",edicion());
@@ -1287,7 +1298,7 @@ function htmlControl(){
     <div class="sub" style="margin-top:10px">Bloqueo · ${nBl} de ${vids.length} videos bloqueados. Bloqueado = solo edita quien tiene el video asignado.</div>
     <div class="fila2"><button data-bloqtodos="1">🔒 Bloquear todos</button><button data-bloqtodos="0">🔓 Desbloquear todos</button></div>
     ${HAY?`<div class="sub" style="margin-top:8px">${vids.filter(v=>!RES[v]).length} videos sin resaltar</div><div class="fila2"><button data-ocres="1">🙈 Ocultar sin resaltar</button><button data-ocres="0">👁 Mostrar sin resaltar</button></div><div class="fila2" style="margin-top:6px"><button data-bloqres="1">🔒 Bloquear sin resaltar</button><button data-bloqres="0">🔓 Desbloquear sin resaltar</button></div>`:""}
-    ${(()=>{ const n=porAsignarSheet().length; return vids.some(v=>respDe(v)||edDe(v))?`<div class="sub" style="margin-top:8px">Columnas «Responsable» (grabación) y «Editor» del Sheet · ${n} video${n==1?"":"s"} por asignar</div><div class="fila2"><button data-asr="1"${n?"":" disabled"}>👥 Asignar según el Sheet</button></div>`:""; })()}</div>`;
+    ${(()=>{ const n=porAsignarSheet().length; return vids.some(v=>respDe(v)||edDe(v))?`<div class="sub" style="margin-top:8px">Los responsables de las columnas «Responsable Grabación» y «Responsable Edición» del Sheet se aplican solos${n?" · aplicando "+n+"…":""}.</div>`:""; })()}</div>`;
   h+=`<div class="linea">Videógrafo por persona</div>`;
   equipo().forEach(n=>{ const mis=porV.filter(x=>x.vg.includes(n)), pT=mis.reduce((a,x)=>a+x.c.pT,0), pH=mis.reduce((a,x)=>a+x.c.pH,0);
     h+=`<div class="ccard"><div class="fila"><strong>${esc(n)}</strong><span class="n">${mis.length} video${mis.length==1?"":"s"} · ${pH}/${pT} planos</span></div><div class="sub">📹 Grabó ${pl(nQ[n]||0)} nuevo${(nQ[n]||0)==1?"":"s"}</div>${pT?`<div class="bar"><i style="width:${Math.round(pH/pT*100)}%"></i></div>`:""}<div class="sub">${mis.length?mis.map(x=>esc(x.v)).join(", "):"Sin videos asignados"}</div></div>`; });
