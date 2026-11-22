@@ -189,6 +189,8 @@ body.uno .filters, body.uno .search{display:none}
 .gcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}.gcard p{margin:6px 0 4px;font-size:14px;line-height:1.4}.gcard small{color:var(--muted)}
 .vgc.ed.on{background:#6d4bd8;border-color:#6d4bd8}.vg.ed{border-left:4px solid #6d4bd8}.etq.ed{background:#efe9fd;color:#4a2fa8}
 .nombre.nuevo{border-style:dashed}
+.mios{display:flex;gap:6px;align-items:center;justify-content:space-between;width:100%;margin:0 0 8px;padding:9px 12px;border:1.5px solid var(--accent);background:var(--card);border-radius:12px;font:inherit;font-size:14px;font-weight:700;color:inherit;text-align:left}.mios span{font-weight:500;color:var(--muted);font-size:12px}
+.mv{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:10px}.mv>b{display:block;margin-bottom:6px}.mv.ed{border-left:4px solid #6d4bd8}
 .ginfo{margin:0 8px 10px;font-size:13px;color:var(--muted);line-height:1.4}
 .gitem{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}.gitem .gt{font-size:16px;font-weight:700;margin-bottom:8px}
 .gtk{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:14px;line-height:1.35;cursor:pointer}
@@ -264,7 +266,7 @@ body.vista-equipo .filters, body.vista-equipo .search{display:none}
 .vg.mio,.vg.aj{display:block;line-height:1.35}
 .vg.mio{background:color-mix(in srgb,var(--accent) 12%,var(--card));border:1px solid var(--accent);border-radius:10px;padding:8px 10px;color:var(--ink)}
 .vg.aj{background:var(--line);border-radius:10px;padding:8px 10px}
-.vrow.resalt,.scene.resalt,.mom.resalt,.vtit.resalt{outline:3px solid var(--rc);outline-offset:-3px}
+.vrow.resalt{outline:3px solid var(--rc);outline-offset:-3px}   /* el contorno solo en la lista de videos; dentro del video ya no */
 .vrow.opaco,.scene.opaco{opacity:.5}
 .mom.opaco{opacity:.58;filter:saturate(.4)}
 .vtit.opaco{opacity:.6}
@@ -1110,8 +1112,26 @@ function htmlMomento(m){
     ${`<p class="info">${listo?"✓ <b>Listo</b>"+(lm?" · "+esc(hora(lm.ts)):""):"Aún no está listo"}</p>`}
     <div class="fin"></div></article>`;
 }
+/* Lo que le toca a esta persona: videos para grabar (videógrafo) y para editar (editor). */
+function misVideos(){
+  if(esControl()||!st.persona) return {g:[],e:[]};
+  const vs=[...new Set(data.momentos.map(m=>m.video))], nom=v=>(data.momentos.find(m=>m.video==v)||{}).nombre||"";
+  const g=vs.filter(v=>vgs(v).includes(st.persona)).map(v=>({v,nombre:nom(v),c:conteos(v)}));
+  const e=vs.filter(v=>egs(v).includes(st.persona)).map(v=>{ const ms=data.momentos.filter(m=>m.video==v); return {v,nombre:nom(v),mT:ms.length,mH:ms.filter(m=>hecho(listoK(m.id))).length}; });
+  return {g,e};
+}
+function htmlMisVideos(){
+  if(esControl()||!st.persona) return "";
+  const {g,e}=misVideos(); if(!g.length&&!e.length) return `<div class="linea">Mis videos</div><div class="empty">Todavía no te han asignado videos para grabar ni para editar.</div>`;
+  const pl=(n,a,b)=>n+" "+(n==1?a:b);
+  let h=`<div class="linea">Mis videos · ${pl(g.length,"para grabar","para grabar")} · ${pl(e.length,"para editar","para editar")}</div>`;
+  if(g.length){ h+=`<div class="mv"><b>🎥 Grabas ${pl(g.length,"video","videos")}</b>`+g.map(x=>`<button class="vrow" data-irvideo="${esc(x.v)}"><span class="num">${esc(x.v)}</span><span class="vn">${esc(x.nombre)}</span><span class="vc">${x.c.pH}/${x.c.pT}</span></button>`).join("")+`</div>`; }
+  if(e.length){ h+=`<div class="mv ed"><b>✂️ Editas ${pl(e.length,"video","videos")}</b>`+e.map(x=>`<button class="vrow" data-irvideo="${esc(x.v)}"><span class="num">${esc(x.v)}</span><span class="vn">${esc(x.nombre)}</span><span class="vc">${x.mH}/${x.mT} listos</span></button>`).join("")+`</div>`; }
+  return h;
+}
 function banners(){
   let h=htmlAvisos("plan");
+  { const {g,e}=misVideos(); if(g.length||e.length) h+=`<button class="mios" data-v="equipo">Te tocan: ${g.length?"🎥 grabar "+g.length:""}${g.length&&e.length?" · ":""}${e.length?"✂️ editar "+e.length:""} <span>ver cuáles ›</span></button>`; }
   if(aviso){
     const partes=[]; if(aviso.agregados) partes.push(`${aviso.agregados} plano${aviso.agregados>1?"s":""} nuevo${aviso.agregados>1?"s":""}`);
     if(aviso.quitados) partes.push(`${aviso.quitados} quitado${aviso.quitados>1?"s":""}`);
@@ -1196,7 +1216,7 @@ function statsEquipo(){
 }
 function htmlEquipo(){
   const s=statsEquipo(), off=errorSync||navigator.onLine===false, pend=st.cola.length;
-  let h=htmlAvisos("equipo")+`<div class="estado${off?" off":""}"><i class="pt"></i><span>${off?"Sin conexión con el equipo":(st.vistoEn?"Sincronizado "+hace(st.vistoEn):"Aún sin sincronizar")}${pend?` · ${pend} por enviar`:""}</span></div>`;
+  let h=htmlAvisos("equipo")+htmlMisVideos()+`<div class="estado${off?" off":""}"><i class="pt"></i><span>${off?"Sin conexión con el equipo":(st.vistoEn?"Sincronizado "+hace(st.vistoEn):"Aún sin sincronizar")}${pend?` · ${pend} por enviar`:""}</span></div>`;
   h+=`<div class="linea">Avance por persona</div>`;
   s.por.forEach(p=>{
     const pc=s.total?Math.min(100,+(p.cred/s.total*100).toFixed(2)):0, yo=p.n==st.persona;
@@ -1265,7 +1285,7 @@ document.addEventListener("click",ev=>{
   if(t.dataset.abrirvideos!==undefined){ desplegado=!desplegado; if(desplegado) st.serie=String((MOMS()[momActual()]||{video:""}).video).split("-")[0]; render(); return; }
   if(t.dataset.vgen){ st.vista="genericos"; desplegado=false; guardar(); render(); window.scrollTo(0,0); return; }
   if(t.dataset.serie!==undefined){ st.serie=t.dataset.serie||null; guardar(); render(); window.scrollTo(0,0); return; }
-  if(t.dataset.irvideo){ const j=MOMS().findIndex(x=>x.video==t.dataset.irvideo); if(j>=0){ st.modo="uno"; st.pos=MOMS()[j].id; st.videoActual=MOMS()[j].video; guardar(); } desplegado=false; render(); window.scrollTo(0,0); return; }
+  if(t.dataset.irvideo){ st.vista="plan"; if(MOMS().findIndex(x=>x.video==t.dataset.irvideo)<0) st.verTodos=true; const j=MOMS().findIndex(x=>x.video==t.dataset.irvideo); if(j>=0){ st.modo="uno"; st.pos=MOMS()[j].id; st.videoActual=MOMS()[j].video; guardar(); } desplegado=false; render(); window.scrollTo(0,0); return; }
   if(t.dataset.ya){ const k="y:"+t.dataset.ya; st.abiertas[k]=!st.abiertas[k]; guardar(); render(); return; }
   if(t.dataset.modo){ st.modo=t.dataset.modo; guardar(); render(); window.scrollTo(0,0); return; }
   if(t.dataset.nav){ const [k,d]=t.dataset.nav.split(":"), dd=+d, ms=MOMS(), i=momActual(); let j=i;
