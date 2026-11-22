@@ -12,7 +12,7 @@
 <script>/* Aplica el estilo guardado antes de pintar (sin parpadeo). */
 try{ const k=JSON.parse(localStorage.getItem("rodaje-skin:"+location.pathname)||"{}"); if(k.s) document.documentElement.dataset.skin=k.s; if(k.a==="0") document.documentElement.classList.add("sin-aj"); }catch(e){}</script>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="apple-touch-icon" href="icon-180.png?v=3">
 <style>
 :root{
   --bg:#f6f3ee; --card:#ffffff; --ink:#1b1a17; --muted:#6b665d; --line:#e4ded3;
@@ -207,7 +207,7 @@ body.uno .filters, body.uno .search{display:none}
 .foot .vt{border:1px solid var(--line);border-radius:999px;padding:9px 16px;margin-bottom:6px;font-size:13px;font-weight:700;color:var(--ink);text-decoration:none;background:var(--card)}
 .foot button{background:none;border:0;color:var(--muted);text-decoration:underline;font-size:12px;cursor:pointer;padding:6px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(calc(100% + 140px + env(safe-area-inset-bottom)));opacity:0;visibility:hidden;pointer-events:none;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:18px;font-size:14px;line-height:1.35;font-weight:600;transition:transform .25s,opacity .25s,visibility 0s linear .25s;z-index:9;white-space:normal;text-align:center;width:max-content;max-width:calc(100vw - 32px);box-sizing:border-box;box-shadow:0 8px 28px rgba(0,0,0,.25)}   /* el aviso puede ocupar 2–3 líneas: nunca se corta */
-.toast.show{transform:translateX(-50%) translateY(0);opacity:1;visibility:visible;transition:transform .25s,opacity .25s,visibility 0s}
+.toast{z-index:120 !important}.toast.show{transform:translateX(-50%) translateY(0);opacity:1;visibility:visible;transition:transform .25s,opacity .25s,visibility 0s}
 .spin{animation:spin 1s linear infinite;display:inline-block} @keyframes spin{to{transform:rotate(360deg)}}
 
 /* ----- Equipo ----- */
@@ -1474,7 +1474,7 @@ let pendMom=null;   // momento al que van los clips que se importan después de 
 function hojaCam(html){ document.getElementById("recpick")?.remove(); const d=document.createElement("div"); d.id="recpick"; d.innerHTML=`<div class="sheet" role="dialog" aria-modal="true">${html}</div>`; document.body.appendChild(d); d.addEventListener("click",e=>{ if(e.target===d) d.remove(); }); return d; }
 function momDentro(){ const ms=MOMS(); return st.vista=="plan" && st.modo=="uno" && ms.length ? ms[momActual()] : null; }
 function abrirSelector(simple){ const i=document.getElementById("recin"); if(simple) i.setAttribute("capture","environment"); else i.removeAttribute("capture"); i.click(); }
-function lanzarAtajo(){ const m=momDentro(); st.camAt=Date.now(); st.camMom=m?m.id:null; guardar(); location.href="shortcuts://run-shortcut?name="+encodeURIComponent(ATAJO_NOM); }
+function lanzarAtajo(){ const m=momDentro(); st.camAt=Date.now(); st.camMom=m?m.id:null; guardar(); const vuelta=location.href.split("#")[0].split("?")[0]; location.href="shortcuts://x-callback-url/run-shortcut?name="+encodeURIComponent(ATAJO_NOM)+"&x-success="+encodeURIComponent(vuelta)+"&x-cancel="+encodeURIComponent(vuelta)+"&x-error="+encodeURIComponent(vuelta); }
 function instalarCam(){
   const d=hojaCam(`<h2>🎥 Paso único: la cámara del rodaje</h2><p>Para grabar con la <b>cámara nativa del iPhone</b> (con todos sus lentes y modos), instala una vez el atajo «${ATAJO_NOM}»:</p>
     <p>1. Toca <b>Instalar</b> → en Atajos toca <b>Añadir atajo</b>.<br>2. Vuelve a esta app y toca <b>Ya lo instalé</b>.</p>
