@@ -920,7 +920,7 @@ function footHTML(plan){
 function htmlMomento(m){
   const todos=planosDe(m), items=todos.filter(i=>!i.oculto), prop=items.filter(i=>!i.fijo), ya=items.filter(i=>i.fijo), n=todos.filter(i=>hecho(i.k)).length;
   const listo=hecho(listoK(m.id)), team=!!urlSync(), hayNuevo=items.some(i=>st.nuevos[i.k]), d=durDe(m), pp=porPlano(m,d), lm=st.marcas[listoK(m.id)];
-  const nota=(t,ph)=>{ const a=(st.notas[m.id]||{})[t];  return `<textarea${bl?" readonly":""} data-nota="${esc(m.id+"|"+t)}" rows="1" maxlength="1500" aria-label="${ph}" placeholder="${ph}">${esc(a?a.t:"")}</textarea>`; };
+  const nota=(t,ph)=>{ const a=(st.notas[m.id]||{})[t];  return `<textarea${bl?" readonly":""} data-nota="${esc(m.id+"|"+t)}" rows="1" maxlength="1500"${t=="seriales"?' inputmode="tel"':""} aria-label="${ph}" placeholder="${ph}">${esc(a?a.t:"")}</textarea>`; };
   const bl=!puedeEditar(m.video)&&!esControl(), necs=necesarios(d), cubierto=necs!=null&&n>=necs, agregando=!bl&&!!st.abiertas["a:"+m.id], yaAb=!!st.abiertas["y:"+m.id]||edicion();
   const li=i=>{ const mk=st.marcas[i.k], ok=hecho(i.k);
     const quien = team && ok && mk ? `<span class="who">✓ ${esc(hora(mk.ts))}</span>` : "";
