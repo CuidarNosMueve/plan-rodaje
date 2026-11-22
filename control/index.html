@@ -549,6 +549,18 @@ html[data-skin="cine"] .ccard{box-shadow:0 20px 40px rgba(0,0,0,.35)}
 html[data-skin="editorial"] .ccard{border:1.5px solid var(--ink);border-radius:0}
 html[data-skin="aurora"] .ccard{backdrop-filter:blur(18px) saturate(1.5);-webkit-backdrop-filter:blur(18px) saturate(1.5);border-color:rgba(255,255,255,.8);box-shadow:0 8px 30px rgba(70,50,170,.08)}
 
+
+/* Teclado propio para «Seriales» (números, espacio, otro serial, letras) */
+#teclado{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--card);border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom));display:flex;gap:8px;box-shadow:0 -6px 20px rgba(0,0,0,.18);touch-action:manipulation;-webkit-user-select:none;user-select:none}
+#teclado[hidden]{display:none}
+#teclado button{font:inherit;font-weight:800;font-size:20px;min-height:46px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);padding:0}
+#teclado .tk-grid{flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+#teclado .tk-grid.abc{grid-template-columns:repeat(7,1fr)}
+#teclado .tk-grid.abc button{font-size:17px;min-height:40px}
+#teclado .tk-side{display:flex;flex-direction:column;gap:6px;width:116px}
+#teclado .tk-side button{font-size:15px;min-height:0;flex:1}
+#teclado .tk-side .ok{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+body.con-tec{padding-bottom:300px}
 </style>
 </head>
 <body>
@@ -1099,7 +1111,7 @@ function abrirPremisa(v){
 function htmlMomento(m){
   const todos=planosDe(m), items=todos.filter(i=>!i.oculto), prop=items.filter(i=>!i.fijo), ya=items.filter(i=>i.fijo), n=todos.filter(i=>hecho(i.k)).length;
   const listo=hecho(listoK(m.id)), team=!!urlSync(), hayNuevo=items.some(i=>st.nuevos[i.k]), d=durDe(m), pp=porPlano(m,d), lm=st.marcas[listoK(m.id)];
-  const nota=(t,ph)=>{ const a=(st.notas[m.id]||{})[t]; return `<textarea${bl?" readonly":""} data-nota="${esc(m.id+"|"+t)}" rows="1" maxlength="1500"${t=="seriales"?' inputmode="tel"':""} aria-label="${ph}" placeholder="${ph}">${esc(a?a.t:"")}</textarea>`; };
+  const nota=(t,ph)=>{ const a=(st.notas[m.id]||{})[t]; return `<textarea${bl?" readonly":""} data-nota="${esc(m.id+"|"+t)}" rows="1" maxlength="1500"${t=="seriales"?' inputmode="none" autocapitalize="characters" autocorrect="off" spellcheck="false"':""} aria-label="${ph}" placeholder="${ph}">${esc(a?a.t:"")}</textarea>`; };
   const bl=!puedeEditar(m.video)&&!esControl(), necs=necesarios(d), cubierto=necs!=null&&n>=necs, agregando=!bl&&!!st.abiertas["a:"+m.id], yaAb=!!st.abiertas["y:"+m.id]||edicion();
   const li=i=>{ const mk=marcaDe(i.k), ok=hecho(i.k);
     const quien = team && ok && mk ? `<span class="who">✓ ${mk.q=="Control"?"Grabado por administrador · ":""}${esc(hora(mk.ts))}</span>` : "";
@@ -1372,6 +1384,37 @@ const tNotas={};
 function volcarNota(k){ const el=document.querySelector(`[data-nota="${CSS.escape(k)}"]`); if(!el) return; const [id,tipo]=k.split("|"); guardarNota(id,tipo,el.value); }
 document.addEventListener("input",ev=>{ const k=ev.target.dataset&&ev.target.dataset.nota; if(!k) return; autoalto(ev.target); clearTimeout(tNotas[k]); tNotas[k]=setTimeout(()=>volcarNota(k),700); });
 document.addEventListener("focusout",ev=>{ const el=ev.target, k=el.dataset&&el.dataset.nota; if(!k) return; clearTimeout(tNotas[k]); const [id,tipo]=k.split("|"); guardarNota(id,tipo,el.value); });
+
+/* ===== Teclado propio para Seriales ===== */
+const TEC={el:null,t:null,abc:false};
+function tecHTML(){
+  const keys=TEC.abc?"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".split(""):["1","2","3","4","5","6","7","8","9","-","0","/"];
+  return `<div class="tk-grid${TEC.abc?" abc":""}">${keys.map(k=>`<button type="button" data-tk="${k}">${k}</button>`).join("")}</div>
+    <div class="tk-side"><button type="button" data-tkx="del" aria-label="Borrar">⌫</button><button type="button" data-tkx="sp">espacio</button><button type="button" data-tkx="nl">↵ Otro serial</button><button type="button" data-tkx="abc">${TEC.abc?"123":"ABC"}</button><button type="button" class="ok" data-tkx="ok">Listo</button></div>`;
+}
+function tecEnviar(){ const t=TEC.t; if(t) t.dispatchEvent(new Event("input",{bubbles:true})); }
+function tecMostrar(ta){
+  if(!TEC.el){ TEC.el=document.createElement("div"); TEC.el.id="teclado"; document.body.appendChild(TEC.el);
+    TEC.el.addEventListener("pointerdown",ev=>{ ev.preventDefault(); const b=ev.target.closest("button"); if(!b||!TEC.t) return;
+      const t=TEC.t, a=t.selectionStart==null?t.value.length:t.selectionStart, z=t.selectionEnd==null?a:t.selectionEnd;
+      if(b.dataset.tk!==undefined){ t.setRangeText(b.dataset.tk,a,z,"end"); tecEnviar(); return; }
+      const x=b.dataset.tkx;
+      if(x=="sp"){ t.setRangeText(" ",a,z,"end"); tecEnviar(); }
+      else if(x=="nl"){ const v=t.value; const sep=v&&!/\n$/.test(v.slice(0,a))?"\n":""; t.setRangeText(sep,a,z,"end"); tecEnviar(); }
+      else if(x=="del"){ let c=a; if(a===z&&a>0) c=a-1; t.setRangeText("",c,z,"end"); tecEnviar(); }
+      else if(x=="abc"){ TEC.abc=!TEC.abc; TEC.el.innerHTML=tecHTML(); }
+      else if(x=="ok"){ const g=t; tecOcultar(); g.blur(); }
+    });
+    TEC.el.addEventListener("click",ev=>ev.preventDefault());
+  }
+  TEC.t=ta; TEC.el.innerHTML=tecHTML(); TEC.el.hidden=false; document.body.classList.add("con-tec");
+  setTimeout(()=>{ try{ ta.scrollIntoView({block:"center",behavior:"smooth"}); }catch(e){} },60);
+}
+function tecOcultar(){ if(TEC.el) TEC.el.hidden=true; document.body.classList.remove("con-tec"); TEC.t=null; }
+document.addEventListener("focusin",ev=>{ const t=ev.target;
+  if(t.matches&&t.matches('textarea[data-nota$="|seriales"]')&&!t.readOnly){ tecMostrar(t); return; }
+  if(!(TEC.el&&TEC.el.contains(t))) tecOcultar(); });
+document.addEventListener("click",ev=>{ if(TEC.t&&!(TEC.el&&TEC.el.contains(ev.target))&&!(ev.target.matches&&ev.target.matches('textarea[data-nota$="|seriales"]'))){ const g=TEC.t; tecOcultar(); g.blur(); } });
 document.getElementById("btnSync").addEventListener("click",()=>sincronizar(true));
 /* Compartir = «sábana de montaje»: por video y momento, solo lo ya grabado (planos marcados, extras del equipo, seriales, notas, listo). */
 function sabanaMontaje(){
