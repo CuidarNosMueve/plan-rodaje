@@ -816,6 +816,8 @@ function selVideografo(v){
     <div class="vg2fila"><button class="bq${bl?" on":""}" data-bloqueo="${esc(v)}" aria-pressed="${bl}">${bl?"🔒 Bloqueado":"🔓 Abierto"}</button></div>`;
 }
 const bloqueado = v => !!(st.aj["bloqueo::"+v] && st.aj["bloqueo::"+v].v=="1");
+const desmOk = () => ajV("desmcr","0")=="1";   // Ajustes de Control: ¿puede el administrador desmarcar también los planos que marcaron los realizadores?
+const adminPuedeDesmarcar = mk => !!mk && (mk.q=="Control" || desmOk());
 const ajV = (id,def) => (st.aj[id] && st.aj[id].v!=null && st.aj[id].v!=="") ? st.aj[id].v : def;
 const segPlano = () => { const x=parseFloat(ajV("segplano","2")); return x>=1&&x<=5?x:2; };   // segundos de video por plano (lo cambia Control)
 const soloRes = () => ajV("sinres","1")!="0";                                              // ¿se ocultan los videos sin resaltar? (lo cambia Control)
@@ -1136,7 +1138,7 @@ function htmlMomento(m){
   const li=i=>{ const mk=marcaDe(i.k), ok=hecho(i.k);
     const quien = team && ok && mk ? `<span class="who">✓ ${mk.q=="Control"?"Grabado por administrador · ":""}${esc(hora(mk.ts))}</span>` : "";
     return `<li class="shot${ok?" checked":""}${i.fijo?" ya":""}">
-      <label><input type="checkbox" data-k="${esc(i.k)}" data-e="${esc(m.id)}" data-t="${esc(i.t)}" ${ok?"checked":""}${i.fijo||GENC[i.k]||(esControl()&&ok)||bl?" disabled":""}>
+      <label><input type="checkbox" data-k="${esc(i.k)}" data-e="${esc(m.id)}" data-t="${esc(i.t)}" ${ok?"checked":""}${i.fijo||GENC[i.k]||(esControl()&&ok&&!adminPuedeDesmarcar(mk))||bl?" disabled":""}>
       <span class="col"><span class="txt">${esc(i.t)}${i.ed?'<span class="tag gu" title="En negrilla en la hoja: sale de la edición">Edición</span>':""}${i.gu?'<span class="tag gu" title="Viene de «Plano del guion»">Guion</span>':""}${GENC[i.k]?'<span class="tag gu" title="Lo cubrió una toma de un plano genérico">Genérico</span>':""}${st.nuevos[i.k]?'<span class="tag new">Nuevo</span>':""}</span>${/^\s*apertura\b/i.test(i.t)?'<span class="apert"><b>🎬 Plano de apertura</b> Debe ser un plano pensado para que entre graficación sobre él.</span>':""}${quien}</span></label>
       ${i.mine&&!bl?`<button class="del" data-del="${esc(m.id)}" data-cid="${esc(i.cid)}" aria-label="Borrar plano">×</button>`:""}
     </li>`; };
@@ -1292,6 +1294,7 @@ function htmlControl(){
   const nBl=vids.filter(bloqueado).length;
   h+=`<button class="modo" data-ctlaj="1" aria-expanded="${!!st.ctlAj}" style="margin:6px 0 10px">⚙ Ajustes ${st.ctlAj?"▲":"▼"}</button>`;
   if(st.ctlAj) h+=`<div class="ccard ajustes">
+    <button class="sw" data-aj="desmcr" aria-pressed="${desmOk()}"><span>Poder desmarcar planos de los realizadores<small>Apagado: Control solo puede desmarcar lo que marcó él («Grabado por administrador»). Encendido: también los que marcó el equipo.</small></span><i></i></button>
     <button class="sw" data-aj="edicion" aria-pressed="${edicion()}"><span>Fase de edición<small>Los planos de «Ya hay» salen en negrilla en todos los teléfonos del equipo</small></span><i></i></button>
     ${HAY?`<button class="sw" data-aj="sinres" aria-pressed="${soloRes()}"><span>Solo videos resaltados<small>Los videos sin color en el Sheet se ocultan en los teléfonos (cada quien puede usar «Ver todos los videos»)</small></span><i></i></button>`:""}
     <div class="stepper"><span>Segundos por plano<small>Planos necesarios por momento = duración ÷ este número. Cambia el total de todos.</small></span><span class="stp"><button data-seg="-0.5" aria-label="Menos">−</button><b>${String(segPlano()).replace(".",",")} s</b><button data-seg="0.5" aria-label="Más">+</button></span></div>
@@ -1347,7 +1350,7 @@ document.addEventListener("click",ev=>{
   if(t.dataset.ctlver){ st.ctlVer=!st.ctlVer; guardar(); render(); return; }
   if(t.dataset.edv){ const v=t.dataset.edv, n=t.dataset.edn, a=egs(v), i=a.indexOf(n); if(i<0) a.push(n); else a.splice(i,1); ajustar([["editor::"+v,a.join("|")]]); return; }
   if(t.dataset.asv){ const v=t.dataset.asv, n=t.dataset.asn, a=vgs(v), i=a.indexOf(n); if(i<0) a.push(n); else a.splice(i,1); asignar(v,a.join("|")); return; }
-  if(t.dataset.aj){ const k=t.dataset.aj; ajustar([[k, k=="edicion" ? (edicion()?"0":"1") : k=="sinres" ? (soloRes()?"0":"1") : "1"]]); return; }
+  if(t.dataset.aj){ const k=t.dataset.aj; ajustar([[k, k=="edicion" ? (edicion()?"0":"1") : k=="sinres" ? (soloRes()?"0":"1") : k=="desmcr" ? (desmOk()?"0":"1") : "1"]]); return; }
   if(t.dataset.seg){ const n=Math.min(5,Math.max(1,segPlano()+parseFloat(t.dataset.seg))); ajustar([["segplano",String(n)]]); toast("Ahora se pide 1 plano cada "+String(n).replace(".",",")+" s"); return; }
   if(t.dataset.bloqres!==undefined){ const vs=[...new Set(data.momentos.map(m=>m.video))].filter(v=>!RES[v]), val=t.dataset.bloqres;
     if(!vs.length){ toast("No hay videos sin resaltar"); return; }
@@ -1393,7 +1396,7 @@ document.addEventListener("change",ev=>{
     festejar=true; registrar("marcar","gen::"+el.dataset.gnew+"::"+uid(),c.m.id,c.i.k); return; }
   if(el.dataset&&el.dataset.gtk){ const m=st.marcas[el.dataset.gtk], p=m&&PK[m.t]; registrar("desmarcar",el.dataset.gtk,p?p.m.id:"",m?m.t:""); return; }
   const k=el.dataset&&el.dataset.k; if(!k) return;
-  if(esControl() && !el.checked){ render(); return; }   // el administrador solo puede marcar, no desmarcar
+  if(esControl() && !el.checked && !adminPuedeDesmarcar(st.marcas[k])){ render(); toast("Solo puedes desmarcar lo que marcaste tú (o activa la opción en Ajustes)"); return; }   // el administrador solo desmarca lo suyo, salvo que lo active en Ajustes
   festejar=el.checked; registrar(el.checked?"marcar":"desmarcar", k, el.dataset.e, el.dataset.t);
 });
 document.addEventListener("submit",ev=>{
