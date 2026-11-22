@@ -566,7 +566,7 @@ html[data-skin="aurora"] .logro .lg{background:linear-gradient(135deg,rgba(106,7
 <input class="search" id="buscar" type="search" placeholder="Buscar video, voz en off o plano…" autocomplete="off">
 <main id="app"></main>
 <div class="toast" id="toast"></div>
-<button id="rec" type="button" aria-label="Grabar plano con la cámara" title="Grabar plano"><i></i></button><input id="recin" type="file" accept="video/*" capture="environment" hidden>
+<button id="rec" type="button" aria-label="Grabar plano con la cámara" title="Grabar plano"><i></i></button><input id="recin" type="file" accept="video/*,image/*" multiple hidden>
 <div id="modal"></div>
 <div id="skinpop" class="skinpop" hidden role="dialog" aria-label="Estilo">
   <div class="sk-row">
@@ -1328,14 +1328,28 @@ document.addEventListener("submit",ev=>{
   const nf=document.querySelector(`[data-add="${CSS.escape(id)}"] input`); nf&&nf.focus();
 });
 /* Grabar plano con la cámara: al terminar, el plano se marca en el momento que estás viendo; si no estás dentro de un video, pregunta cuál. */
-function marcarCam(m){
+/* Serial del archivo: «IMG_1234.MOV» → «1234» (solo los números). */
+const serialDe = f => { const n=String((f&&f.name)||"").replace(/\.[^.]*$/,""); const m=n.match(/(?:IMG|MVI|VID|DSC|DJI|GOPR|GX|C)[_ -]?(\d{3,})/i)||n.match(/(\d{3,})(?!.*\d)/); return m?m[1]:""; };
+function anotarSeriales(m,sers){
+  sers=sers.filter(Boolean); if(!sers.length) return;
+  const prev=notaDe(m.id,"seriales"), ya=prev.split(/[\s,;]+/).filter(Boolean), nuevos=sers.filter(x=>!ya.includes(x));
+  if(!nuevos.length) return;
+  guardarNota(m.id,"seriales",(prev.trim()?prev.trim()+"\n":"")+nuevos.join("\n"));
+}
+function marcarArchivos(m,files){
+  if(!puedeEditar(m.video)){ sinPermiso(m.video); return; }
+  const sers=files.map(serialDe); files.forEach(()=>marcarCam(m,true)); anotarSeriales(m,sers); render();
+  const ok=sers.filter(Boolean);
+  toast(`🎥 ${files.length} plano${files.length==1?"":"s"} · Video ${m.video} · momento ${m.momento}`+(ok.length?` · serial ${ok.join(", ")}`:" · sin serial en el nombre del archivo"),4500);
+}
+function marcarCam(m,silencio){
   if(!puedeEditar(m.video)){ sinPermiso(m.video); return; }
   const it=planosDe(m).find(i=>!i.fijo&&!i.mine&&!hecho(i.k)), loc="Video "+m.video+" · momento "+m.momento;
   festejar=true;
-  if(it){ registrar("marcar",it.k,m.id,it.t); toast("🎥 Plano marcado · "+loc+": «"+cortar(it.t,40)+"»",4000); }
-  else { const cid=uid(), t="Plano grabado con la cámara"; registrar("agregar",cid,m.id,t); registrar("marcar",m.id+"::mio::"+cid,m.id,t); toast("🎥 Plano extra agregado y marcado · "+loc,4000); }
+  if(it){ registrar("marcar",it.k,m.id,it.t); if(!silencio) toast("🎥 Plano marcado · "+loc+": «"+cortar(it.t,40)+"»",4000); }
+  else { const cid=uid(), t="Plano grabado con la cámara"; registrar("agregar",cid,m.id,t); registrar("marcar",m.id+"::mio::"+cid,m.id,t); if(!silencio) toast("🎥 Plano extra agregado y marcado · "+loc,4000); }
 }
-function elegirMomentoCam(){
+function elegirMomentoCam(files){
   const vids=[...new Set(data.momentos.map(m=>m.video))], pk=document.createElement("div"); pk.id="recpick";
   const optM=v=>data.momentos.filter(m=>m.video==v).map(m=>`<option value="${esc(m.id)}">Momento ${esc(m.momento)} · ${esc(cortar(m.voz||"",45))}</option>`).join("");
   pk.innerHTML=`<div class="sheet" role="dialog" aria-modal="true"><h2>🎥 ¿De qué video y momento es?</h2><p>No estás dentro de un video. Elige dónde marcar el plano que acabas de grabar.</p><select id="recv">${vids.map(v=>`<option value="${esc(v)}">${esc(v)} · ${esc((data.momentos.find(m=>m.video==v)||{}).nombre||"")}</option>`).join("")}</select><select id="recm">${optM(vids[0])}</select><div class="fila2"><button id="recno">Cancelar</button><button class="ok" id="recok">Marcar plano</button></div></div>`;
@@ -1343,14 +1357,14 @@ function elegirMomentoCam(){
   const sv=pk.querySelector("#recv"), sm=pk.querySelector("#recm");
   sv.onchange=()=>{ sm.innerHTML=optM(sv.value); };
   pk.querySelector("#recno").onclick=()=>pk.remove();
-  pk.querySelector("#recok").onclick=()=>{ const m=momento(sm.value); pk.remove(); if(m) marcarCam(m); };
+  pk.querySelector("#recok").onclick=()=>{ const m=momento(sm.value); pk.remove(); if(m) marcarArchivos(m,files); };
 }
 document.getElementById("rec").addEventListener("click",()=>document.getElementById("recin").click());
 document.getElementById("recin").addEventListener("change",ev=>{
-  const f=ev.target.files&&ev.target.files[0]; ev.target.value=""; if(!f) return;
+  const files=[...(ev.target.files||[])]; ev.target.value=""; if(!files.length) return;
   const ms=MOMS(), dentro=st.vista=="plan" && st.modo=="uno" && ms.length;
-  if(dentro){ const m=ms[momActual()]; if(m){ marcarCam(m); return; } }
-  elegirMomentoCam();
+  if(dentro){ const m=ms[momActual()]; if(m){ marcarArchivos(m,files); return; } }
+  elegirMomentoCam(files);
 });
 document.getElementById("buscar").addEventListener("input",render);
 /* Seriales y comentarios: se guardan solos (0,7 s después de escribir y al salir del cuadro), sin repintar la pantalla. */
