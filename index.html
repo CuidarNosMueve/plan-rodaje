@@ -755,6 +755,8 @@ const egs = v => String((st.aj["editor::"+v]&&st.aj["editor::"+v].v)||"").split(
 const listaNombres = (a,corto_) => { const n=a.map(x=>corto_?corto(x):x); return n.length<2?(n[0]||""):n.slice(0,-1).join(", ")+" y "+n[n.length-1]; };
 
 const bloqueado = v => !!(st.aj["bloqueo::"+v] && st.aj["bloqueo::"+v].v=="1");
+const desmOk = () => ajV("desmcr","0")=="1";   // Ajustes de Control: ¿puede el administrador desmarcar también los planos que marcaron los realizadores?
+const adminPuedeDesmarcar = mk => !!mk && (mk.q=="Control" || desmOk());
 const ajV = (id,def) => (st.aj[id] && st.aj[id].v!=null && st.aj[id].v!=="") ? st.aj[id].v : def;
 const segPlano = () => { const x=parseFloat(ajV("segplano","2")); return x>=1&&x<=5?x:2; };   // segundos de video por plano (lo cambia Control)
 const soloRes = () => ajV("sinres","1")!="0";                                              // ¿se ocultan los videos sin resaltar? (lo cambia Control)
@@ -968,6 +970,7 @@ function autoalto(el){ el.style.height="auto"; el.style.height=Math.max(44,el.sc
 let ultVideoMio=null, llegando=false;
 function render(){
   calcNuevos(); calcRes(); calcGen();
+  
   const team=!!urlSync(), vistaEq=team && !!st.persona && st.vista=="equipo", vistaGen=team && st.vista=="genericos";
   
   document.body.classList.toggle("team",team); document.body.classList.toggle("edicion",edicion());
@@ -1072,6 +1075,8 @@ function abrirPremisa(v){
   el.innerHTML=`<div class="pm-card" role="dialog" aria-label="Premisa del video"><h3>📌 Premisa · ${esc(v)} · ${esc(m.nombre)}</h3>${t?`<p>${esc(t).replace(/\n/g,"<br>")}</p>`:`<p class="vacio">Este video todavía no tiene premisa.</p>`}<button id="cerrarPremisa">Cerrar</button></div>`;
   document.body.appendChild(el);
 }
+/* Momento con plano de apertura: el primer plano propuesto pide un timelapse (o empieza con «Apertura»). El letrero sale arriba de los planos del momento. */
+const esApertura = (m,prop) => { const p=(prop||[]).find(x=>!x.fijo&&!x.gu); return !!p && (/\btimelapse\b/i.test(p.t) || /^\s*apertura\b/i.test(p.t)); };
 function htmlMomento(m){
   const todos=planosDe(m), items=todos.filter(i=>!i.oculto), prop=items.filter(i=>!i.fijo), ya=items.filter(i=>i.fijo), n=todos.filter(i=>hecho(i.k)).length;
   const listo=hecho(listoK(m.id)), team=!!urlSync(), hayNuevo=items.some(i=>st.nuevos[i.k]), d=durDe(m), pp=porPlano(m,d), lm=st.marcas[listoK(m.id)];
@@ -1080,8 +1085,8 @@ function htmlMomento(m){
   const li=i=>{ const mk=marcaDe(i.k), ok=hecho(i.k);
     const quien = team && ok && mk ? `<span class="who">✓ ${mk.q=="Control"?"Grabado por administrador · ":""}${esc(hora(mk.ts))}</span>` : "";
     return `<li class="shot${ok?" checked":""}${i.fijo?" ya":""}">
-      <label><input type="checkbox" data-k="${esc(i.k)}" data-e="${esc(m.id)}" data-t="${esc(i.t)}" ${ok?"checked":""}${i.fijo||GENC[i.k]||(esControl()&&ok)||bl?" disabled":""}>
-      <span class="col"><span class="txt">${esc(i.t)}${i.ed?'<span class="tag gu" title="En negrilla en la hoja: sale de la edición">Edición</span>':""}${i.gu?'<span class="tag gu" title="Viene de «Plano del guion»">Guion</span>':""}${GENC[i.k]?'<span class="tag gu" title="Lo cubrió una toma de un plano genérico">Genérico</span>':""}${st.nuevos[i.k]?'<span class="tag new">Nuevo</span>':""}</span>${/^\s*apertura\b/i.test(i.t)?'<span class="apert"><b>🎬 Plano de apertura</b> Debe ser un plano pensado para que entre graficación sobre él.</span>':""}${quien}</span></label>
+      <label><input type="checkbox" data-k="${esc(i.k)}" data-e="${esc(m.id)}" data-t="${esc(i.t)}" ${ok?"checked":""}${i.fijo||GENC[i.k]||(esControl()&&ok&&!adminPuedeDesmarcar(mk))||bl?" disabled":""}>
+      <span class="col"><span class="txt">${esc(i.t)}${i.ed?'<span class="tag gu" title="En negrilla en la hoja: sale de la edición">Edición</span>':""}${i.gu?'<span class="tag gu" title="Viene de «Plano del guion»">Guion</span>':""}${GENC[i.k]?'<span class="tag gu" title="Lo cubrió una toma de un plano genérico">Genérico</span>':""}${st.nuevos[i.k]?'<span class="tag new">Nuevo</span>':""}</span>${quien}</span></label>
       ${i.mine&&!bl?`<button class="del" data-del="${esc(m.id)}" data-cid="${esc(i.cid)}" aria-label="Borrar plano">×</button>`:""}
     </li>`; };
   return `<article class="mom${listo?" done":""}${cubierto?" cubierto":""}${dueno(m.video)}" data-id="${esc(m.id)}">
@@ -1091,6 +1096,7 @@ function htmlMomento(m){
     ${m.voz?`<p class="voz">${esc(m.voz)}</p>`:""}
     <button class="prem" data-premisa="${esc(m.video)}">📌 Premisa del video</button>
     ${items.length?"":`<p class="info">Sin planos propuestos todavía.</p>`}
+    ${esApertura(m,prop)?`<span class="apert"><b>🎬 Plano de apertura</b> Debe ser un plano pensado para que entre graficación sobre él.</span>`:""}
     <ul class="shots">${prop.filter(i=>!(st.ocultar && hecho(i.k))).map(li).join("")}</ul>
     ${ya.length?`<button class="yabtn" data-ya="${esc(m.id)}" aria-expanded="${yaAb}">✓ Ya grabados (${ya.length}) ${yaAb?"▾":"▸"}</button>${yaAb?`<ul class="shots">${ya.map(li).join("")}</ul>`:""}`:""}
     ${agregando?`<form class="add" data-add="${esc(m.id)}"><input name="t" maxlength="300" placeholder="Describe el plano…" enterkeyhint="done" autocomplete="off"><button>Agregar</button></form>`:""}
@@ -1286,7 +1292,7 @@ document.addEventListener("change",ev=>{
     festejar=true; registrar("marcar","gen::"+el.dataset.gnew+"::"+uid(),c.m.id,c.i.k); return; }
   if(el.dataset&&el.dataset.gtk){ const m=st.marcas[el.dataset.gtk], p=m&&PK[m.t]; registrar("desmarcar",el.dataset.gtk,p?p.m.id:"",m?m.t:""); return; }
   const k=el.dataset&&el.dataset.k; if(!k) return;
-  if(esControl() && !el.checked){ render(); return; }   // el administrador solo puede marcar, no desmarcar
+  if(esControl() && !el.checked && !adminPuedeDesmarcar(st.marcas[k])){ render(); toast("Solo puedes desmarcar lo que marcaste tú (o activa la opción en Ajustes)"); return; }   // el administrador solo desmarca lo suyo, salvo que lo active en Ajustes
   festejar=el.checked; registrar(el.checked?"marcar":"desmarcar", k, el.dataset.e, el.dataset.t);
 });
 document.addEventListener("submit",ev=>{
