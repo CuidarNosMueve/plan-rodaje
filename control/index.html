@@ -721,7 +721,9 @@ function todasLlaves(d){ const k=[]; d.momentos.forEach(m=>{ const gu=new Set(m.
 /* Videos borrados del plan de rodaje («finalizado::<video>» = 1): se ocultan en todo el equipo y la Sheet recibe una X en «Grabaciones finalizadas».
    Si el video vuelve a venir en la lista de la Sheet (le quitaron la X) y el evento ya está sincronizado, se «libera» (st.finv) y reaparece. */
 const finalizado = v => { const a=st.aj["finalizado::"+v]; return !!a && a.v=="1" && !((st.finv||{})[v]>=a.ts); };
-const momV = () => data.momentos.filter(m=>!finalizado(m.video));
+/* Videos ocultos («oculto::<video>» = 1, lo pone Control): no salen en la app del equipo; Control los ve con «Mostrar todos los videos». */
+const ocultoV = v => { const a=st.aj["oculto::"+v]; return !!a && a.v=="1"; };
+const momV = () => data.momentos.filter(m=>!finalizado(m.video) && (!ocultoV(m.video) || (esControl() && !!st.ctlTodos)));
 const momento = id => momV().find(m=>m.id==id);
 
 /* ===== Buscar actualización ===== */
@@ -1402,19 +1404,21 @@ function htmlControl(){
     ${HAY?`<div class="sub" style="margin-top:8px">${vids.filter(v=>!RES[v]).length} videos sin resaltar</div><div class="fila2"><button data-ocres="1">🙈 Ocultar sin resaltar</button><button data-ocres="0">👁 Mostrar sin resaltar</button></div><div class="fila2" style="margin-top:6px"><button data-bloqres="1">🔒 Bloquear sin resaltar</button><button data-bloqres="0">🔓 Desbloquear sin resaltar</button></div>`:""}
     ${(()=>{ const n=porAsignarSheet().length; return vids.some(v=>respDe(v)||edDe(v))?`<div class="sub" style="margin-top:8px">Los responsables de las columnas «Responsable Grabación» y «Responsable Edición» del Sheet se aplican solos${n?" · aplicando "+n+"…":""}.</div>`:""; })()}</div>`;
   h+=`<div class="linea">Videógrafo por persona</div>`;
-  equipo().forEach(n=>{ const mis=porV.filter(x=>x.vg.includes(n)), pT=mis.reduce((a,x)=>a+x.c.pT,0), pH=mis.reduce((a,x)=>a+x.c.pH,0);
+  equipo().forEach(n=>{ const mis=porV.filter(x=>x.vg.includes(n)&&!ocultoV(x.v)), pT=mis.reduce((a,x)=>a+x.c.pT,0), pH=mis.reduce((a,x)=>a+x.c.pH,0);
     h+=`<div class="ccard"><div class="fila"><strong>${activoAhora(n)?"🟢 ":""}${esc(n)}</strong><span class="n">${mis.length} video${mis.length==1?"":"s"} · ${pH}/${pT} planos</span></div><div class="sub">📹 Grabó ${pl(nQ[n]||0)} nuevo${(nQ[n]||0)==1?"":"s"}</div>${pT?`<div class="bar"><i style="width:${Math.round(pH/pT*100)}%"></i></div>`:""}${mis.length?mis.map(x=>{ const g=x.c.pH; return `<div class="fila pv"><span>${esc(x.v)}</span><i class="mb"><i style="width:${x.c.pT?Math.min(100,Math.round(g/x.c.pT*100)):0}%"></i></i><span class="n"><b>${g}</b> de ${x.c.pT}</span></div>`; }).join(""):`<div class="sub">Sin videos asignados</div>`}</div>`; });
   h+=`<div class="linea">Edición por persona</div>`;
-  equipo().forEach(n=>{ const mis=[...new Set(momV().map(m=>m.video))].filter(v=>egs(v).includes(n)); h+=`<div class="ccard"><div class="fila"><strong>${esc(n)}</strong><span class="n">${mis.length} video${mis.length==1?"":"s"} para editar</span></div>${mis.length?mis.map(v=>{ const x=porV.find(y=>y.v==v), g=x?x.c.pH:0, t=x?x.c.pT:0; return `<div class="fila pv"><span>${esc(v)}</span><i class="mb"><i style="width:${t?Math.min(100,Math.round(g/t*100)):0}%"></i></i><span class="n"><b>${g}</b> de ${t}</span></div>`; }).join(""):`<div class="sub">Sin videos de edición</div>`}</div>`; });
+  equipo().forEach(n=>{ const mis=[...new Set(momV().map(m=>m.video))].filter(v=>egs(v).includes(n)&&!ocultoV(v)); h+=`<div class="ccard"><div class="fila"><strong>${esc(n)}</strong><span class="n">${mis.length} video${mis.length==1?"":"s"} para editar</span></div>${mis.length?mis.map(v=>{ const x=porV.find(y=>y.v==v), g=x?x.c.pH:0, t=x?x.c.pT:0; return `<div class="fila pv"><span>${esc(v)}</span><i class="mb"><i style="width:${t?Math.min(100,Math.round(g/t*100)):0}%"></i></i><span class="n"><b>${g}</b> de ${t}</span></div>`; }).join(""):`<div class="sub">Sin videos de edición</div>`}</div>`; });
   h+=`<div class="linea">Videos${sin?` · ${sin} sin videógrafo`:""}</div>`;
   const oculN=HAY&&!st.ctlVer?porV.filter(x=>!RES[x.v]).length:0;
+  { const ocN=[...new Set(data.momentos.filter(m=>!finalizado(m.video)&&ocultoV(m.video)).map(m=>m.video))].length;
+    if(ocN||st.ctlTodos) h+=`<button class="modo" data-ctltodos="1" style="margin:0 0 8px">${st.ctlTodos?"🙈 Volver a ocultar los "+ocN+" videos ocultos":"👁 Mostrar todos los videos ("+ocN+" oculto"+(ocN==1?"":"s")+" al equipo)"}</button>`; }
   if(HAY) h+=`<button class="modo" data-ctlver="1" style="margin:0 0 8px">${st.ctlVer?"🙈 Ocultar los "+porV.filter(x=>!RES[x.v]).length+" videos sin resaltar":"👁 Ver los "+oculN+" videos sin resaltar (ocultos)"}</button>`;
   porV.filter(x=>!HAY||st.ctlVer||RES[x.v]).forEach(x=>{ const ok=x.c.mT>0&&x.c.mH==x.c.mT, pc=x.c.pT?Math.round(x.c.pH/x.c.pT*100):0;
     h+=`<div class="ccard${ok?" ok":!x.vg.length?" sin":""}"><div class="fila"><strong>${RES[x.v]?`<i class="rdot" style="background:${RES[x.v]}" title="Resaltado en el Sheet"></i>`:""}${esc(x.v)} · ${esc(x.nombre)}</strong><span class="n">${x.c.mH}/${x.c.mT} mom.${ok?" ✓":""}</span></div>
       <div class="fila" style="margin-top:6px"><strong style="font-size:17px">${x.c.pH} de ${x.c.pT} planos</strong><span class="n">${nV[x.v]||0} nuevo${(nV[x.v]||0)==1?"":"s"} + ${x.yh} «Ya hay»${(nV[x.v]||0)+x.yh>x.c.pH?" · "+((nV[x.v]||0)+x.yh-x.c.pH)+" de más sin contar":""}</span></div>
       <div class="bar"><i style="width:${pc}%"></i></div>
-      <div class="sub">${HAY&&!RES[x.v]?"sin resaltar · ":""}${respDe(x.v)?"Sheet grabación: "+esc(respDe(x.v))+" · ":""}${edDe(x.v)?"Sheet edición: "+esc(edDe(x.v))+" · ":""}${x.c.pH}/${x.c.pT} planos${nV[x.v]?" · "+pl(nV[x.v])+" nuevo"+(nV[x.v]==1?"":"s"):""}${x.ult?" · último "+esc(hace(x.ult)):""}${x.ser?` · ${x.ser} con seriales`:""}${x.com?` · ${x.com} con comentarios`:""}</div>
-      ${selVideografo(x.v)}<button class="modo" data-irvideo="${esc(x.v)}" style="margin:6px 0 0">Ver video</button></div>`; });
+      <div class="sub">${ocultoV(x.v)?"🙈 oculto al equipo · ":""}${HAY&&!RES[x.v]?"sin resaltar · ":""}${respDe(x.v)?"Sheet grabación: "+esc(respDe(x.v))+" · ":""}${edDe(x.v)?"Sheet edición: "+esc(edDe(x.v))+" · ":""}${x.c.pH}/${x.c.pT} planos${nV[x.v]?" · "+pl(nV[x.v])+" nuevo"+(nV[x.v]==1?"":"s"):""}${x.ult?" · último "+esc(hace(x.ult)):""}${x.ser?` · ${x.ser} con seriales`:""}${x.com?` · ${x.com} con comentarios`:""}</div>
+      ${selVideografo(x.v)}<button class="modo" data-irvideo="${esc(x.v)}" style="margin:6px 0 0">Ver video</button><button class="modo" data-ocv="${esc(x.v)}" style="margin:6px 0 0">${ocultoV(x.v)?"👁 Mostrar al equipo":"🙈 Ocultar al equipo"}</button></div>`; });
   return h+footHTML(false);
 }
 let modalPrev="";
@@ -1426,7 +1430,7 @@ let autoIntentado=false;
 function intentoAuto(){ if(autoIntentado || st.avisosNo || estadoAvisos()!="pendiente") return; autoIntentado=true; activarAvisos(); }
 document.addEventListener("click",ev=>{
   if(!ev.target.closest("[data-avisos],[data-avisosno],[data-avisosok],#modal")) intentoAuto();
-  const t=ev.target.closest("[data-finvideo],[data-vgen],[data-nuevou],[data-ctlver],[data-ctlaj],[data-ocres],[data-edv],[data-asv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-vertodos],[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,[data-aj],[data-bloqueo],[data-bloqtodos],#cerrarAviso,#reset,#toggleOcultar,#tsonido,#tcam,[data-avisosok]"); if(!t) return;
+  const t=ev.target.closest("[data-finvideo],[data-vgen],[data-nuevou],[data-ctlver],[data-ctltodos],[data-ocv],[data-ctlaj],[data-ocres],[data-edv],[data-asv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-vertodos],[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,[data-aj],[data-bloqueo],[data-bloqtodos],#cerrarAviso,#reset,#toggleOcultar,#tsonido,#tcam,[data-avisosok]"); if(!t) return;
   if(t.dataset.toggle){ const id=t.dataset.toggle; st.abiertas[id]=!st.abiertas[id]; if(st.abiertas[id]) st.videoActual=id; guardar(); pintarAvance();
     t.parentElement.classList.toggle("open",st.abiertas[id]); t.setAttribute("aria-expanded",st.abiertas[id]); return; }
   if(t.id=='avance'){ st.avanceTotal=!st.avanceTotal; guardar(); render(); return; }
@@ -1447,8 +1451,13 @@ document.addEventListener("click",ev=>{
   if(t.dataset.ctlaj){ st.ctlAj=!st.ctlAj; guardar(); render(); return; }
   if(t.dataset.ocres){ const v=t.dataset.ocres; ajustar([["sinres",v]]); toast(v=="1"?"Los videos sin resaltar se ocultan en los teléfonos":"Los videos sin resaltar se muestran otra vez"); return; }
   if(t.dataset.ctlver){ st.ctlVer=!st.ctlVer; guardar(); render(); return; }
+  if(t.dataset.ctltodos){ st.ctlTodos=!st.ctlTodos; guardar(); render(); return; }
+  if(t.dataset.ocv){ const v=t.dataset.ocv, o=ocultoV(v); ajustar([["oculto::"+v,o?"0":"1"]]); toast(o?"El video "+v+" se muestra otra vez al equipo":"El video "+v+" se oculta al equipo (en Control sigue con «Mostrar todos los videos»)"); return; }
   if(t.dataset.edv){ const v=t.dataset.edv, n=t.dataset.edn, a=egs(v), i=a.indexOf(n); if(i<0) a.push(n); else a.splice(i,1); ajustar([["editor::"+v,a.join("|")]]); return; }
-  if(t.dataset.asv){ const v=t.dataset.asv, n=t.dataset.asn, a=vgs(v), i=a.indexOf(n); if(i<0) a.push(n); else a.splice(i,1); asignar(v,a.join("|")); return; }
+  if(t.dataset.asv){ const v=t.dataset.asv, n=t.dataset.asn, a=vgs(v), i=a.indexOf(n); if(i<0) a.push(n); else a.splice(i,1); asignar(v,a.join("|"));
+    if(!a.length && !ocultoV(v) && confirm("El video "+v+" quedó sin videógrafo.\n\n¿Quieres ocultarlo en Control y en la app de los realizadores?\n\nEn Control puedes verlo cuando quieras con «Mostrar todos los videos».")) ajustar([["oculto::"+v,"1"]]);
+    else if(a.length && ocultoV(v)) ajustar([["oculto::"+v,"0"]]);
+    return; }
   if(t.dataset.aj){ const k=t.dataset.aj; ajustar([[k, k=="edicion" ? (edicion()?"0":"1") : k=="sinres" ? (soloRes()?"0":"1") : k=="desmcr" ? (desmOk()?"0":"1") : "1"]]); return; }
   if(t.dataset.seg){ const n=Math.min(5,Math.max(1,segPlano()+parseFloat(t.dataset.seg))); ajustar([["segplano",String(n)]]); toast("Ahora se pide 1 plano cada "+String(n).replace(".",",")+" s"); return; }
   if(t.dataset.bloqres!==undefined){ const vs=[...new Set(momV().map(m=>m.video))].filter(v=>!RES[v]), val=t.dataset.bloqres;
