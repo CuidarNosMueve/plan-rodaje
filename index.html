@@ -156,6 +156,15 @@ html[data-skin="aurora"] .mom.cubierto .mn{background:linear-gradient(90deg,#6a4
 .yabtn{display:block;margin:2px 0 0;border:0;background:none;padding:8px 2px;font-size:14px;font-weight:700;color:var(--ok);cursor:pointer}
 .mom textarea{margin-top:8px;min-height:44px;resize:none;overflow:hidden}
 .listo{margin-top:12px}
+.navfijo .navb:disabled{visibility:hidden}
+html{touch-action:pan-y pinch-zoom}
+.intro{margin-top:10px;padding:16px 16px 14px;border:2px solid var(--accent);border-radius:18px;background:var(--card)}
+.intro .ik{margin:0 0 4px;font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.7}
+.intro .itit{margin:0 0 10px;font-size:22px;line-height:1.2}.intro .inum{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--accent);color:var(--on-accent,#fff);font-size:15px;vertical-align:middle;margin-right:4px}
+.intro .ilista{margin:0 0 12px;padding-left:20px;font-size:16.5px;line-height:1.5}.intro .ilista li{margin:0 0 8px}
+.intro .isonido{display:flex;flex-direction:column;gap:3px;margin:12px 0 8px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--accent) 13%,transparent);font-size:14.5px;line-height:1.4}
+.intro .imeta{margin:6px 0 0;font-size:13px;opacity:.65}
+.sonido{margin:6px 0 4px;font-size:12.5px;line-height:1.35;opacity:.7}
 .finbtn{display:block;width:100%;margin-top:10px;min-height:44px;border:1.5px solid #c0392b;background:transparent;color:#c0392b;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer}
 .finov{position:fixed;inset:0;z-index:97;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;padding:16px}
 .finsheet{width:100%;max-width:520px;background:var(--card,#fff);color:var(--ink);border-radius:18px;padding:18px 16px calc(16px + env(safe-area-inset-bottom))}
@@ -723,8 +732,8 @@ function aplicar(nueva, manual){
   { const ok=new Set(todasLlaves(nueva)); let hubo=false; Object.keys(st.nuevos).forEach(x=>{ if(!ok.has(x)){ delete st.nuevos[x]; hubo=true; } }); if(hubo){ guardar(); render(); } }   // quita «Nuevo» de planos que ya no cuentan (p. ej. los del guion)
   const sig=firma(nueva);
   if(sig===st.sig){
-    const ex=m=>(m.color||"")+"|"+(m.premisa||"")+"|"+(m.responsable||"")+"|"+(m.editor||""), col=new Map(nueva.momentos.map(m=>[m.id,m]));
-    if(data.momentos.some(m=>col.has(m.id) && ex(m)!==ex(col.get(m.id)))){ data={...data, momentos:data.momentos.map(m=>col.has(m.id)?{...m,color:col.get(m.id).color||"",premisa:col.get(m.id).premisa||"",responsable:col.get(m.id).responsable||"",editor:col.get(m.id).editor||""}:m)}; st.data=data; guardar(); render(); }
+    const ex=m=>(m.color||"")+"|"+(m.premisa||"")+"|"+(m.resumen||"")+"|"+(m.responsable||"")+"|"+(m.editor||""), col=new Map(nueva.momentos.map(m=>[m.id,m]));
+    if(data.momentos.some(m=>col.has(m.id) && ex(m)!==ex(col.get(m.id)))){ data={...data, momentos:data.momentos.map(m=>col.has(m.id)?{...m,color:col.get(m.id).color||"",premisa:col.get(m.id).premisa||"",resumen:col.get(m.id).resumen||"",responsable:col.get(m.id).responsable||"",editor:col.get(m.id).editor||""}:m)}; st.data=data; guardar(); render(); }
     if(manual) toast("Ya tienes la lista más reciente"); return; }
   const k=todasLlaves(nueva);
   if(st.keys){
@@ -847,7 +856,7 @@ function borrarVideo(v){
   let ts=Date.now(); const a=st.aj["finalizado::"+v]; if(a && a.ts>=ts) ts=a.ts+1;
   const ev={evid:uid(), ts, quien:esControl()?"Control":(st.persona||null), tipo:"ajuste", id:"finalizado::"+v, escena:v, texto:"1"};
   aplicarEv(ev); if(equipoActivo()) st.cola.push(ev);
-  const rest=MOMS(); if(!rest.some(m=>m.id==st.pos)){ st.pos=rest.length?rest[0].id:null; st.videoActual=rest.length?rest[0].video:null; }
+  const rest=MOMS(); if(!rest.some(m=>m.id==st.pos||introDe(m.video)==st.pos)){ st.pos=rest.length?introDe(rest[0].video):null; st.videoActual=rest.length?rest[0].video:null; }
   guardar(); render(); window.scrollTo(0,0); if(equipoActivo()) empujar();
   toast("🗑 Video "+v+" borrado del plan de rodaje");
 }
@@ -1039,7 +1048,7 @@ function render(){
     if(mio && vm!==ultVideoMio){ llegando=true; toast("⭐ Este video es tuyo"); }
     ultVideoMio = mio ? vm : null; }
   document.body.classList.toggle("uno",st.modo!="lista");
-  if(st.modo!="lista" && MOMS().length){ const mm=MOMS()[momActual()]; st.pos=mm.id; st.videoActual=mm.video; }
+  if(st.modo!="lista" && MOMS().length){ const mm=MOMS()[momActual()]; if(!(st.modo=="uno" && esIntro(st.pos) && MOMS().some(m=>m.video==st.pos.slice(7)))) st.pos=mm.id; st.videoActual=mm.video; }
   document.body.classList.toggle("vista-equipo",vistaEq||vistaGen);
   document.getElementById("ttxt").textContent = data.proyecto || "Plan de rodaje";
   { const yo=document.getElementById("yo"); yo.hidden=!(team&&st.persona); yo.textContent=corto(st.persona); yo.title=st.persona||""; }
@@ -1156,6 +1165,7 @@ function htmlMomento(m){
       <button class="mas"${bl?" hidden":""} data-addbtn="${esc(m.id)}" aria-pressed="${agregando}" aria-label="Agregar plano" title="Agregar plano">+</button></div>
     ${m.voz?`<p class="voz">${esc(m.voz)}</p>`:""}
     <button class="prem" data-premisa="${esc(m.video)}">📌 Premisa del video</button>
+    <p class="sonido">🔊 Cuida el sonido de cada plano: audio limpio, sin viento ni voces encima.</p>
     ${items.length?"":`<p class="info">Sin planos propuestos todavía.</p>`}
     ${esApertura(m,prop)?`<span class="apert"><b>🎬 Plano de apertura</b> Debe ser un plano pensado para que entre graficación sobre él.</span>`:""}
     <ul class="shots">${prop.filter(i=>!(st.ocultar && hecho(i.k))).map(li).join("")}</ul>
@@ -1194,7 +1204,24 @@ function banners(){
   }
   return h;
 }
-function momActual(){ const ms=MOMS(), i=ms.findIndex(m=>m.id==st.pos); return i<0?0:i; }
+/* Cada video empieza con una página de resumen visual («intro::<video>»): no tiene planos ni «Momento listo». */
+const esIntro = id => typeof id=="string" && id.startsWith("intro::");
+const introDe = v => "intro::"+v;
+function momActual(){ const ms=MOMS(); if(esIntro(st.pos)){ const v=st.pos.slice(7), j=ms.findIndex(m=>m.video==v); return j<0?0:j; } const i=ms.findIndex(m=>m.id==st.pos); return i<0?0:i; }
+function navSeq(){ const out=[]; let ult=null; MOMS().forEach(m=>{ if(m.video!==ult){ out.push({intro:true,id:introDe(m.video),video:m.video,nombre:m.nombre}); ult=m.video; } out.push(m); }); return out; }
+function navIdx(){ const s=navSeq(); let i=s.findIndex(x=>x.id==st.pos); if(i<0){ const m=MOMS()[0]; i=m?s.findIndex(x=>x.id==m.id):0; } return Math.max(0,i); }
+const resumenDe = v => { const m=momV().find(x=>x.video==v&&x.resumen); return m?m.resumen:""; };
+function htmlIntro(v){
+  const ms=momV().filter(x=>x.video==v), c=conteos(v), nom=(ms[0]||{}).nombre||"";
+  const lin=String(resumenDe(v)).split(/\n/).map(x=>x.replace(/^\s*[•*\-–]\s*/,"").trim()).filter(Boolean);
+  return `<article class="intro" data-intro="${esc(v)}">
+    <p class="ik">🎬 Resumen visual</p>
+    <h2 class="itit"><span class="inum">${esc(v)}</span> ${esc(nom)}</h2>
+    ${lin.length?`<ul class="ilista">${lin.map(l=>`<li>${esc(l)}</li>`).join("")}</ul>`:`<p class="info">Este video todavía no tiene resumen visual en la Sheet.</p>`}
+    <div class="isonido"><b>🔊 El sonido importa</b><span>Cada plano también se oye: graba con audio limpio, sin viento ni voces encima, y deja unos segundos de ambiente. Un buen plano con mal sonido se paga en edición.</span></div>
+    <p class="imeta">${ms.length} momento${ms.length==1?"":"s"} · ${c.pT} planos · desliza o toca «Siguiente» para empezar</p>
+  </article>`;
+}
 let desplegado=false;
 function htmlDespliegue(){
   const S=series(), ks=Object.keys(S), actual=(MOMS()[momActual()]||{video:""}).video, cur=String(actual).split("-")[0];
@@ -1205,10 +1232,11 @@ function htmlDespliegue(){
   return h+`</div>`;
 }
 function htmlUno(){
-  const ms=MOMS(), i=momActual(), m=ms[i], delVideo=ms.filter(x=>x.video==m.video), mi=delVideo.indexOf(m);
+  const seq=navSeq(), k=navIdx(), cur=seq[k], ms=MOMS(), v=cur.video, delVideo=ms.filter(x=>x.video==v);
   const b=(act,txt,off)=>`<button class="navb" data-nav="${act}"${off?" disabled":""}>${txt}</button>`;
-  const nav=`<div class="navfijo">${b("mom:-1","‹ Anterior",i==0)}<div class="navt"><b>Momento ${esc(m.momento)}</b><small>${mi+1} de ${delVideo.length} en este video</small></div>${b("mom:1","Siguiente ›",i==ms.length-1)}</div>`;
-  return banners()+`<button class="vtit${dueno(m.video)}" data-abrirvideos aria-expanded="${desplegado}">${esc(m.video)} · ${esc(m.nombre)} <span>${desplegado?"▴":"▾"}</span></button>`+selVideografo(m.video)+(desplegado?htmlDespliegue():"")+htmlMomento(m)+footHTML(true)+`<div class="espacio"></div>`+nav;
+  const centro=cur.intro?`<b>Resumen</b><small>${delVideo.length} momento${delVideo.length==1?"":"s"} en este video</small>`:`<b>Momento ${esc(cur.momento)}</b><small>${delVideo.indexOf(cur)+1} de ${delVideo.length} en este video</small>`;
+  const nav=`<div class="navfijo">${b("mom:-1","‹ Anterior",k==0)}<div class="navt">${centro}</div>${b("mom:1","Siguiente ›",k==seq.length-1)}</div>`;
+  return banners()+`<button class="vtit${dueno(v)}" data-abrirvideos aria-expanded="${desplegado}">${esc(v)} · ${esc(cur.nombre)} <span>${desplegado?"▴":"▾"}</span></button>`+selVideografo(v)+(desplegado?htmlDespliegue():"")+(cur.intro?htmlIntro(v):htmlMomento(cur))+footHTML(true)+`<div class="espacio"></div>`+nav;
 }
 const tipoN = k => ((data.tipos||{})[k]||{}).nombre||"";
 const tipoD = k => ((data.tipos||{})[k]||{}).desc||"";
@@ -1312,12 +1340,11 @@ document.addEventListener("click",ev=>{
   if(t.dataset.abrirvideos!==undefined){ desplegado=!desplegado; if(desplegado) st.serie=String((MOMS()[momActual()]||{video:""}).video).split("-")[0]; render(); return; }
   if(t.dataset.vgen){ st.vista="genericos"; desplegado=false; guardar(); render(); window.scrollTo(0,0); return; }
   if(t.dataset.serie!==undefined){ st.serie=t.dataset.serie||null; guardar(); render(); window.scrollTo(0,0); return; }
-  if(t.dataset.irvideo){ st.vista="plan"; if(MOMS().findIndex(x=>x.video==t.dataset.irvideo)<0) st.verTodos=true; const j=MOMS().findIndex(x=>x.video==t.dataset.irvideo); if(j>=0){ st.modo="uno"; st.pos=MOMS()[j].id; st.videoActual=MOMS()[j].video; guardar(); } desplegado=false; render(); window.scrollTo(0,0); return; }
+  if(t.dataset.irvideo){ st.vista="plan"; if(MOMS().findIndex(x=>x.video==t.dataset.irvideo)<0) st.verTodos=true; const j=MOMS().findIndex(x=>x.video==t.dataset.irvideo); if(j>=0){ st.modo="uno"; st.pos=introDe(MOMS()[j].video); st.videoActual=MOMS()[j].video; guardar(); } desplegado=false; render(); window.scrollTo(0,0); return; }
   if(t.dataset.ya){ const k="y:"+t.dataset.ya; st.abiertas[k]=!st.abiertas[k]; guardar(); render(); return; }
   if(t.dataset.modo){ st.modo=t.dataset.modo; guardar(); render(); window.scrollTo(0,0); return; }
-  if(t.dataset.nav){ const [k,d]=t.dataset.nav.split(":"), dd=+d, ms=MOMS(), i=momActual(); let j=i;
-    if(k=="mom") j=i+dd; else { const vids=[...new Set(ms.map(x=>x.video))], vi=vids.indexOf(ms[i].video)+dd; if(vi<0||vi>=vids.length) return; j=ms.findIndex(x=>x.video==vids[vi]); }
-    if(j<0||j>=ms.length) return; desplegado=false; st.pos=ms[j].id; st.videoActual=ms[j].video; guardar(); render(); window.scrollTo(0,0); return; }
+  if(t.dataset.nav){ const dd=+t.dataset.nav.split(":")[1], seq=navSeq(), j=navIdx()+dd;
+    if(j<0||j>=seq.length) return; desplegado=false; st.pos=seq[j].id; st.videoActual=seq[j].video; guardar(); render(); window.scrollTo(0,0); return; }
   if(t.dataset.avisos!==undefined){ activarAvisos(); return; }
   if(t.dataset.avisosok!==undefined){ st.avisosOk=true; guardar(); render(); return; }
   if(t.dataset.avisosno!==undefined){ st.avisosNo=true; guardar(); render(); return; }
@@ -1404,7 +1431,7 @@ function elegirMomentoCam(files){
 const ATAJO_URL="https://www.icloud.com/shortcuts/c06f4ec3e62742f89d83f98f4e76a900", ATAJO_NOM="Cámara Rodaje";
 let pendMom=null;   // momento al que van los clips que se importan después de grabar
 function hojaCam(html){ document.getElementById("recpick")?.remove(); const d=document.createElement("div"); d.id="recpick"; d.innerHTML=`<div class="sheet" role="dialog" aria-modal="true">${html}</div>`; document.body.appendChild(d); d.addEventListener("click",e=>{ if(e.target===d) d.remove(); }); return d; }
-function momDentro(){ const ms=MOMS(); return st.vista=="plan" && st.modo=="uno" && ms.length ? ms[momActual()] : null; }
+function momDentro(){ const ms=MOMS(); return st.vista=="plan" && st.modo=="uno" && ms.length && !esIntro(st.pos) ? ms[momActual()] : null; }
 function abrirSelector(simple){ const i=document.getElementById("recin"); if(simple) i.setAttribute("capture","environment"); else i.removeAttribute("capture"); i.click(); }
 function lanzarAtajo(){ const m=momDentro(); st.camAt=Date.now(); st.camMom=m?m.id:null; guardar(); location.href="shortcuts://run-shortcut?name="+encodeURIComponent(ATAJO_NOM); }
 function instalarCam(){
@@ -1495,40 +1522,40 @@ document.addEventListener("click",ev=>{ if(TEC.t&&!(TEC.el&&TEC.el.contains(ev.t
     if(d>85){ poner(85,"Actualizando…"); try{ sincronizar(true); }catch(e){} revisarPrograma(); setTimeout(ocultar,1400); } else ocultar(); d=0; },{passive:true});
   document.addEventListener("touchcancel",()=>{ activo=false; ocultar(); },{passive:true});
 })();
-/* Deslizar a los lados = cambiar de momento: la pantalla sigue al dedo y debajo aparece el momento siguiente/anterior */
-(function(){ let x0=0,y0=0,t0=0,modo=0,dx=0,fant=null,ok=false,fdir=0; // modo: 0 indeciso, 1 horizontal, -1 vertical
+/* Deslizar a los lados = pasar de página (resumen del video / momentos): la pantalla sigue al dedo y debajo, quieta, aparece la siguiente/anterior.
+   Rendimiento: la página vecina se arma recién cuando se nota que el gesto es horizontal, la transformación se aplica una vez por cuadro (rAF)
+   y la barra de abajo se saca del bloque que se mueve para que no se desplace ni se repinte. */
+(function(){ let x0=0,y0=0,t0=0,modo=0,dx=0,ok=false,fdir=0,raf=0,pend=0,fant=null,nav=null; // modo: 0 indeciso, 1 horizontal, -1 vertical
   const main=()=>document.getElementById("app"), W=()=>window.innerWidth;
-  let nav=null;
   function soltarNav(){ if(!nav) return; const {el,pa,sig}=nav; nav=null; if(sig&&sig.parentNode===pa) pa.insertBefore(el,sig); else if(pa&&pa.isConnected&&!pa.querySelector(".navfijo")) pa.appendChild(el); else el.remove(); }
-  function limpiar(){ const m=main(); if(m){ m.style.transition=""; m.style.transform=""; m.style.position=""; m.style.zIndex=""; m.style.background=""; m.style.willChange=""; m.classList.remove("deslizando"); } if(fant){ fant.remove(); fant=null; } soltarNav(); document.documentElement.style.overflowX=""; }
-  /* Se arma una sola vez por dirección al empezar el gesto (no al primer movimiento) para que no haya tirón */
-  const cache={};
-  function armar(d){ const ms=MOMS(), i=momActual(), j=i+d; if(j<0||j>=ms.length) return null;
-    const old=st.pos; let h=""; try{ st.pos=ms[j].id; h=htmlPlan(); }catch(e){ h=""; } finally{ st.pos=old; }
-    return h||null; }
-  function fantasma(d){ const h=cache[d]!==undefined?cache[d]:armar(d); if(!h) return false; const m=main(), hd=document.querySelector("header");
+  function limpiar(){ if(raf){ cancelAnimationFrame(raf); raf=0; } const m=main();
+    if(m){ m.style.transition=""; m.style.transform=""; m.style.position=""; m.style.zIndex=""; m.style.background=""; m.style.willChange=""; m.classList.remove("deslizando"); }
+    if(fant){ fant.remove(); fant=null; } soltarNav(); fdir=0; document.documentElement.style.overflowX=""; }
+  function vecina(d){ const s=navSeq(), j=navIdx()+d; if(j<0||j>=s.length) return null; const old=st.pos; let h="";
+    try{ st.pos=s[j].id; h=htmlPlan(); }catch(e){ h=""; } finally{ st.pos=old; } return h||null; }
+  function preparar(d){ limpiar(); fdir=d; const m=main(); if(!m) return; const hd=document.querySelector("header"), h=vecina(d);
+    m.style.willChange="transform"; m.style.position="relative"; m.style.zIndex="1"; m.style.background="var(--bg)"; m.classList.add("deslizando"); document.documentElement.style.overflowX="hidden";
+    if(!h) return;
     fant=document.createElement("main"); fant.id="fantasma"; fant.innerHTML=h; fant.setAttribute("aria-hidden","true");
     fant.querySelectorAll(".navfijo,[id]").forEach(e=>{ if(e.classList.contains("navfijo")) e.remove(); else e.removeAttribute("id"); });
-    /* detrás: fijo, quieto, debajo del encabezado; solo lo de adelante se mueve */
     const top=hd?Math.max(0,Math.round(hd.getBoundingClientRect().bottom)):0;
     fant.style.cssText="position:fixed;left:0;right:0;top:"+top+"px;bottom:0;margin:0 auto;pointer-events:none;z-index:0;overflow:hidden;background:var(--bg)";
-    /* la barra de abajo se saca del bloque que se mueve para que se quede fija */
     const nf=m.querySelector(".navfijo"); if(nf){ nav={el:nf,pa:m,sig:nf.nextSibling}; document.body.appendChild(nf); }
-    m.parentNode.insertBefore(fant,m); m.style.position="relative"; m.style.zIndex="1"; m.style.background="var(--bg)"; m.style.willChange="transform"; m.classList.add("deslizando"); document.documentElement.style.overflowX="hidden"; return true; }
+    m.parentNode.insertBefore(fant,m); }
+  function pintar(){ raf=0; const m=main(); if(m) m.style.transform="translate3d("+pend+"px,0,0)"; }
   document.addEventListener("touchstart",ev=>{ const e=ev.target; limpiar();
-    ok = ev.touches.length==1 && ev.touches[0].clientX>24 && ev.touches[0].clientX<W()-24 && !document.body.classList.contains("con-tec") && !(e.closest&&e.closest("textarea,input,select,#teclado,.modal,#modal *,#recpick,.logro,#toast,[data-noswipe]")) && !!momDentro();
-    modo=0; dx=0; fdir=0; cache[1]=cache[-1]=undefined; if(ok){ setTimeout(()=>{ if(ok&&modo!=-1){ cache[1]=armar(1); cache[-1]=armar(-1); } },0); x0=ev.touches[0].clientX; y0=ev.touches[0].clientY; t0=Date.now(); } },{passive:true});
+    ok = ev.touches.length==1 && ev.touches[0].clientX>24 && ev.touches[0].clientX<W()-24 && !document.body.classList.contains("con-tec") && !(e.closest&&e.closest("textarea,input,select,#teclado,.modal,#modal *,#recpick,.logro,#toast,#finov,[data-noswipe]")) && st.vista=="plan" && st.modo=="uno" && !!MOMS().length;
+    modo=0; dx=0; if(ok){ x0=ev.touches[0].clientX; y0=ev.touches[0].clientY; t0=Date.now(); } },{passive:true});
   document.addEventListener("touchmove",ev=>{ if(!ok||modo==-1) return; const c=ev.touches[0], ddx=c.clientX-x0, ddy=c.clientY-y0;
-    if(modo==0){ if(Math.abs(ddx)<10&&Math.abs(ddy)<10) return; if(Math.abs(ddx)>Math.abs(ddy)*1.4){ modo=1; } else { modo=-1; return; } }
-    dx=ddx; const d=dx<0?1:-1; const m=main();
-    if(fdir!==d){ limpiar(); fdir=d; fant=null; if(!fantasma(d)) fant=null; }
-    m.style.transition="none"; m.style.transform="translate3d("+(fant?dx:dx*0.25)+"px,0,0)"; },{passive:true});
+    if(modo==0){ const ax=Math.abs(ddx), ay=Math.abs(ddy); if(ax<6&&ay<6) return; if(ax>ay*1.4) modo=1; else { modo=-1; return; } }
+    dx=ddx; const d=dx<0?1:-1; if(fdir!==d) preparar(d);
+    pend=fant?dx:dx*0.25; if(!raf) raf=requestAnimationFrame(pintar); },{passive:true});
   function fin(){ if(!ok) return; ok=false; const m=main(); if(modo!=1||!m){ limpiar(); return; }
-    const rapido=Date.now()-t0<350 && Math.abs(dx)>45, pasa=(Math.abs(dx)>W()*0.28||rapido) && !!fant;
-    if(pasa){ const dir=dx<0?1:-1; m.style.transition="transform .2s ease-out"; m.style.transform="translate3d("+(dx<0?-W():W())+"px,0,0)";
-      setTimeout(()=>{ limpiar(); const b=document.querySelector('[data-nav="mom:'+dir+'"]'); if(b&&!b.disabled) b.click(); },200); }
-    else { m.style.transition="transform .2s ease-out"; m.style.transform="translate3d(0,0,0)"; setTimeout(limpiar,210); }
-    modo=0; }
+    if(raf){ cancelAnimationFrame(raf); raf=0; }
+    const rapido=Date.now()-t0<350 && Math.abs(dx)>45, pasa=(Math.abs(dx)>W()*0.28||rapido) && !!fant, dir=dx<0?1:-1;
+    m.style.transition="transform .18s cubic-bezier(.2,.7,.3,1)"; m.style.transform="translate3d("+(pasa?(dx<0?-W():W()):0)+"px,0,0)";
+    let hecho=false; const fn=()=>{ if(hecho) return; hecho=true; m.removeEventListener("transitionend",fn); limpiar(); if(pasa){ const bt=document.querySelector('[data-nav="mom:'+dir+'"]'); if(bt&&!bt.disabled) bt.click(); } };
+    m.addEventListener("transitionend",fn); setTimeout(fn,280); modo=0; }
   document.addEventListener("touchend",fin,{passive:true}); document.addEventListener("touchcancel",()=>{ ok=false; limpiar(); },{passive:true});
 })();
 /* ===== Quién tiene la app abierta: cada teléfono avisa que está activo y Control lo ve ===== */
