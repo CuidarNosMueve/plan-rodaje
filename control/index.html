@@ -184,6 +184,7 @@ html{touch-action:pan-y pinch-zoom}
 .vtit span{color:var(--muted)}
 .desp{margin:0 4px 10px;padding:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;max-height:55vh;overflow-y:auto}
 .tipos{display:flex;gap:8px;margin-bottom:10px;overflow-x:auto}
+.tipoh{margin:12px 2px 6px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)} .desp .tipoh:first-child,.tipos+.tipoh{margin-top:2px}
 .navfijo{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;align-items:center;gap:8px;padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line)}
 .navfijo .navb{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .navfijo .navb:disabled{opacity:.35}
@@ -295,6 +296,21 @@ body.vista-equipo .filters, body.vista-equipo .search{display:none}
 .vrow.resalt{}   /* sin contorno */
 .vrow.opaco,.scene.opaco{opacity:.5}
 .mom.opaco{opacity:.58;filter:saturate(.4)}
+#vfijo{padding:4px 12px 6px} #vfijo[hidden]{display:none}
+#vfijo .r1{display:flex;align-items:center;gap:8px}
+#vfijo .vtit{flex:1;min-width:0;display:flex;align-items:center;gap:8px;width:auto;margin:0;padding:0;text-align:left;font-size:16px;line-height:1.15;color:var(--ink)}
+#vfijo .vnum{flex:none;background:var(--accent);color:var(--on-accent,#fff);border-radius:10px;padding:3px 9px;font-size:21px;font-weight:900;letter-spacing:.01em;box-shadow:0 2px 8px color-mix(in srgb,var(--accent) 45%,transparent)}
+#vfijo .vnom{flex:1;min-width:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-weight:800;font-size:15px;line-height:1.1}
+#vfijo .vflecha{flex:none;color:var(--muted)}
+#vfijo .vmom{flex:none;background:var(--ink);color:var(--bg);border-radius:10px;padding:4px 10px;font-size:16px;font-weight:900;white-space:nowrap}
+.luces{position:relative;display:flex;justify-content:center;align-items:center;margin-top:3px;height:18px}
+.luces::before{content:"";position:absolute;left:12px;right:12px;top:50%;height:2px;margin-top:-1px;background:var(--line);border-radius:2px}
+.luz{position:relative;flex:1 1 0;max-width:28px;min-width:8px;height:18px;border:0;background:none;padding:0;cursor:pointer}
+.luz::before{content:"";position:absolute;left:50%;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:var(--bg);border:2px solid var(--muted);box-sizing:border-box;transition:all .2s}
+.luz.ok::before{background:var(--accent);border-color:var(--accent)}
+.luz.cur::before{width:16px;height:16px;margin:-8px 0 0 -8px;background:var(--ink);border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 35%,transparent),0 0 12px var(--accent)}
+.luz.cur.ok::before{background:var(--accent);border-color:var(--ink)}
+@media (max-width:380px){#vfijo .vmom{padding:3px 8px;font-size:14px}#vfijo .vnum{font-size:19px}}
 .vtit.opaco{opacity:.6}
 .vrow.mio, .scene.mio{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,var(--card))}
 .scene.mio .shead{background:transparent}
@@ -618,6 +634,7 @@ html[data-skin="aurora"] .logro .lg{background:linear-gradient(135deg,rgba(106,7
   </div>
   <div class="progress"><button class="avance" id="avance" aria-label="Cambiar entre planos de hoy y planos totales"></button></div>
   <div class="vistas" id="vistas"><button data-v="plan">Plan</button><button data-v="equipo">Equipo</button><button data-v="montaje">Montaje</button><button data-v="control">Control</button></div>
+  <div id="vfijo" hidden></div>
   <div class="sbar" id="sbar" aria-hidden="true"><i></i></div>
 </header>
 <nav class="filters" id="filtros" aria-label="Filtros"></nav>
@@ -660,7 +677,7 @@ const EQUIPO = ["Valentina Hoyos","Alejandra Rivera","Jorge Girón","Juan David"
    borrados:{ id: ts }                 planos agregados que ya se borraron
    cola:    eventos por enviar (se guardan hasta que haya señal) */
 const base = JSON.parse(document.getElementById("datos-base").textContent);
-const DEF = () => ({formato:2,modo:"inicio",serie:null,pos:null,avanceTotal:false,videoActual:null,notas:{},marcas:{},custom:{},nuevos:{},keys:null,sig:null,data:null,filtro:"Todos",ocultar:false,abiertas:{},
+const DEF = () => ({formato:2,modo:"uno",serie:null,pos:null,avanceTotal:false,videoActual:null,notas:{},marcas:{},custom:{},nuevos:{},keys:null,sig:null,data:null,filtro:"Todos",ocultar:false,abiertas:{},
   persona:null,control:"",asig:{},aj:{},finv:{},cola:[],borrados:{},pin:"",vista:"plan",vistoEn:0,adoptado:false,sub:null,avisosNo:false,avisosOk:false,deHoja:false});
 let st = cargar();
  if(!st.control){ st.control="1"; st.persona="Control"; st.adoptado=true; st.vista="control"; } 
@@ -668,7 +685,8 @@ function cargar(){
   let g={}; try{ g=JSON.parse(localStorage.getItem(CLAVE)||"{}"); }catch(e){}
   // Formato anterior (escenas y planos): se descarta el avance viejo, pero se conservan nombre, PIN y avisos.
   if(g.formato!==2) g={persona:g.persona,pin:g.pin,sub:g.sub,avisosNo:g.avisosNo};
-  const s=Object.assign(DEF(),g); s.formato=2;   // al volver a abrir la app se queda donde iba (video y momento); solo empieza en el inicio la primera vez
+  const s=Object.assign(DEF(),g); s.formato=2; if(s.modo=="inicio") s.modo="uno";   // ya no hay pantalla de inicio (tipo/número de video): se entra directo al plan
+   // al volver a abrir la app se queda donde iba (video y momento); solo empieza en el inicio la primera vez
   return s;
 }
 function guardar(){ try{ localStorage.setItem(CLAVE, JSON.stringify(st)); }catch(e){} cfgSW(); }
@@ -1123,7 +1141,7 @@ function render(){
   document.querySelectorAll("#vistas button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v==(vistaCtl?"control":vistaMon?"montaje":vistaEq?"equipo":"plan"))));
   const pb=document.getElementById("pend"); pb.hidden=!st.cola.length; pb.textContent=st.cola.length;
 
-  document.getElementById("filtros").innerHTML = '<button class="chip" data-modo="inicio">Inicio</button><button class="chip" data-modo="uno">Uno por uno</button>' + FILTROS.map(d=>`<button class="chip" aria-pressed="${st.filtro==d}" data-f="${d}">${d}</button>`).join("");
+  document.getElementById("filtros").innerHTML = '<button class="chip" data-modo="uno">Uno por uno</button>' + FILTROS.map(d=>`<button class="chip" aria-pressed="${st.filtro==d}" data-f="${d}">${d}</button>`).join("");
 
   // Si una sincronización repinta mientras alguien escribe un plano, no se pierde el texto.
   const keep={}; let foco=null;
@@ -1131,6 +1149,7 @@ function render(){
   const fo=document.activeElement, nota=fo&&fo.dataset&&fo.dataset.nota ? {k:fo.dataset.nota,v:fo.value,a:fo.selectionStart,b:fo.selectionEnd} : null;
   const monFoco=document.activeElement&&document.activeElement.id=="monq";
   document.getElementById("app").innerHTML = vistaCtl ? htmlControl() : vistaMon ? htmlMontaje() : vistaGen ? htmlGenericos() : vistaEq ? htmlEquipo() : htmlPlan();
+  pintarVfijo(!(vistaCtl||vistaMon||vistaGen||vistaEq) && st.modo!="lista" && st.modo!="inicio");
   if(vistaMon){ aplicarBusquedaMon(); if(monFoco){ const e=document.getElementById("monq"); if(e){ e.focus({preventScroll:true}); try{ e.setSelectionRange(e.value.length,e.value.length); }catch(x){} } } }
   if(nota){ const el=document.querySelector(`[data-nota="${CSS.escape(nota.k)}"]`); if(el){ el.value=nota.v; el.focus({preventScroll:true}); try{ el.setSelectionRange(nota.a,nota.b); }catch(e){} } }
   for(const id in keep){ const el=document.querySelector(`[data-add="${CSS.escape(id)}"] input`); if(el) el.value=keep[id]; }
@@ -1296,19 +1315,32 @@ function htmlIntro(v){
 }
 let desplegado=false;
 function htmlDespliegue(){
-  const S=series(), ks=Object.keys(S), actual=(MOMS()[momActual()]||{video:""}).video, cur=String(actual).split("-")[0];
-  const sel=S[st.serie]?st.serie:cur;
-  let h=`<div class="desp"><div class="tipos">`+ks.map(k=>`<button class="chip" aria-pressed="${k==sel}" data-serie="${esc(k)}">${esc(k)}${tipoN(k)?" · "+esc(tipoN(k)):""}</button>`).join("")+(urlSync()?`<button class="chip" aria-pressed="false" data-vgen="1">Planos genéricos</button>`:"")+`</div>`;
-  h+=[...new Set(S[sel].map(x=>x.video))].map(v=>{ const c=conteos(v), nom=S[sel].find(x=>x.video==v).nombre, ok=c.mT>0&&c.mH==c.mT;
-    return `<button class="vrow${ok?" ok":""}${dueno(v)}" data-irvideo="${esc(v)}"${v==actual?' style="border-color:var(--accent)"':""}><span class="num">${esc(v)}</span><span class="vn">${esc(nom)}${etiqueta(v)}</span><span class="vc">${c.mH}/${c.mT}${ok?" ✓":""}</span></button>`; }).join("");
+  const S=series(), ks=Object.keys(S), actual=(MOMS()[momActual()]||{video:""}).video;
+  let h=`<div class="desp">`+(urlSync()?`<div class="tipos"><button class="chip" aria-pressed="false" data-vgen="1">Planos genéricos</button></div>`:"");
+  ks.forEach(k=>{
+    h+=`<div class="tipoh">Tipo ${esc(k)}${tipoN(k)?" · "+esc(tipoN(k)):""}</div>`;
+    h+=[...new Set(S[k].map(x=>x.video))].map(v=>{ const c=conteos(v), nom=S[k].find(x=>x.video==v).nombre, ok=c.mT>0&&c.mH==c.mT;
+      return `<button class="vrow${ok?" ok":""}${dueno(v)}" data-irvideo="${esc(v)}"${v==actual?' style="border-color:var(--accent)"':""}><span class="num">${esc(v)}</span><span class="vn">${esc(nom)}${etiqueta(v)}</span><span class="vc">${c.mH}/${c.mT}${ok?" ✓":""}</span></button>`; }).join("");
+  });
   return h+`</div>`;
+}
+/* Franja fija bajo la cabecera: número y título del video + momento, y una línea de luces (una por momento; la primera es el primer momento). */
+let vfijoPrev="";
+function pintarVfijo(on){
+  const el=document.getElementById("vfijo"); if(!el) return;
+  if(!on || !MOMS().length){ if(!el.hidden){ el.hidden=true; el.innerHTML=""; vfijoPrev=""; } return; }
+  const seq=navSeq(), cur=seq[navIdx()]; if(!cur) return;
+  const v=cur.video, ms=MOMS().filter(x=>x.video==v);
+  const h=`<div class="r1"><button class="vtit${dueno(v)}" data-abrirvideos aria-expanded="${desplegado}"><span class="vnum">${esc(v)}</span><span class="vnom">${esc(cur.nombre)}</span><span class="vflecha">${desplegado?"▴":"▾"}</span></button><span class="vmom">${cur.intro?"Resumen":"Momento "+esc(cur.momento)}</span></div>
+    <div class="luces" role="img" aria-label="${cur.intro?"Resumen del video, "+ms.length+" momentos":"Momento "+esc(cur.momento)+" de "+ms.length}">${ms.map(m=>`<button class="luz${hecho(listoK(m.id))?" ok":""}${!cur.intro&&cur.id==m.id?" cur":""}" data-irmom="${esc(m.id)}" aria-label="Momento ${esc(m.momento)}"></button>`).join("")}</div>`;
+  if(h!==vfijoPrev || el.hidden){ el.innerHTML=h; el.hidden=false; vfijoPrev=h; }
 }
 function htmlUno(){
   const seq=navSeq(), k=navIdx(), cur=seq[k], ms=MOMS(), v=cur.video, delVideo=ms.filter(x=>x.video==v);
   const b=(act,txt,off)=>`<button class="navb" data-nav="${act}"${off?" disabled":""}>${txt}</button>`;
   const centro=cur.intro?`<b>Resumen</b><small>${delVideo.length} momento${delVideo.length==1?"":"s"} en este video</small>`:`<b>Momento ${esc(cur.momento)}</b><small>${delVideo.indexOf(cur)+1} de ${delVideo.length} en este video</small>`;
   const nav=`<div class="navfijo">${b("mom:-1","‹ Anterior",k==0)}<div class="navt">${centro}</div>${b("mom:1","Siguiente ›",k==seq.length-1)}</div>`;
-  return banners()+`<button class="vtit${dueno(v)}" data-abrirvideos aria-expanded="${desplegado}">${esc(v)} · ${esc(cur.nombre)} <span>${desplegado?"▴":"▾"}</span></button>`+selVideografo(v)+(desplegado?htmlDespliegue():"")+(cur.intro?htmlIntro(v):htmlMomento(cur))+footHTML(true)+`<div class="espacio"></div>`+nav;
+  return banners()+selVideografo(v)+(desplegado?htmlDespliegue():"")+(cur.intro?htmlIntro(v):htmlMomento(cur))+footHTML(true)+`<div class="espacio"></div>`+nav;
 }
 const tipoN = k => ((data.tipos||{})[k]||{}).nombre||"";
 const tipoD = k => ((data.tipos||{})[k]||{}).desc||"";
@@ -1443,7 +1475,7 @@ let autoIntentado=false;
 function intentoAuto(){ if(autoIntentado || st.avisosNo || estadoAvisos()!="pendiente") return; autoIntentado=true; activarAvisos(); }
 document.addEventListener("click",ev=>{
   if(!ev.target.closest("[data-avisos],[data-avisosno],[data-avisosok],#modal")) intentoAuto();
-  const t=ev.target.closest("[data-finvideo],[data-vgen],[data-nuevou],[data-sabana],[data-montodos],[data-copiar],[data-csv],[data-monota],[data-monreg],[data-monreg0],[data-ctlver],[data-ctltodos],[data-ocv],[data-ctlagr],[data-agrv],[data-borrar],[data-ctlaj],[data-ocres],[data-edv],[data-asv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-vertodos],[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,[data-aj],[data-bloqueo],[data-bloqtodos],#cerrarAviso,#reset,#toggleOcultar,#tsonido,#tcam,[data-avisosok]"); if(!t) return;
+  const t=ev.target.closest("[data-finvideo],[data-vgen],[data-nuevou],[data-irmom],[data-sabana],[data-montodos],[data-copiar],[data-csv],[data-monota],[data-monreg],[data-monreg0],[data-ctlver],[data-ctltodos],[data-ocv],[data-ctlagr],[data-agrv],[data-borrar],[data-ctlaj],[data-ocres],[data-edv],[data-asv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-vertodos],[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,[data-aj],[data-bloqueo],[data-bloqtodos],#cerrarAviso,#reset,#toggleOcultar,#tsonido,#tcam,[data-avisosok]"); if(!t) return;
   if(t.dataset.toggle){ const id=t.dataset.toggle; st.abiertas[id]=!st.abiertas[id]; if(st.abiertas[id]) st.videoActual=id; guardar(); pintarAvance();
     t.parentElement.classList.toggle("open",st.abiertas[id]); t.setAttribute("aria-expanded",st.abiertas[id]); return; }
   if(t.id=='avance'){ st.avanceTotal=!st.avanceTotal; guardar(); render(); return; }
@@ -1453,6 +1485,7 @@ document.addEventListener("click",ev=>{
   if(t.dataset.irvideo){ st.vista="plan"; if(MOMS().findIndex(x=>x.video==t.dataset.irvideo)<0) st.verTodos=true; const j=MOMS().findIndex(x=>x.video==t.dataset.irvideo); if(j>=0){ st.modo="uno"; st.pos=introDe(MOMS()[j].video); st.videoActual=MOMS()[j].video; guardar(); } desplegado=false; render(); window.scrollTo(0,0); return; }
   if(t.dataset.ya){ const k="y:"+t.dataset.ya; st.abiertas[k]=!st.abiertas[k]; guardar(); render(); return; }
   if(t.dataset.modo){ st.modo=t.dataset.modo; guardar(); render(); window.scrollTo(0,0); return; }
+  if(t.dataset.irmom){ const m=momento(t.dataset.irmom); if(!m) return; desplegado=false; st.pos=m.id; st.videoActual=m.video; guardar(); render(); window.scrollTo(0,0); return; }
   if(t.dataset.nav){ const dd=+t.dataset.nav.split(":")[1], seq=navSeq(), j=navIdx()+dd;
     if(j<0||j>=seq.length) return; desplegado=false; st.pos=seq[j].id; st.videoActual=seq[j].video; guardar(); render(); window.scrollTo(0,0); return; }
   if(t.dataset.avisos!==undefined){ activarAvisos(); return; }
@@ -1498,7 +1531,7 @@ document.addEventListener("click",ev=>{
     ajustar(vs.map(v=>["bloqueo::"+v,val])); toast(val=="1"?"Todos los videos bloqueados":"Todos los videos desbloqueados"); return; }
   if(t.id=="cancelarPersona"){ cambiando=false; render(); return; }
   if(t.dataset.nuevou){
-    st.control=""; st.vista="plan"; st.persona=NOM_PRUEBA; data=datosPrueba(); st.modo="inicio"; cambiando=false; toast("Modo prueba: videos falsos. Lo que marques llega al equipo como prueba.");  adoptar(); guardar(); render(); intentoAuto(); sincEquipo(true); return; }
+    st.control=""; st.vista="plan"; st.persona=NOM_PRUEBA; data=datosPrueba(); st.modo="uno"; cambiando=false; toast("Modo prueba: videos falsos. Lo que marques llega al equipo como prueba.");  adoptar(); guardar(); render(); intentoAuto(); sincEquipo(true); return; }
   if(t.dataset.persona){ st.control=""; st.vista="plan"; st.persona=t.dataset.persona; data=st.data||base; cambiando=false; adoptar(); guardar(); render(); intentoAuto(); sincEquipo(true); return; }
   if(t.dataset.ir){ const id=t.dataset.ir, m=momento(id); st.vista="plan"; st.filtro="Todos"; st.modo="uno"; st.pos=id; if(m) st.abiertas[m.video]=true; document.getElementById("buscar").value=""; guardar(); render();
     const el=document.querySelector(`[data-id="${CSS.escape(id)}"]`); if(el) el.scrollIntoView({block:"start"}); return; }
