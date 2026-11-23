@@ -162,6 +162,12 @@ html{touch-action:pan-y pinch-zoom}
 .intro .ik{margin:0 0 4px;font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.7}
 .intro .itit{margin:0 0 10px;font-size:22px;line-height:1.2}.intro .inum{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--accent);color:var(--on-accent,#fff);font-size:15px;vertical-align:middle;margin-right:4px}
 .sab-m{margin-top:10px;padding-top:8px;border-top:1px solid var(--line)} .sab-p{font-size:14.5px;line-height:1.35;margin:2px 0 0 4px} .sab-p em{font-style:normal;color:var(--muted);font-size:12.5px} .sab-s{font-size:13.5px;margin:4px 0 0 4px;color:var(--muted)} .sab-s b{color:var(--ink)}
+.monq{width:100%;box-sizing:border-box;border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;font-size:16px;background:var(--card);color:var(--ink)}
+.sab-ser{display:flex;align-items:center;gap:8px;margin:6px 0 0 4px;font-size:16px;font-weight:700;flex-wrap:wrap} .sab-ser span{flex:1;min-width:0;word-break:break-word;font-variant-numeric:tabular-nums} .sab-ser b{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase}
+.sab-ser button,.sab-acc button,.sab-reg button{border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:6px 10px;font-size:13px;font-weight:700;cursor:pointer}
+.sab-acc{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.sab-reg{margin:6px 0 0;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,#e5484d 12%,transparent);font-size:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sab-m[hidden],[data-sabv][hidden]{display:none!important}
 .intro .itexto{margin:0 0 12px;font-size:15px;line-height:1.5}
 .intro .isent{margin:0 0 12px;padding:9px 12px;border-left:4px solid var(--accent);border-radius:4px 10px 10px 4px;background:color-mix(in srgb,var(--accent) 10%,transparent);font-size:16px;line-height:1.4;font-weight:600}
 .intro .ilista{margin:0 0 12px;padding-left:20px;font-size:16.5px;line-height:1.5}.intro .ilista li{margin:0 0 8px}
@@ -792,7 +798,7 @@ function aplicar(nueva, manual){
 function aplicarEv(ev){
   const id=ev.id;
   /* Responsables (asignar) y ajustes: solo los define Control. Lo que llegue de cualquier otra persona se ignora. */
-  if((ev.tipo=="asignar"||ev.tipo=="ajuste") && ev.ts>1795375000000 && String(ev.quien||"").trim()!="Control" && !(ev.tipo=="ajuste" && String(id).startsWith("finalizado::"))) return false;   // (1795375000000 = 22-nov-2026 14:16 Bogotá: lo anterior se respeta tal cual)
+  if((ev.tipo=="asignar"||ev.tipo=="ajuste") && ev.ts>1795375000000 && String(ev.quien||"").trim()!="Control" && !(ev.tipo=="ajuste" && /^(finalizado|montaje|regraba)::/.test(String(id)))) return false;   // (1795375000000 = 22-nov-2026 14:16 Bogotá: lo anterior se respeta tal cual)
   if(ev.tipo=="marcar"||ev.tipo=="desmarcar"){
     const m=st.marcas[id]; if(m && m.ts>=ev.ts) return false;
     st.marcas[id]={h:ev.tipo=="marcar"?1:0, ts:ev.ts, q:ev.quien||null}; if(id.startsWith("gen::")) st.marcas[id].t=ev.texto||"";
@@ -1123,7 +1129,9 @@ function render(){
   const keep={}; let foco=null;
   document.querySelectorAll("#app [data-add] input").forEach(i=>{ const id=i.form.dataset.add; if(i.value) keep[id]=i.value; if(i===document.activeElement) foco=id; });
   const fo=document.activeElement, nota=fo&&fo.dataset&&fo.dataset.nota ? {k:fo.dataset.nota,v:fo.value,a:fo.selectionStart,b:fo.selectionEnd} : null;
+  const monFoco=document.activeElement&&document.activeElement.id=="monq";
   document.getElementById("app").innerHTML = vistaCtl ? htmlControl() : vistaMon ? htmlMontaje() : vistaGen ? htmlGenericos() : vistaEq ? htmlEquipo() : htmlPlan();
+  if(vistaMon){ aplicarBusquedaMon(); if(monFoco){ const e=document.getElementById("monq"); if(e){ e.focus({preventScroll:true}); try{ e.setSelectionRange(e.value.length,e.value.length); }catch(x){} } } }
   if(nota){ const el=document.querySelector(`[data-nota="${CSS.escape(nota.k)}"]`); if(el){ el.value=nota.v; el.focus({preventScroll:true}); try{ el.setSelectionRange(nota.a,nota.b); }catch(e){} } }
   for(const id in keep){ const el=document.querySelector(`[data-add="${CSS.escape(id)}"] input`); if(el) el.value=keep[id]; }
   if(foco){ const el=document.querySelector(`[data-add="${CSS.escape(foco)}"] input`); if(el) el.focus(); }
@@ -1226,6 +1234,7 @@ function htmlMomento(m){
     ${m.voz?`<p class="voz">${esc(m.voz)}</p>`:""}
     <button class="prem" data-premisa="${esc(m.video)}">📌 Premisa del video</button>
     <p class="sonido">🔊 Cuida el sonido de cada plano: audio limpio, sin viento ni voces encima.</p>
+    ${regraba(m.id)?`<div class="sab-reg">🔁 <b>Regrabar:</b> ${esc(regraba(m.id))} <button data-monreg0="${esc(m.id)}">✓ Ya regrabé</button></div>`:""}${notaMon(m.id)?`<div class="sab-s"><b>✂️ Nota de montaje</b> ${esc(notaMon(m.id))}</div>`:""}
     ${items.length?"":`<p class="info">Sin planos propuestos todavía.</p>`}
     ${esApertura(m,prop)?`<span class="apert"><b>🎬 Plano de apertura</b> Debe ser un plano pensado para que entre graficación sobre él.</span>`:""}
     <ul class="shots">${prop.filter(i=>!(st.ocultar && hecho(i.k))).map(li).join("")}</ul>
@@ -1434,7 +1443,7 @@ let autoIntentado=false;
 function intentoAuto(){ if(autoIntentado || st.avisosNo || estadoAvisos()!="pendiente") return; autoIntentado=true; activarAvisos(); }
 document.addEventListener("click",ev=>{
   if(!ev.target.closest("[data-avisos],[data-avisosno],[data-avisosok],#modal")) intentoAuto();
-  const t=ev.target.closest("[data-finvideo],[data-vgen],[data-nuevou],[data-sabana],[data-ctlver],[data-ctltodos],[data-ocv],[data-ctlagr],[data-agrv],[data-borrar],[data-ctlaj],[data-ocres],[data-edv],[data-asv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-vertodos],[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,[data-aj],[data-bloqueo],[data-bloqtodos],#cerrarAviso,#reset,#toggleOcultar,#tsonido,#tcam,[data-avisosok]"); if(!t) return;
+  const t=ev.target.closest("[data-finvideo],[data-vgen],[data-nuevou],[data-sabana],[data-montodos],[data-copiar],[data-csv],[data-monota],[data-monreg],[data-monreg0],[data-ctlver],[data-ctltodos],[data-ocv],[data-ctlagr],[data-agrv],[data-borrar],[data-ctlaj],[data-ocres],[data-edv],[data-asv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-vertodos],[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,[data-aj],[data-bloqueo],[data-bloqtodos],#cerrarAviso,#reset,#toggleOcultar,#tsonido,#tcam,[data-avisosok]"); if(!t) return;
   if(t.dataset.toggle){ const id=t.dataset.toggle; st.abiertas[id]=!st.abiertas[id]; if(st.abiertas[id]) st.videoActual=id; guardar(); pintarAvance();
     t.parentElement.classList.toggle("open",st.abiertas[id]); t.setAttribute("aria-expanded",st.abiertas[id]); return; }
   if(t.id=='avance'){ st.avanceTotal=!st.avanceTotal; guardar(); render(); return; }
@@ -1452,10 +1461,16 @@ document.addEventListener("click",ev=>{
   if(t.dataset.f){ st.filtro=t.dataset.f; guardar(); render(); return; }
   if(t.dataset.v){ st.vista=t.dataset.v; guardar(); render(); window.scrollTo(0,0); return; }
   if(t.dataset.cambiar!==undefined){ cambiando=true; render(); return; }
+  if(t.dataset.sabana){ compartirSabana(); return; }
+  if(t.dataset.montodos){ st.monTodos=!st.monTodos; guardar(); render(); return; }
+  if(t.dataset.csv){ descargarCSV(); return; }
+  if(t.dataset.copiar){ navigator.clipboard.writeText(t.dataset.copiar).then(()=>toast("Seriales copiados"),()=>toast("No se pudo copiar")); return; }
+  if(t.dataset.monota){ const id=t.dataset.monota, m=momento(id); if(!m) return; const cur=notaMon(id).replace(/^[^:]+: /,""), r=prompt("Nota de montaje para el momento "+m.momento+" del video "+m.video+" (vacío = borrarla):",cur); if(r===null) return; const x=r.trim().slice(0,300); ajustarYo("montaje::"+id, x?corto(st.persona||"Control")+": "+x:"", m.video); toast(x?"Nota guardada":"Nota borrada"); return; }
+  if(t.dataset.monreg){ const id=t.dataset.monreg, m=momento(id); if(!m) return; const r=prompt("¿Qué hay que regrabar en el momento "+m.momento+" del video "+m.video+"? (por ejemplo: «falta plano abierto», «audio con viento»)",""); if(r===null) return; const x=r.trim().slice(0,300)||"sin detalle"; ajustarYo("regraba::"+id, corto(st.persona||"Control")+": "+x, m.video); toast("Regrabación pedida: le llega aviso a quien graba"); return; }
+  if(t.dataset.monreg0){ const id=t.dataset.monreg0, m=momento(id); if(!m) return; ajustarYo("regraba::"+id, "", m.video); toast("Marcado como regrabado"); return; }
   if(t.dataset.ctlaj){ st.ctlAj=!st.ctlAj; guardar(); render(); return; }
   if(t.dataset.ocres){ const v=t.dataset.ocres; ajustar([["sinres",v]]); toast(v=="1"?"Los videos sin resaltar se ocultan en los teléfonos":"Los videos sin resaltar se muestran otra vez"); return; }
   if(t.dataset.ctlver){ st.ctlVer=!st.ctlVer; guardar(); render(); return; }
-  if(t.dataset.sabana){ compartirSabana(); return; }
   if(t.dataset.ctlagr){ st.ctlAgr=!st.ctlAgr; guardar(); render(); return; }
   if(t.dataset.agrv){ const v=t.dataset.agrv; if(HAY&&!RES[v]) st.ctlVer=true; st.ctlAgr=false; ajustar([["oculto::"+v,"0"]]); toast("Video "+v+" agregado: define su videógrafo"); return; }
   if(t.dataset.borrar){ preguntarBorrar(t.dataset.borrar,false); return; }
@@ -1702,18 +1717,27 @@ document.addEventListener("visibilitychange",()=>{ latido(document.visibilitySta
 setTimeout(()=>latido(false),2500);
 document.getElementById("btnSync").addEventListener("click",()=>sincronizar(true));
 /* Sábana de edición: por video y momento, en el orden del guion, con lo ya grabado (planos marcados, extras del equipo, seriales, notas, listo) y lo que aún falta. Es lo que se comparte y lo que muestra la pestaña «Montaje». */
-function sabanaDatos(){
+const notaMon = id => (st.aj["montaje::"+id]&&st.aj["montaje::"+id].v)||"";      // nota del montajista (la puede escribir cualquiera del equipo): «Nombre: texto»
+const regraba = id => (st.aj["regraba::"+id]&&st.aj["regraba::"+id].v)||"";          // regrabación pedida («Nombre: motivo»); vacío = nada pendiente
+function ajustarYo(id,texto,video){   // ajuste firmado por quien lo hace (el equipo solo puede estos: notas de montaje y regrabaciones)
+  let ts=Date.now(); const a=st.aj[id]; if(a && a.ts>=ts) ts=a.ts+1;
+  const ev={evid:uid(), ts, quien:esControl()?"Control":(st.persona||null), tipo:"ajuste", id, escena:video||"", texto};
+  aplicarEv(ev); if(equipoActivo()) st.cola.push(ev); guardar(); render(); if(equipoActivo()) empujar();
+}
+function sabanaDatos(vacios){
   const ctl=esControl(), vids=[...new Set(MOMS().map(m=>m.video))], out=[]; let nM=0,nP=0,nT=0;
   vids.forEach(v=>{
     const ms=MOMS().filter(m=>m.video==v), mom=[];
     ms.forEach(m=>{
       const it=planosDe(m), gr=it.filter(i=>!i.fijo&&hecho(i.k)), ya=it.filter(i=>i.fijo&&!i.ed), ed=ctl?it.filter(i=>i.ed):[];
-      const s=notaDe(m.id,"seriales"), c=notaDe(m.id,"comentario"), lk=st.marcas[listoK(m.id)], listo=!!(lk&&lk.h);
+      const s=notaDe(m.id,"seriales"), c=notaDe(m.id,"comentario"), lk=st.marcas[listoK(m.id)], listo=!!(lk&&lk.h), nm=notaMon(m.id), rg=regraba(m.id);
       const tiene=!!(gr.length||listo||s||c); nT++; if(tiene){ nM++; nP+=gr.length; }
-      mom.push({n:m.momento, dur:durDe(m), voz:m.voz||"", listo, lq:listo&&lk.q?corto(lk.q):"", gr:gr.map(i=>{ const mk=marcaDe(i.k); return {t:i.t, extra:!!i.mine, gen:!!GENC[i.k], q:mk&&mk.q?corto(mk.q):"", h:mk&&mk.ts?hora(mk.ts):""}; }), ya:ya.map(i=>i.t), ed:ed.map(i=>i.t), seriales:s, nota:c, tiene});
+      mom.push({id:m.id, n:m.momento, dur:durDe(m), voz:m.voz||"", listo, lq:listo&&lk.q?corto(lk.q):"", gr:gr.map(i=>{ const mk=marcaDe(i.k); return {t:i.t, extra:!!i.mine, gen:!!GENC[i.k], q:mk&&mk.q?corto(mk.q):"", h:mk&&mk.ts?hora(mk.ts):""}; }), ya:ya.map(i=>i.t), ed:ed.map(i=>i.t), seriales:s, nota:c, notaMon:nm, regraba:rg, tiene});
     });
     const vg=vgs(v), eg=egs(v).length?egs(v):(edDe(v)?[edDe(v)]:[]);
-    if(mom.some(x=>x.tiene)) out.push({v, nombre:ms[0].nombre, vg, ed:eg, mom});
+    const listos=mom.filter(x=>x.listo).length, algo=mom.some(x=>x.tiene), nReg=mom.filter(x=>x.regraba).length;
+    const estado=listos==mom.length&&mom.length?"listo":(algo?"grabando":"sin");
+    if(algo||vacios) out.push({v, nombre:ms[0].nombre, vg, ed:eg, mom, listos, estado, nReg});
   });
   return {videos:out, nM, nP, nT};
 }
@@ -1722,44 +1746,78 @@ function sabanaMontaje(){
   if(!D.nM) return "";
   D.videos.forEach(V=>{
     L.push("", `══ VIDEO ${V.v} · ${V.nombre}`);
-    L.push(`Grabación: ${V.vg.length?listaNombres(V.vg,true):"sin asignar"} · Edición: ${V.ed.length?listaNombres(V.ed,true):"sin asignar"}`);
+    L.push(`Grabación: ${V.vg.length?listaNombres(V.vg,true):"sin asignar"} · Edición: ${V.ed.length?listaNombres(V.ed,true):"sin asignar"} · ${V.estado=="listo"?"LISTO PARA MONTAR":V.estado=="grabando"?"grabando ("+V.listos+"/"+V.mom.length+" momentos listos)":"sin grabar"}${V.nReg?" · "+V.nReg+" por regrabar":""}`);
     V.mom.forEach(m=>{
       L.push("", `Momento ${m.n}${m.dur?" · "+m.dur:""}${m.listo?" · ✓ LISTO"+(m.lq?" ("+m.lq+")":""):(m.tiene?"":" · sin material aún")}`);
-      if(!m.tiene) return;
+      if(!m.tiene){ if(m.notaMon) L.push(`  ✂ Montaje: ${una(m.notaMon)}`); if(m.regraba) L.push(`  🔁 REGRABAR: ${una(m.regraba)}`); return; }
       if(m.voz) L.push(`  Voz: ${una(m.voz)}`);
       m.gr.forEach(i=>L.push(`  ✓ ${i.t}${i.extra?" [extra]":""}${i.gen?" [genérico]":""}${i.q?" — "+i.q+(i.h?", "+i.h:""):""}`));
       m.ya.forEach(t=>L.push(`  ● ${t} [ya existía]`));
       m.ed.forEach(t=>L.push(`  ● ${t} [en edición]`));
       if(m.seriales) L.push(`  Seriales: ${una(m.seriales)}`);
       if(m.nota) L.push(`  Nota: ${una(m.nota)}`);
+      if(m.notaMon) L.push(`  ✂ Montaje: ${una(m.notaMon)}`);
+      if(m.regraba) L.push(`  🔁 REGRABAR: ${una(m.regraba)}`);
     });
   });
   return `${data.proyecto} — SÁBANA DE EDICIÓN\n${new Date().toLocaleString("es-CO",{weekday:"long",day:"numeric",month:"long",hour:"numeric",minute:"2-digit"})}\n${D.videos.length} video${D.videos.length==1?"":"s"} · ${D.nM} de ${D.nT} momentos con material · ${D.nP} planos grabados`+L.join("\n");
 }
+let monQ="";
+const ESTADO_MON={listo:"✅ Listo para montar",grabando:"🎬 Grabando",sin:"⏳ Sin grabar"};
 function htmlMontaje(){
-  const D=sabanaDatos(), off=errorSync||navigator.onLine===false;
+  const D=sabanaDatos(true), off=errorSync||navigator.onLine===false, ctl=esControl();
+  const mios=V=>V.ed.some(n=>corto(n)==corto(st.persona||"")), tengo=D.videos.some(mios), solo=!ctl&&tengo&&!st.monTodos;
+  const vis=solo?D.videos.filter(mios):D.videos;
   let h=`<div class="estado${off?" off":""}"><i class="pt"></i><span>${off?"Sin conexión con el equipo":(st.vistoEn?"Sincronizado "+hace(st.vistoEn):"Aún sin sincronizar")}</span></div>`;
   h+=`<div class="linea">Sábana de edición</div>`;
-  if(!D.nM) return h+`<div class="empty">Todavía no hay material grabado. Aquí aparecerá cada video con sus momentos, planos y seriales a medida que se grabe.</div>`;
-  h+=`<div class="sub" style="margin:0 4px 10px">${D.videos.length} video${D.videos.length==1?"":"s"} · ${D.nM} de ${D.nT} momentos con material · ${D.nP} planos grabados</div><button class="modo" data-sabana="1" style="margin:0 0 10px">📤 Compartir sábana de edición</button>`;
-  D.videos.forEach(V=>{
-    h+=`<div class="ccard"><div class="fila"><strong>${esc(V.v)} · ${esc(V.nombre)}</strong><span class="n">${V.mom.filter(x=>x.listo).length}/${V.mom.length} listos</span></div>
+  if(!ctl) h+=tengo?`<button class="modo" data-montodos="1" style="margin:0 0 8px">${st.monTodos?"👤 Ver solo mis videos":"📋 Ver todos los videos ("+(D.videos.length-vis.length)+" más)"}</button>`:`<div class="sub" style="margin:0 4px 8px">No tienes videos asignados para editar: aquí ves todos.</div>`;
+  h+=`<div class="sub" style="margin:0 4px 8px">${vis.length} video${vis.length==1?"":"s"} · ${D.nM} de ${D.nT} momentos con material en total · ${D.nP} planos grabados</div>
+    <input id="monq" class="monq" type="search" placeholder="🔎 Buscar serial, plano o palabra" value="${esc(monQ)}" autocomplete="off" autocapitalize="off" enterkeyhint="search">
+    <div class="fila2" style="margin:8px 0 10px"><button data-sabana="1">📤 Compartir</button><button data-csv="1">⬇️ Descargar CSV</button></div>`;
+  if(!vis.length) h+=`<div class="empty">Todavía no hay videos para mostrar.</div>`;
+  vis.forEach(V=>{
+    h+=`<div class="ccard" data-sabv="${esc(V.v)}"><div class="fila"><strong>${esc(V.v)} · ${esc(V.nombre)}</strong><span class="n">${V.listos}/${V.mom.length} listos</span></div>
+      <div class="sub"><b>${ESTADO_MON[V.estado]}</b>${V.nReg?` · 🔁 ${V.nReg} por regrabar`:""}</div>
       <div class="sub">🎥 ${V.vg.length?esc(listaNombres(V.vg,true)):"sin asignar"} · ✂️ ${V.ed.length?esc(listaNombres(V.ed,true)):"sin asignar"}</div>`;
     V.mom.forEach(m=>{
       h+=`<div class="sab-m"><div class="fila"><strong>Momento ${esc(m.n)}${m.dur?" · "+esc(m.dur):""}</strong><span class="n">${m.listo?"✓ listo"+(m.lq?" · "+esc(m.lq):""):(m.tiene?"en curso":"sin material")}</span></div>`;
+      if(m.voz) h+=`<div class="sub">🎙 ${esc(String(m.voz).replace(/\s*\n\s*/g," · "))}</div>`;
       if(m.tiene){
-        if(m.voz) h+=`<div class="sub">🎙 ${esc(String(m.voz).replace(/\s*\n\s*/g," · "))}</div>`;
         m.gr.forEach(i=>{ h+=`<div class="sab-p">✓ ${esc(i.t)}${i.extra?" <em>[extra]</em>":""}${i.gen?" <em>[genérico]</em>":""}${i.q?` <span class="n">— ${esc(i.q)}${i.h?", "+esc(i.h):""}</span>`:""}</div>`; });
         m.ya.forEach(t=>{ h+=`<div class="sab-p">● ${esc(t)} <em>[ya existía]</em></div>`; });
         m.ed.forEach(t=>{ h+=`<div class="sab-p">● ${esc(t)} <em>[en edición]</em></div>`; });
-        if(m.seriales) h+=`<div class="sab-s"><b>Seriales</b> ${esc(String(m.seriales).replace(/\s*\n\s*/g," · "))}</div>`;
+        if(m.seriales){ const ser=String(m.seriales).replace(/\s*\n\s*/g," · "); h+=`<div class="sab-ser"><b>Seriales</b><span>${esc(ser)}</span><button data-copiar="${esc(ser)}">Copiar</button></div>`; }
         if(m.nota) h+=`<div class="sab-s"><b>Nota</b> ${esc(String(m.nota).replace(/\s*\n\s*/g," · "))}</div>`;
       }
-      h+=`</div>`;
+      if(m.notaMon) h+=`<div class="sab-s"><b>✂️ Montaje</b> ${esc(m.notaMon)}</div>`;
+      if(m.regraba) h+=`<div class="sab-reg">🔁 <b>Regrabar:</b> ${esc(m.regraba)} <button data-monreg0="${esc(m.id)}">✓ Ya regrabado</button></div>`;
+      h+=`<div class="sab-acc"><button data-monota="${esc(m.id)}">✂️ ${m.notaMon?"Editar nota":"Nota de montaje"}</button>${m.regraba?"":`<button data-monreg="${esc(m.id)}">🔁 Pedir regrabación</button>`}</div></div>`;
     });
     h+=`</div>`;
   });
   return h+footHTML(false);
+}
+function aplicarBusquedaMon(){
+  const q=norm(monQ||"");
+  document.querySelectorAll("[data-sabv]").forEach(c=>{
+    const tit=norm((c.querySelector(".fila strong")||{}).textContent||""), tOk=!q||tit.includes(q); let alguno=false;
+    c.querySelectorAll(".sab-m").forEach(m=>{ const ok=tOk||norm(m.textContent).includes(q); m.hidden=!ok; if(ok) alguno=true; });
+    c.hidden=!!q&&!alguno;
+  });
+}
+function csvSabana(){
+  const D=sabanaDatos(true), f=[["Video","Nombre","Grabación","Edición","Estado del video","Momento","Duración","Voz en off","Plano","Tipo","Grabó","Hora","Seriales","Nota del equipo","Nota de montaje","Regrabar","Momento listo"]];
+  D.videos.forEach(V=>V.mom.forEach(m=>{
+    const base=[V.v,V.nombre,V.vg.join(" y "),V.ed.join(" y "),ESTADO_MON[V.estado].replace(/^\S+\s/,""),m.n,m.dur,m.voz.replace(/\s*\n\s*/g," · ")], fin=[m.seriales.replace(/\s*\n\s*/g," · "),m.nota.replace(/\s*\n\s*/g," · "),m.notaMon,m.regraba,m.listo?"Sí":"No"];
+    const pl=[...m.gr.map(i=>[i.t,i.extra?"Extra":(i.gen?"Genérico":"Grabado"),i.q,i.h]),...m.ya.map(t=>[t,"Ya existía","",""]),...m.ed.map(t=>[t,"En edición","",""])];
+    if(!pl.length) f.push([...base,"","","","",...fin]); else pl.forEach((x,k)=>f.push([...base,...x,...(k?["","","","",""]:fin)]));
+  }));
+  return "\ufeff"+f.map(r=>r.map(c=>'"'+String(c==null?"":c).replace(/"/g,'""')+'"').join(",")).join("\r\n");
+}
+async function descargarCSV(){
+  const nombre="sabana-edicion-"+new Date().toISOString().slice(0,10)+".csv", blob=new Blob([csvSabana()],{type:"text/csv;charset=utf-8"});
+  try{ const file=new File([blob],nombre,{type:"text/csv"}); if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:"Sábana de edición"}); return; } }catch(e){ if(e.name=="AbortError") return; }
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=nombre; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1500); toast("CSV descargado");
 }
 async function compartirSabana(){
   const txt=sabanaMontaje(); if(!txt){ toast("Aún no hay nada grabado para compartir"); return; }
@@ -1767,6 +1825,7 @@ async function compartirSabana(){
   try{ await navigator.clipboard.writeText(txt); toast("Sábana de edición copiada"); }catch(e){ toast("No se pudo copiar"); }
 }
 document.getElementById("btnShare").addEventListener("click",compartirSabana);
+document.addEventListener("input",ev=>{ if(ev.target&&ev.target.id=="monq"){ monQ=ev.target.value; aplicarBusquedaMon(); } });
 (function(){ const el=document.getElementById("toast"); if(!el) return; let y0=0,d=0;
   el.addEventListener("touchstart",ev=>{ ev.stopPropagation(); y0=ev.touches[0].clientY; d=0; el.style.transition="none"; },{passive:true});
   el.addEventListener("touchmove",ev=>{ ev.stopPropagation(); d=Math.max(0,ev.touches[0].clientY-y0); el.style.transform="translateX(-50%) translateY("+d+"px)"; },{passive:true});
