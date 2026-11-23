@@ -156,6 +156,12 @@ html[data-skin="aurora"] .mom.cubierto .mn{background:linear-gradient(90deg,#6a4
 .yabtn{display:block;margin:2px 0 0;border:0;background:none;padding:8px 2px;font-size:14px;font-weight:700;color:var(--ok);cursor:pointer}
 .mom textarea{margin-top:8px;min-height:44px;resize:none;overflow:hidden}
 .listo{margin-top:12px}
+.finbtn{display:block;width:100%;margin-top:10px;min-height:44px;border:1.5px solid #c0392b;background:transparent;color:#c0392b;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer}
+.finov{position:fixed;inset:0;z-index:97;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;padding:16px}
+.finsheet{width:100%;max-width:520px;background:var(--card,#fff);color:var(--ink);border-radius:18px;padding:18px 16px calc(16px + env(safe-area-inset-bottom))}
+.finsheet h2{margin:0 0 8px;font-size:19px}.fincuerpo{font-size:15px;line-height:1.45;opacity:.92}
+.finbtns{display:flex;gap:8px;margin-top:16px}.finbtns button{flex:1;min-height:48px;border-radius:12px;border:0;font-size:15px;font-weight:800;cursor:pointer}
+.finno{background:var(--line,#ddd);color:var(--ink)}.finok{background:#c0392b;color:#fff}
 .vtit{display:block;width:100%;margin:0 0 4px;padding:4px 6px;background:none;border:0;text-align:center;font-size:18px;font-weight:800;cursor:pointer}
 .vtit span{color:var(--muted)}
 .desp{margin:0 4px 10px;padding:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;max-height:55vh;overflow-y:auto}
@@ -604,7 +610,7 @@ const EQUIPO = ["Valentina Hoyos","Alejandra Rivera","Jorge Girón","Juan David"
    cola:    eventos por enviar (se guardan hasta que haya señal) */
 const base = JSON.parse(document.getElementById("datos-base").textContent);
 const DEF = () => ({formato:2,modo:"inicio",serie:null,pos:null,avanceTotal:false,videoActual:null,notas:{},marcas:{},custom:{},nuevos:{},keys:null,sig:null,data:null,filtro:"Todos",ocultar:false,abiertas:{},
-  persona:null,asig:{},aj:{},cola:[],borrados:{},pin:"",vista:"plan",vistoEn:0,adoptado:false,sub:null,avisosNo:false,avisosOk:false,deHoja:false});
+  persona:null,asig:{},aj:{},finv:{},cola:[],borrados:{},pin:"",vista:"plan",vistoEn:0,adoptado:false,sub:null,avisosNo:false,avisosOk:false,deHoja:false});
 let st = cargar();
 
 function cargar(){
@@ -668,7 +674,11 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">"
 function firma(d){ return JSON.stringify(d.momentos.map(m=>[m.id,m.nombre,m.momento,m.voz,m.duracion,m.total,m.yaHay,m.editados,m.planos])); }
 /* «Nuevo» solo para planos propuestos que aparecen en la hoja; los que vienen de «Plano del guion» entran sin etiqueta (son opciones extra, no una lista nueva). */
 function todasLlaves(d){ const k=[]; d.momentos.forEach(m=>{ const gu=new Set(m.guion||[]); m.planos.forEach(p=>{ if(!gu.has(p)) k.push(llave(m.id,p)); }); }); return k; }
-const momento = id => data.momentos.find(m=>m.id==id);
+/* Videos borrados del plan de rodaje («finalizado::<video>» = 1): se ocultan en todo el equipo y la Sheet recibe una X en «Grabaciones finalizadas».
+   Si el video vuelve a venir en la lista de la Sheet (le quitaron la X) y el evento ya está sincronizado, se «libera» (st.finv) y reaparece. */
+const finalizado = v => { const a=st.aj["finalizado::"+v]; return !!a && a.v=="1" && !((st.finv||{})[v]>=a.ts); };
+const momV = () => data.momentos.filter(m=>!finalizado(m.video));
+const momento = id => momV().find(m=>m.id==id);
 
 /* ===== Buscar actualización ===== */
 let buscando=false;
@@ -725,6 +735,8 @@ function aplicar(nueva, manual){
     aviso={version:nueva.version, agregados:agregados.length, quitados:quitados.length};
     toast("Lista actualizada");
   }
+  Object.keys(st.aj).forEach(kk=>{ if(!kk.startsWith("finalizado::")) return; const a=st.aj[kk], v=kk.slice(12);
+    if(a.v=="1" && !st.cola.length && Date.now()-a.ts>120000 && (nueva.momentos||[]).some(m=>m.video==v)) (st.finv ||= {})[v]=a.ts; });
   data=nueva; st.data=nueva; st.sig=sig; st.keys=k; guardar(); render();
 }
 
@@ -733,7 +745,7 @@ function aplicar(nueva, manual){
 function aplicarEv(ev){
   const id=ev.id;
   /* Responsables (asignar) y ajustes: solo los define Control. Lo que llegue de cualquier otra persona se ignora. */
-  if((ev.tipo=="asignar"||ev.tipo=="ajuste") && ev.ts>1795375000000 && String(ev.quien||"").trim()!="Control") return false;   // (1795375000000 = 22-nov-2026 14:16 Bogotá: lo anterior se respeta tal cual)
+  if((ev.tipo=="asignar"||ev.tipo=="ajuste") && ev.ts>1795375000000 && String(ev.quien||"").trim()!="Control" && !(ev.tipo=="ajuste" && String(id).startsWith("finalizado::"))) return false;   // (1795375000000 = 22-nov-2026 14:16 Bogotá: lo anterior se respeta tal cual)
   if(ev.tipo=="marcar"||ev.tipo=="desmarcar"){
     const m=st.marcas[id]; if(m && m.ts>=ev.ts) return false;
     st.marcas[id]={h:ev.tipo=="marcar"?1:0, ts:ev.ts, q:ev.quien||null}; if(id.startsWith("gen::")) st.marcas[id].t=ev.texto||"";
@@ -794,10 +806,10 @@ function calcRes(){ RES={}; (data.momentos||[]).forEach(m=>{ if(m.color && /^#[0
 /* Con videos resaltados en el Sheet, los demás se ocultan por defecto (botón «Ver todos los videos»). Los videos asignados a esta persona siempre se ven. */
 /* Cada persona ve solo los videos que tiene designados (grabar o editar). Con «Ver todos los videos» ve la lista completa. */
 const esMio = v => !!st.persona && (vgs(v).includes(st.persona) || egs(v).includes(st.persona));
-const tieneMios = () => !esControl() && !!st.persona && data.momentos.some(m=>esMio(m.video));
+const tieneMios = () => !esControl() && !!st.persona && momV().some(m=>esMio(m.video));
 const soloMios = () => tieneMios() && !st.verTodos;
-const MOMS = () => { const ms=data.momentos; if(soloMios()) return ms.filter(m=>esMio(m.video)); if(!HAY||st.verTodos||!soloRes()) return ms; return ms.filter(m=>RES[m.video]||(!esControl()&&vgs(m.video).includes(st.persona))); };
-const ocultosN = () => !st.verTodos&&(soloMios()||(HAY&&soloRes())) ? new Set(data.momentos.map(m=>m.video)).size-new Set(MOMS().map(m=>m.video)).size : 0;
+const MOMS = () => { const ms=momV(); if(soloMios()) return ms.filter(m=>esMio(m.video)); if(!HAY||st.verTodos||!soloRes()) return ms; return ms.filter(m=>RES[m.video]||(!esControl()&&vgs(m.video).includes(st.persona))); };
+const ocultosN = () => !st.verTodos&&(soloMios()||(HAY&&soloRes())) ? new Set(momV().map(m=>m.video)).size-new Set(MOMS().map(m=>m.video)).size : 0;
 const dueno = v => { let s=""; if(!esControl()){ const a=vgs(v); if(a.length) s=a.includes(st.persona)?" mio":" ajeno"; }
   if(HAY){ if(RES[v]) s+=" resalt rc-"+RES[v].slice(1); else if(s.indexOf("mio")<0) s+=" opaco"; }
   return s; };
@@ -823,6 +835,28 @@ function guardarNota(id,tipo,texto){
   const pb=document.getElementById("pend"); pb.hidden=!st.cola.length; pb.textContent=st.cola.length;
   if(equipoActivo()) empujar();
 }
+const videoCompleto = v => { const ms=momV().filter(m=>m.video==v); return ms.length>0 && ms.every(m=>hecho(listoK(m.id))); };
+function dialogoFin(titulo, cuerpo, okTxt, noTxt, alOk){
+  const old=document.getElementById("finov"); if(old) old.remove();
+  const o=document.createElement("div"); o.id="finov"; o.className="finov";
+  o.innerHTML=`<div class="finsheet" role="alertdialog" aria-modal="true"><h2>${titulo}</h2><div class="fincuerpo">${cuerpo}</div><div class="finbtns"><button class="finno">${esc(noTxt)}</button><button class="finok">${esc(okTxt)}</button></div></div>`;
+  document.body.appendChild(o);
+  o.addEventListener("click",ev=>{ if(ev.target===o||ev.target.classList.contains("finno")) o.remove(); else if(ev.target.classList.contains("finok")){ o.remove(); alOk(); } });
+}
+function borrarVideo(v){
+  let ts=Date.now(); const a=st.aj["finalizado::"+v]; if(a && a.ts>=ts) ts=a.ts+1;
+  const ev={evid:uid(), ts, quien:esControl()?"Control":(st.persona||null), tipo:"ajuste", id:"finalizado::"+v, escena:v, texto:"1"};
+  aplicarEv(ev); if(equipoActivo()) st.cola.push(ev);
+  const rest=MOMS(); if(!rest.some(m=>m.id==st.pos)){ st.pos=rest.length?rest[0].id:null; st.videoActual=rest.length?rest[0].video:null; }
+  guardar(); render(); window.scrollTo(0,0); if(equipoActivo()) empujar();
+  toast("🗑 Video "+v+" borrado del plan de rodaje");
+}
+function preguntarBorrar(v, alTerminar){
+  const ms=momV().filter(x=>x.video==v), nom=(ms[0]||{}).nombre||"";
+  if(!(esControl()||puedeEditar(v))){ sinPermiso(v); return; }
+  if(alTerminar) dialogoFin("🎬 ¡Video terminado!", `Marcaste listos todos los momentos de <b>${esc(v)} · ${esc(nom)}</b>.<br><br>¿Quieres <b>borrar este video del plan de rodaje</b>? Desaparece de la lista de todo el equipo y la Sheet lo marca con una X en «Grabaciones finalizadas». Los planos marcados, seriales y notas se conservan.`, "Borrar del plan de rodaje", "Dejarlo por ahora", ()=>borrarVideo(v));
+  else dialogoFin("⚠️ ¿Seguro que quieres borrar este video?", `<b>${esc(v)} · ${esc(nom)}</b> va a desaparecer del plan de rodaje <b>de todo el equipo</b>, no solo de tu teléfono.<br><br>La Sheet lo marcará con una X en «Grabaciones finalizadas». No se pierden los planos marcados, los seriales ni las notas. Para volver a mostrarlo hay que quitar esa X en la Sheet.`, "Sí, borrar el video", "Cancelar", ()=>borrarVideo(v));
+}
 function registrar(tipo,id,escena,texto){
   { const v=((momento(escena)||{}).video)||String(escena).split("/")[0]; if(!puedeEditar(v)){ sinPermiso(v); return; } }
   let ts=Date.now(); const m=st.marcas[id]; if(m && m.ts>=ts) ts=m.ts+1;
@@ -834,7 +868,7 @@ function registrar(tipo,id,escena,texto){
 /* Lo que ya estaba marcado/agregado en este teléfono antes de elegir nombre pasa a ser de esa persona y se envía. */
 function adoptar(){
   if(st.adoptado||!st.persona) return;
-  const info={}; data.momentos.forEach(e=>e.planos.forEach(p=>info[llave(e.id,p)]={e:e.id,t:p}));
+  const info={}; momV().forEach(e=>e.planos.forEach(p=>info[llave(e.id,p)]={e:e.id,t:p}));
   for(const e in st.custom) st.custom[e].forEach(c=>{
     info[e+"::mio::"+c.id]={e,t:c.t};
     if(!c.q){ c.q=st.persona; c.ts=c.ts||Date.now();
@@ -1041,18 +1075,18 @@ function footHTML(plan){
     `<div class="sub" style="text-align:center;margin-top:6px">${VERS?"Versión instalada: "+esc(VERS):"Versión: sin copia guardada"}</div></div>`;
 }
 /* Premisa del video (columna «Premisa» del Sheet, en cualquiera de sus filas) y planos genéricos (fila «Planos genéricos» al final del Sheet). */
-const porAsignarSheet = () => [...new Set(data.momentos.map(m=>m.video))].map(v=>{ const g=miembros(respDe(v)).join("|"), e=miembros(edDe(v)).join("|");
+const porAsignarSheet = () => [...new Set(momV().map(m=>m.video))].map(v=>{ const g=miembros(respDe(v)).join("|"), e=miembros(edDe(v)).join("|");
   return { v, g: g&&g!==videografo(v)?g:"", e: e&&e!==egs(v).join("|")?e:null }; }).filter(x=>x.g||x.e!=null);
-const edDe = v => { const m=data.momentos.find(x=>x.video==v&&x.editor); return m?m.editor:""; };   // «Editor» del Sheet
-const respDe = v => { const m=data.momentos.find(x=>x.video==v&&x.responsable); return m?m.responsable:""; };
+const edDe = v => { const m=momV().find(x=>x.video==v&&x.editor); return m?m.editor:""; };   // «Editor» del Sheet
+const respDe = v => { const m=momV().find(x=>x.video==v&&x.responsable); return m?m.responsable:""; };
 /* Nombres del equipo que menciona la columna «Responsable» (por el primer nombre: «Alejandra» → Alejandra Rivera). «Juan David - PILOTO» no está en el equipo: se ignora. */
 const miembros = txt => { const out=[]; String(txt||"").split(/[,;\/+&]|\sy\s/i).forEach(p=>{ const f=norm(p.trim()).split(" ")[0]; if(!f) return; const n=equipo().find(e=>norm(e).split(" ")[0]==f); if(n && !out.includes(n)) out.push(n); }); return out; };
-const premisaDe = v => { const m=data.momentos.find(x=>x.video==v&&x.premisa); return m?m.premisa:""; };
+const premisaDe = v => { const m=momV().find(x=>x.video==v&&x.premisa); return m?m.premisa:""; };
 /* ===== Planos genéricos: cada toma grabada de un plano genérico cubre UN plano parecido de algún video.
    Toma = marca «gen::<id del genérico>::<id de toma>» con texto = llave del plano que cubre. Al terminar los parecidos, ya no sale otro cuadro. ===== */
 function calcGen(){
   GENC={}; PK={};
-  (data.momentos||[]).forEach(m=>planosDe(m).forEach(i=>{ PK[i.k]={m,i}; }));
+  (momV()||[]).forEach(m=>planosDe(m).forEach(i=>{ PK[i.k]={m,i}; }));
   for(const k in st.marcas){ if(!k.startsWith("gen::")) continue; const x=st.marcas[k]; if(x.h && x.t && PK[x.t]) GENC[x.t]={h:1,ts:x.ts,q:x.q,gen:k}; }
 }
 const STOP=new Set("de la el en un una unos unas que con y a los las del al se su sus por para o sobre entre mientras sin muy mas solo como cuando desde hasta lo le les es son esta este esto estos estas ya hay".split(" "));
@@ -1096,7 +1130,7 @@ function htmlGenericos(){
 }
 const esc_ctl = () => esControl();
 function abrirPremisa(v){
-  const m=data.momentos.find(x=>x.video==v), t=premisaDe(v); if(!m) return;
+  const m=momV().find(x=>x.video==v), t=premisaDe(v); if(!m) return;
   let el=document.getElementById("pmover"); if(el) el.remove();
   el=document.createElement("div"); el.id="pmover"; el.className="pm-over";
   el.innerHTML=`<div class="pm-card" role="dialog" aria-label="Premisa del video"><h3>📌 Premisa · ${esc(v)} · ${esc(m.nombre)}</h3>${t?`<p>${esc(t).replace(/\n/g,"<br>")}</p>`:`<p class="vacio">Este video todavía no tiene premisa.</p>`}<button id="cerrarPremisa">Cerrar</button></div>`;
@@ -1130,14 +1164,15 @@ function htmlMomento(m){
     ${nota("seriales","Seriales de video")}
     ${nota("comentario","Comentarios")}
     ${`<button class="listo" data-listo="${esc(m.id)}" aria-pressed="${listo}"${bl?" disabled":""}>${bl?"🔒 Bloqueado":listo?"✓ Momento listo"+(lm?" · "+esc(hora(lm.ts)):""):"Marcar momento listo"}</button>`}
+    ${videoCompleto(m.video)&&!bl?`<button class="finbtn" data-finvideo="${esc(m.video)}">🗑 Borrar video terminado</button>`:""}
     <div class="fin"></div></article>`;
 }
 /* Lo que le toca a esta persona: videos para grabar (videógrafo) y para editar (editor). */
 function misVideos(){
   if(esControl()||!st.persona) return {g:[],e:[]};
-  const vs=[...new Set(data.momentos.map(m=>m.video))], nom=v=>(data.momentos.find(m=>m.video==v)||{}).nombre||"";
+  const vs=[...new Set(momV().map(m=>m.video))], nom=v=>(momV().find(m=>m.video==v)||{}).nombre||"";
   const g=vs.filter(v=>vgs(v).includes(st.persona)).map(v=>({v,nombre:nom(v),c:conteos(v)}));
-  const e=vs.filter(v=>egs(v).includes(st.persona)).map(v=>{ const ms=data.momentos.filter(m=>m.video==v); return {v,nombre:nom(v),mT:ms.length,mH:ms.filter(m=>hecho(listoK(m.id))).length}; });
+  const e=vs.filter(v=>egs(v).includes(st.persona)).map(v=>{ const ms=momV().filter(m=>m.video==v); return {v,nombre:nom(v),mT:ms.length,mH:ms.filter(m=>hecho(listoK(m.id))).length}; });
   return {g,e};
 }
 function htmlMisVideos(){
@@ -1270,7 +1305,7 @@ let autoIntentado=false;
 function intentoAuto(){ if(autoIntentado || st.avisosNo || estadoAvisos()!="pendiente") return; autoIntentado=true; activarAvisos(); }
 document.addEventListener("click",ev=>{
   if(!ev.target.closest("[data-avisos],[data-avisosno],[data-avisosok],#modal")) intentoAuto();
-  const t=ev.target.closest("[data-vgen],[data-nuevou],[data-ctlver],[data-ctlaj],[data-ocres],[data-edv],[data-asv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-vertodos],[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,#cerrarAviso,#reset,#toggleOcultar,#tsonido,#tcam,[data-avisosok]"); if(!t) return;
+  const t=ev.target.closest("[data-finvideo],[data-vgen],[data-nuevou],[data-ctlver],[data-ctlaj],[data-ocres],[data-edv],[data-asv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-vertodos],[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,#cerrarAviso,#reset,#toggleOcultar,#tsonido,#tcam,[data-avisosok]"); if(!t) return;
   if(t.dataset.toggle){ const id=t.dataset.toggle; st.abiertas[id]=!st.abiertas[id]; if(st.abiertas[id]) st.videoActual=id; guardar(); pintarAvance();
     t.parentElement.classList.toggle("open",st.abiertas[id]); t.setAttribute("aria-expanded",st.abiertas[id]); return; }
   if(t.id=='avance'){ st.avanceTotal=!st.avanceTotal; guardar(); render(); return; }
@@ -1295,7 +1330,8 @@ document.addEventListener("click",ev=>{
   if(t.dataset.persona){ st.persona=t.dataset.persona; data=st.data||base; cambiando=false; adoptar(); guardar(); render(); intentoAuto(); sincEquipo(true); return; }
   if(t.dataset.ir){ const id=t.dataset.ir, m=momento(id); st.vista="plan"; st.filtro="Todos"; st.modo="uno"; st.pos=id; if(m) st.abiertas[m.video]=true; document.getElementById("buscar").value=""; guardar(); render();
     const el=document.querySelector(`[data-id="${CSS.escape(id)}"]`); if(el) el.scrollIntoView({block:"start"}); return; }
-  if(t.dataset.listo){ const id=t.dataset.listo; registrar(hecho(listoK(id))?"desmarcar":"marcar", listoK(id), id, "Momento listo"); return; }
+  if(t.dataset.finvideo){ preguntarBorrar(t.dataset.finvideo,false); return; }
+  if(t.dataset.listo){ const id=t.dataset.listo, marcando=!hecho(listoK(id)); registrar(marcando?"marcar":"desmarcar", listoK(id), id, "Momento listo"); const v=(momento(id)||{}).video; if(marcando && v && hecho(listoK(id)) && videoCompleto(v) && !finalizado(v)) setTimeout(()=>preguntarBorrar(v,true),450); return; }
   if(t.dataset.addbtn){ const id=t.dataset.addbtn; st.abiertas["a:"+id]=!st.abiertas["a:"+id]; guardar(); render(); const el=document.querySelector(`[data-add="${CSS.escape(id)}"] input`); if(el) el.focus(); return; }
   if(t.dataset.del){
     const c=(st.custom[t.dataset.del]||[]).find(x=>x.id==t.dataset.cid);
@@ -1355,9 +1391,9 @@ function marcarCam(m,silencio){
   else { const cid=uid(), t="Plano grabado con la cámara"; registrar("agregar",cid,m.id,t); registrar("marcar",m.id+"::mio::"+cid,m.id,t); if(!silencio) toast("🎥 Plano extra agregado y marcado · "+loc,4000); }
 }
 function elegirMomentoCam(files){
-  const vids=[...new Set(data.momentos.map(m=>m.video))], pk=document.createElement("div"); pk.id="recpick";
-  const optM=v=>data.momentos.filter(m=>m.video==v).map(m=>`<option value="${esc(m.id)}">Momento ${esc(m.momento)} · ${esc(cortar(m.voz||"",45))}</option>`).join("");
-  pk.innerHTML=`<div class="sheet" role="dialog" aria-modal="true"><h2>🎥 ¿De qué video y momento es?</h2><p>No estás dentro de un video. Elige dónde marcar el plano que acabas de grabar.</p><select id="recv">${vids.map(v=>`<option value="${esc(v)}">${esc(v)} · ${esc((data.momentos.find(m=>m.video==v)||{}).nombre||"")}</option>`).join("")}</select><select id="recm">${optM(vids[0])}</select><div class="fila2"><button id="recno">Cancelar</button><button class="ok" id="recok">Marcar plano</button></div></div>`;
+  const vids=[...new Set(momV().map(m=>m.video))], pk=document.createElement("div"); pk.id="recpick";
+  const optM=v=>momV().filter(m=>m.video==v).map(m=>`<option value="${esc(m.id)}">Momento ${esc(m.momento)} · ${esc(cortar(m.voz||"",45))}</option>`).join("");
+  pk.innerHTML=`<div class="sheet" role="dialog" aria-modal="true"><h2>🎥 ¿De qué video y momento es?</h2><p>No estás dentro de un video. Elige dónde marcar el plano que acabas de grabar.</p><select id="recv">${vids.map(v=>`<option value="${esc(v)}">${esc(v)} · ${esc((momV().find(m=>m.video==v)||{}).nombre||"")}</option>`).join("")}</select><select id="recm">${optM(vids[0])}</select><div class="fila2"><button id="recno">Cancelar</button><button class="ok" id="recok">Marcar plano</button></div></div>`;
   document.body.appendChild(pk);
   const sv=pk.querySelector("#recv"), sm=pk.querySelector("#recm");
   sv.onchange=()=>{ sm.innerHTML=optM(sv.value); };
@@ -1649,7 +1685,7 @@ function efecto(nivel){ sonar(nivel); vibrar(nivel); }
 /* Video completo / todo lo planeado: todos los planos necesarios de cada momento están grabados. */
 let logrosPrev=null;
 function estadoLogros(){
-  const pv={}; data.momentos.forEach(m=>{ const it=planosDe(m), n=it.filter(i=>hecho(i.k)).length, nc=necesarios(durDe(m)), t=nc!=null?nc:it.length, h=Math.min(n,t), x=(pv[m.video] ||= {t:0,h:0}); x.t+=t; x.h+=h; });
+  const pv={}; momV().forEach(m=>{ const it=planosDe(m), n=it.filter(i=>hecho(i.k)).length, nc=necesarios(durDe(m)), t=nc!=null?nc:it.length, h=Math.min(n,t), x=(pv[m.video] ||= {t:0,h:0}); x.t+=t; x.h+=h; });
   const vids=new Set(Object.keys(pv).filter(v=>pv[v].t>0&&pv[v].h>=pv[v].t));
   return {vids, todo: Object.keys(pv).length>0 && vids.size==Object.keys(pv).length};
 }
@@ -1658,7 +1694,7 @@ function revisarLogros(marcando){
   if(!p||!marcando) return false;
   if(e.todo && !p.todo){ efecto(4); logro(4,"🏆 ¡Todo lo planeado está grabado!","Todos los videos tienen sus planos. ¡Gracias, equipo!"); return true; }
   const nv=[...e.vids].filter(v=>!p.vids.has(v));
-  if(nv.length){ const v=nv[0], nom=(data.momentos.find(m=>m.video==v)||{}).nombre||""; efecto(3); logro(3,"🎬 Video "+v+" completo",nom+" · todos sus momentos tienen planos suficientes"); return true; }
+  if(nv.length){ const v=nv[0], nom=(momV().find(m=>m.video==v)||{}).nombre||""; efecto(3); logro(3,"🎬 Video "+v+" completo",nom+" · todos sus momentos tienen planos suficientes"); return true; }
   return false;
 }
 function logro(nivel,tit,sub){
