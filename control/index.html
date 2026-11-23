@@ -161,6 +161,7 @@ html{touch-action:pan-y pinch-zoom}
 .intro{margin-top:10px;padding:16px 16px 14px;border:2px solid var(--accent);border-radius:18px;background:var(--card)}
 .intro .ik{margin:0 0 4px;font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.7}
 .intro .itit{margin:0 0 10px;font-size:22px;line-height:1.2}.intro .inum{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--accent);color:var(--on-accent,#fff);font-size:15px;vertical-align:middle;margin-right:4px}
+.intro .itexto{margin:0 0 12px;font-size:15px;line-height:1.5}
 .intro .isent{margin:0 0 12px;padding:9px 12px;border-left:4px solid var(--accent);border-radius:4px 10px 10px 4px;background:color-mix(in srgb,var(--accent) 10%,transparent);font-size:16px;line-height:1.4;font-weight:600}
 .intro .ilista{margin:0 0 12px;padding-left:20px;font-size:16.5px;line-height:1.5}.intro .ilista li{margin:0 0 8px}
 .intro .isonido{display:flex;flex-direction:column;gap:3px;margin:12px 0 8px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--accent) 13%,transparent);font-size:14.5px;line-height:1.4}
@@ -1274,7 +1275,7 @@ function htmlIntro(v){
   return `<article class="intro" data-intro="${esc(v)}">
     <p class="ik">🎬 Resumen visual</p>
     <h2 class="itit"><span class="inum">${esc(v)}</span> ${esc(nom)}</h2>
-    ${sent.length?`<p class="isent">${sent.map(esc).join("<br>")}</p>`:""}
+    ${sent.length?`<p class="isent">${esc(sent[0])}</p>`:""}${sent.length>1?`<p class="itexto">${sent.slice(1).map(esc).join("<br>")}</p>`:""}
     ${lin.length?`<ul class="ilista">${lin.map(l=>`<li>${esc(l)}</li>`).join("")}</ul>`:(sent.length?"":`<p class="info">Este video todavía no tiene resumen visual en la Sheet.</p>`)}
     <div class="isonido"><b>🔊 El sonido importa</b><span>Cada plano también se oye: graba con audio limpio, sin viento ni voces encima, y deja unos segundos de ambiente. Un buen plano con mal sonido se paga en edición.</span></div>
     <p class="imeta">${ms.length} momento${ms.length==1?"":"s"} · ${c.pT} planos · desliza o toca «Siguiente» para empezar</p>
