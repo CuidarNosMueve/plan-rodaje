@@ -688,7 +688,9 @@ function todasLlaves(d){ const k=[]; d.momentos.forEach(m=>{ const gu=new Set(m.
 /* Videos borrados del plan de rodaje («finalizado::<video>» = 1): se ocultan en todo el equipo y la Sheet recibe una X en «Grabaciones finalizadas».
    Si el video vuelve a venir en la lista de la Sheet (le quitaron la X) y el evento ya está sincronizado, se «libera» (st.finv) y reaparece. */
 const finalizado = v => { const a=st.aj["finalizado::"+v]; return !!a && a.v=="1" && !((st.finv||{})[v]>=a.ts); };
-const momV = () => data.momentos.filter(m=>!finalizado(m.video));
+/* Videos ocultos («oculto::<video>» = 1, lo pone Control): no salen en la app del equipo; Control los ve con «Mostrar todos los videos». */
+const ocultoV = v => { const a=st.aj["oculto::"+v]; return !!a && a.v=="1"; };
+const momV = () => data.momentos.filter(m=>!finalizado(m.video) && (!ocultoV(m.video) || (esControl() && !!st.ctlTodos)));
 const momento = id => momV().find(m=>m.id==id);
 
 /* ===== Buscar actualización ===== */
@@ -1338,7 +1340,7 @@ let autoIntentado=false;
 function intentoAuto(){ if(autoIntentado || st.avisosNo || estadoAvisos()!="pendiente") return; autoIntentado=true; activarAvisos(); }
 document.addEventListener("click",ev=>{
   if(!ev.target.closest("[data-avisos],[data-avisosno],[data-avisosok],#modal")) intentoAuto();
-  const t=ev.target.closest("[data-finvideo],[data-vgen],[data-nuevou],[data-ctlver],[data-ctlaj],[data-ocres],[data-edv],[data-asv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-vertodos],[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,#cerrarAviso,#reset,#toggleOcultar,#tsonido,#tcam,[data-avisosok]"); if(!t) return;
+  const t=ev.target.closest("[data-finvideo],[data-vgen],[data-nuevou],[data-ctlver],[data-ctltodos],[data-ocv],[data-ctlaj],[data-ocres],[data-edv],[data-asv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-vertodos],[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,#cerrarAviso,#reset,#toggleOcultar,#tsonido,#tcam,[data-avisosok]"); if(!t) return;
   if(t.dataset.toggle){ const id=t.dataset.toggle; st.abiertas[id]=!st.abiertas[id]; if(st.abiertas[id]) st.videoActual=id; guardar(); pintarAvance();
     t.parentElement.classList.toggle("open",st.abiertas[id]); t.setAttribute("aria-expanded",st.abiertas[id]); return; }
   if(t.id=='avance'){ st.avanceTotal=!st.avanceTotal; guardar(); render(); return; }
