@@ -1277,6 +1277,7 @@ function htmlIntro(v){
     <h2 class="itit"><span class="inum">${esc(v)}</span> ${esc(nom)}</h2>
     ${sent.length?`<p class="isent">${esc(sent[0])}</p>`:""}${sent.length>1?`<p class="itexto">${sent.slice(1).map(esc).join("<br>")}</p>`:""}
     ${lin.length?`<ul class="ilista">${lin.map(l=>`<li>${esc(l)}</li>`).join("")}</ul>`:(sent.length?"":`<p class="info">Este video todavía no tiene resumen visual en la Sheet.</p>`)}
+    <div class="isonido iguia"><b>🧭 La planimetría es una guía</b><span>No hace falta seguirla al pie de la letra: lo que importa es encontrar la forma de expresar lo que se está hablando en cada momento. Si se te ocurre un plano mejor, grábalo.</span></div>
     <div class="isonido"><b>🔊 El sonido importa</b><span>Cada plano también se oye: graba con audio limpio, sin viento ni voces encima, y deja unos segundos de ambiente. Un buen plano con mal sonido se paga en edición.</span></div>
     <p class="imeta">${ms.length} momento${ms.length==1?"":"s"} · ${c.pT} planos · desliza o toca «Siguiente» para empezar</p>
   </article>`;
