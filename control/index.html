@@ -361,7 +361,7 @@ body.edicion .shot.ya .txt{font-weight:800}
 .mom textarea[readonly]{opacity:.7;background:var(--line)}
 .mas[hidden]{display:none}
 .vrow .vg2{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-top:2px}
-/**/.pv{margin-top:3px;font-size:13px;gap:8px;align-items:center}.pv b{font-size:14px}.pv>span:first-child{min-width:34px}.mb{flex:1;height:5px;border-radius:3px;background:rgba(128,128,128,.25);overflow:hidden;display:block}.mb>i{display:block;height:100%;background:var(--accent);border-radius:3px}.vg2fila{display:flex;gap:8px;align-items:center;margin:6px 0 2px}.vg2fila .vg{flex:1;min-width:0;margin:0}
+/**/.pv{margin-top:3px;font-size:13px;gap:8px;align-items:center}.pv b{font-size:14px}.pv>span:first-child{min-width:34px;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mb{flex:1;height:5px;border-radius:3px;background:rgba(128,128,128,.25);overflow:hidden;display:block}.mb>i{display:block;height:100%;background:var(--accent);border-radius:3px}.vg2fila{display:flex;gap:8px;align-items:center;margin:6px 0 2px}.vg2fila .vg{flex:1;min-width:0;margin:0}
 .bq{flex:none;height:36px;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:0 10px;font-size:13px;font-weight:700;cursor:pointer;color:var(--muted)}
 .bq.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .fila2{display:flex;gap:8px;margin-top:10px}.fila2 button{flex:1;height:40px;border:1px solid var(--line);background:var(--card);border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;color:var(--ink)}
@@ -738,7 +738,7 @@ function cfgSW(){
 }
 
 let data = st.data || base;
-const VER_PROG="control-v115";
+const VER_PROG="control-v116";
 let swReg=null, recargandoSW=false, VERS="", actualizandoProg=false;   // actualización del programa (ver más abajo)
 /* Usuario de prueba: ve videos FALSOS (no los del Sheet) para probar actualizaciones y avisos sin ensuciar el plan real. */
 const NOM_PRUEBA="Usuario de prueba", esPrueba=()=>st.persona===NOM_PRUEBA;
@@ -1126,7 +1126,7 @@ function conteos(v){
 }
 function pintarAvance(){
   const v=st.avanceTotal?null:videoActual(), c=conteos(v), btn=document.getElementById("avance");
-  const tv=v?((MOMS().find(x=>x.video==v)||{}).total||""):""; btn.innerHTML=`<small>${v?"Video "+esc(v)+(tv?` · <span class="vtot">${esc(tv)}</span>`:""):"Total"}</small><span class="cnts"><b id="hechos">${c.pH}</b> / <span id="total">${c.pT}</span> planos · <b id="mhechos">${c.mH}</b> / <span id="mtotal">${c.mT}</span> momentos</span>`;
+  const tv=v?((MOMS().find(x=>x.video==v)||{}).total||""):""; btn.innerHTML=`<small>${v?"Video "+esc(v)+(nomVid(v)?" · "+esc(nomVid(v)):"")+(tv?` · <span class="vtot">${esc(tv)}</span>`:""):"Total"}</small><span class="cnts"><b id="hechos">${c.pH}</b> / <span id="total">${c.pT}</span> planos · <b id="mhechos">${c.mH}</b> / <span id="mtotal">${c.mT}</span> momentos</span>`;
   pintarBarraAvance(v?"v:"+v:"total", c.pH, c.pT);
 
 }
@@ -1224,6 +1224,7 @@ function footHTML(plan){
 /* Premisa del video (columna «Premisa» del Sheet, en cualquiera de sus filas) y planos genéricos (fila «Planos genéricos» al final del Sheet). */
 const porAsignarSheet = () => [...new Set(momV().map(m=>m.video))].map(v=>{ const g=miembros(respDe(v)).join("|"), e=miembros(edDe(v)).join("|");
   return { v, g: g&&g!==videografo(v)?g:"", e: e&&e!==egs(v).join("|")?e:null }; }).filter(x=>x.g||x.e!=null);
+const nomVid = v => { const m=data.momentos.find(x=>x.video==v); return m&&m.nombre?String(m.nombre):""; };
 const edDe = v => { const m=momV().find(x=>x.video==v&&x.editor); return m?m.editor:""; };   // «Editor» del Sheet
 const respDe = v => { const m=momV().find(x=>x.video==v&&x.responsable); return m?m.responsable:""; };
 /* Nombres del equipo que menciona la columna «Responsable» (por el primer nombre: «Alejandra» → Alejandra Rivera). «Juan David - PILOTO» no está en el equipo: se ignora. */
@@ -1540,7 +1541,7 @@ function htmlControl(){
   momV().forEach(m=>planosDe(m).forEach(i=>{ const k=marcaDe(i.k); if(k&&k.h&&!i.fijo){ nTot++; nV[m.video]=(nV[m.video]||0)+1; const q=k.q=="Control"?"Administrador":(k.q||"Sin nombre"); nQ[q]=(nQ[q]||0)+1; nUlt.ts=Math.max(nUlt.ts,k.ts); } }));
   const pl=n=>n+" plano"+(n==1?"":"s");
   h+=`<div class="linea">Planos grabados</div><div class="ccard"><div class="fila"><strong>📹 ${pl(nTot)} nuevo${nTot==1?"":"s"}</strong><span class="n">sin contar los «Ya hay»</span></div><div class="sub">${nTot?"Último "+esc(hace(nUlt.ts))+" · ":""}${Object.keys(nV).length} video${Object.keys(nV).length==1?"":"s"} con planos grabados</div>
-    ${(()=>{ const cv=String((MOMS()[momActual()]||{}).video||""); if(!cv) return ""; const c=conteos(cv), t=conteos(); return `<div class="fila" style="margin-top:8px"><span>Video ${esc(cv)} (el que estás viendo)</span><span class="n">${pl(nV[cv]||0)} nuevo${(nV[cv]||0)==1?"":"s"} · ${c.pH}/${c.pT} planos</span></div><div class="fila"><span>Total del proyecto</span><span class="n">${pl(nTot)} nuevo${nTot==1?"":"s"} · ${t.pH}/${t.pT} planos</span></div>`; })()}</div>`;
+    ${(()=>{ const cv=String((MOMS()[momActual()]||{}).video||""); if(!cv) return ""; const c=conteos(cv), t=conteos(); return `<div class="fila" style="margin-top:8px"><span>Video ${esc(cv)}${nomVid(cv)?" · "+esc(nomVid(cv)):""} (el que estás viendo)</span><span class="n">${pl(nV[cv]||0)} nuevo${(nV[cv]||0)==1?"":"s"} · ${c.pH}/${c.pT} planos</span></div><div class="fila"><span>Total del proyecto</span><span class="n">${pl(nTot)} nuevo${nTot==1?"":"s"} · ${t.pH}/${t.pT} planos</span></div>`; })()}</div>`;
   const sec={}; sec.resumen=h; h="";
   const nBl=vids.filter(bloqueado).length;
   h+=`<div class="linea">Herramientas del rodaje</div><button class="expbtn" data-organizar="1" style="margin:0 0 8px">📁 Organizar los clips del rodaje (computador)</button><button class="expbtn" data-orgwin="1" style="margin:0 0 12px">🪟 Organizador automático para Windows</button><div class="linea">Ajustes</div>`;
@@ -1556,7 +1557,7 @@ function htmlControl(){
   sec.ajustes=h; h="";
   h+=`<div class="linea">Videógrafo por persona</div>`;
   equipo().forEach(n=>{ const mis=porV.filter(x=>x.vg.includes(n)&&!ocultoV(x.v)), pT=mis.reduce((a,x)=>a+x.c.pT,0), pH=mis.reduce((a,x)=>a+x.c.pH,0);
-    h+=`<div class="ccard"><div class="fila"><strong>${activoAhora(n)?"🟢 ":""}${esc(n)}</strong><span class="n">${mis.length} video${mis.length==1?"":"s"} · ${pH}/${pT} planos</span></div><div class="sub">📹 Grabó ${pl(nQ[n]||0)} nuevo${(nQ[n]||0)==1?"":"s"}</div>${pT?`<div class="bar"><i style="width:${Math.round(pH/pT*100)}%"></i></div>`:""}${mis.length?mis.map(x=>{ const g=x.c.pH; return `<div class="fila pv"><span>${esc(x.v)}</span><i class="mb"><i style="width:${x.c.pT?Math.min(100,Math.round(g/x.c.pT*100)):0}%"></i></i><span class="n"><b>${g}</b> de ${x.c.pT}</span></div>`; }).join(""):`<div class="sub">Sin videos asignados</div>`}</div>`; });
+    h+=`<div class="ccard"><div class="fila"><strong>${activoAhora(n)?"🟢 ":""}${esc(n)}</strong><span class="n">${mis.length} video${mis.length==1?"":"s"} · ${pH}/${pT} planos</span></div><div class="sub">📹 Grabó ${pl(nQ[n]||0)} nuevo${(nQ[n]||0)==1?"":"s"}</div>${pT?`<div class="bar"><i style="width:${Math.round(pH/pT*100)}%"></i></div>`:""}${mis.length?mis.map(x=>{ const g=x.c.pH; return `<div class="fila pv"><span title="${esc(x.v+" · "+nomVid(x.v))}">${esc(x.v)}${nomVid(x.v)?" · "+esc(nomVid(x.v)):""}</span><i class="mb"><i style="width:${x.c.pT?Math.min(100,Math.round(g/x.c.pT*100)):0}%"></i></i><span class="n"><b>${g}</b> de ${x.c.pT}</span></div>`; }).join(""):`<div class="sub">Sin videos asignados</div>`}</div>`; });
   h+=`<div class="linea">Edición por persona</div>`;
   equipo().forEach(n=>{ const mis=[...new Set(momV().map(m=>m.video))].filter(v=>egs(v).includes(n)&&!ocultoV(v)); h+=`<div class="ccard"><div class="fila"><strong>${esc(n)}</strong><span class="n">${mis.length} video${mis.length==1?"":"s"} para editar</span></div>${mis.length?mis.map(v=>{ const x=porV.find(y=>y.v==v), g=x?x.c.pH:0, t=x?x.c.pT:0; return `<div class="fila pv"><span>${esc(v)}</span><i class="mb"><i style="width:${t?Math.min(100,Math.round(g/t*100)):0}%"></i></i><span class="n"><b>${g}</b> de ${t}</span></div>`; }).join(""):`<div class="sub">Sin videos de edición</div>`}</div>`; });
   sec.personas=h; h="";
