@@ -702,7 +702,7 @@ function cfgSW(){
 }
 
 let data = st.data || base;
-const VER_PROG="rodaje-v111";
+const VER_PROG="rodaje-v112";
 let swReg=null, recargandoSW=false, VERS="", actualizandoProg=false;   // actualización del programa (ver más abajo)
 /* Usuario de prueba: ve videos FALSOS (no los del Sheet) para probar actualizaciones y avisos sin ensuciar el plan real. */
 const NOM_PRUEBA="Usuario de prueba", esPrueba=()=>st.persona===NOM_PRUEBA;
@@ -1251,7 +1251,7 @@ function htmlLocaciones(){
   if(!ls.length) return h+`<div class="empty">Todavía no hay locaciones.<br><small>Toca + para agregar la primera.</small></div>`+footHTML(false);
   ls.forEach(l=>{
     const cl=clipsLoc(l.id);
-    h+=`<div class="loccard locabrir" data-locabrir="${esc(l.id)}" role="button" tabindex="0"><div class="lochead"><b>📍 ${esc(l.n)}</b><small>${cl.length} plano${cl.length==1?"":"s"} ›</small><button class="locrec" data-loccam="${esc(l.id)}" aria-label="Grabar en ${esc(l.n)}" title="Grabar aquí">🎥</button></div></div>`; });
+    h+=`<div class="loccard locabrir" data-locabrir="${esc(l.id)}" role="button" tabindex="0"><div class="lochead"><b>📍 ${esc(l.n)}</b><small>${cl.length} plano${cl.length==1?"":"s"} ›</small><button class="locrec" data-loccam="${esc(l.id)}" aria-label="Grabar en ${esc(l.n)}" title="Grabar aquí">🎥</button><button data-locdel="${esc(l.id)}" aria-label="Borrar ${esc(l.n)}" title="Borrar locación">🗑</button></div></div>`; });
   return h+footHTML(false);
 }
 function htmlGenericos(){
