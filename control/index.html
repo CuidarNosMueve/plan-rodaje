@@ -239,6 +239,9 @@ body.vista-locdet header{display:none}
 .selbar select{width:100%;margin-top:6px;padding:10px;font-size:16px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
 .selbar select.sin{border-style:dashed}
 .selbar .ok{width:100%;margin-top:8px;padding:13px;border-radius:12px;border:0;background:var(--accent);color:#fff;font-weight:800;font-size:16px;cursor:pointer}.selbar .ok:disabled{opacity:.4}
+.ctltabs{display:flex;gap:6px;margin:0 0 12px;padding:4px;border-radius:14px;background:var(--line)}
+.ctltabs button{flex:1;padding:10px 4px;border:0;border-radius:11px;background:transparent;color:var(--muted);font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
+.ctltabs button[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.15)}
 .locabrir{cursor:pointer}.locabrir:active{background:var(--bg)}
 .loccard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px}
 .lochead{display:flex;align-items:center;gap:8px}.lochead b{flex:1;font-size:17px;line-height:1.25;min-width:0;overflow-wrap:anywhere}.lochead small{color:var(--muted);white-space:nowrap}
@@ -729,7 +732,7 @@ function cfgSW(){
 }
 
 let data = st.data || base;
-const VER_PROG="control-v99";
+const VER_PROG="control-v101";
 let swReg=null, recargandoSW=false, VERS="", actualizandoProg=false;   // actualización del programa (ver más abajo)
 /* Usuario de prueba: ve videos FALSOS (no los del Sheet) para probar actualizaciones y avisos sin ensuciar el plan real. */
 const NOM_PRUEBA="Usuario de prueba", esPrueba=()=>st.persona===NOM_PRUEBA;
@@ -1193,11 +1196,15 @@ function render(){
   renderModal();
   revisarCubiertos(); animarBarras();
 }
+/* Dónde trabaja cada persona (primer nombre en minúscula): «windows» = edita en un PC con Windows; «iphone» = todo en el teléfono (CapCut). */
+const PERFIL_EDICION={jorge:"windows",valentina:"iphone"};
+const usaWindows=()=>/Windows/i.test(navigator.userAgent||"")||PERFIL_EDICION[norm(String(st.persona||"")).split(" ")[0]]=="windows";
 function footHTML(plan){
   const team=!!urlSync();
   return `<div class="foot">`+
     `${plan?`<button data-exportar="mom" class="expbtn">📁 Exportar a carpetas</button><br>`:""}`+
     `${window.showDirectoryPicker?`<button data-organizar="1" class="expbtn">🖥️ Organizar todos los clips (computador)</button><br>`:""}`+
+    `${usaWindows()?`<button data-orgwin="1" class="expbtn">🪟 Organizador para Windows (lee el iPhone por cable)</button><br>`:""}`+
     `${tieneMios()||(HAY&&soloRes())?`<button id="toggleVerTodos" class="vt">${st.verTodos?(tieneMios()?"Ver solo mis videos":"Ver solo los resaltados"):"Ver todos los planos"}${!st.verTodos&&ocultosN()?" ("+ocultosN()+" ocultos)":""}</button><br>`:""}`+
     `<button id="tcam">${st.atajo=="si"?"📷 Cámara nativa (atajo)":st.atajo=="simple"?"📷 Cámara simple":"📷 Cámara sin configurar"} · cambiar</button> · `+
     `<button id="tsonido">${st.sonido===false?"🔇 Sonidos y vibración apagados":"🔔 Sonidos y vibración"}</button> · `+
@@ -1519,9 +1526,10 @@ function htmlControl(){
   const pl=n=>n+" plano"+(n==1?"":"s");
   h+=`<div class="linea">Planos grabados</div><div class="ccard"><div class="fila"><strong>📹 ${pl(nTot)} nuevo${nTot==1?"":"s"}</strong><span class="n">sin contar los «Ya hay»</span></div><div class="sub">${nTot?"Último "+esc(hace(nUlt.ts))+" · ":""}${Object.keys(nV).length} video${Object.keys(nV).length==1?"":"s"} con planos grabados</div>
     ${(()=>{ const cv=String((MOMS()[momActual()]||{}).video||""); if(!cv) return ""; const c=conteos(cv), t=conteos(); return `<div class="fila" style="margin-top:8px"><span>Video ${esc(cv)} (el que estás viendo)</span><span class="n">${pl(nV[cv]||0)} nuevo${(nV[cv]||0)==1?"":"s"} · ${c.pH}/${c.pT} planos</span></div><div class="fila"><span>Total del proyecto</span><span class="n">${pl(nTot)} nuevo${nTot==1?"":"s"} · ${t.pH}/${t.pT} planos</span></div>`; })()}</div>`;
+  const sec={}; sec.resumen=h; h="";
   const nBl=vids.filter(bloqueado).length;
-  h+=`<button class="modo" data-ctlaj="1" aria-expanded="${!!st.ctlAj}" style="margin:6px 0 10px">⚙ Ajustes ${st.ctlAj?"▲":"▼"}</button>`;
-  if(st.ctlAj) h+=`<div class="ccard ajustes">
+  h+=`<div class="linea">Herramientas del rodaje</div><button class="expbtn" data-organizar="1" style="margin:0 0 8px">📁 Organizar los clips del rodaje (computador)</button><button class="expbtn" data-orgwin="1" style="margin:0 0 12px">🪟 Descargar organizador para Windows (lee el iPhone por cable)</button><div class="linea">Ajustes</div>`;
+  h+=`<div class="ccard ajustes">
     <button class="sw" data-aj="desmcr" aria-pressed="${desmOk()}"><span>Poder desmarcar planos de los realizadores<small>Apagado: Control solo puede desmarcar lo que marcó él («Grabado por administrador»). Encendido: también los que marcó el equipo.</small></span><i></i></button>
     <button class="sw" data-aj="edicion" aria-pressed="${edicion()}"><span>Fase de edición<small>Los planos de «Ya hay» salen en negrilla en todos los teléfonos del equipo</small></span><i></i></button>
     ${HAY?`<button class="sw" data-aj="sinres" aria-pressed="${soloRes()}"><span>Solo videos resaltados<small>Los videos sin color en el Sheet se ocultan en los teléfonos (cada quien puede usar «Ver todos los videos»)</small></span><i></i></button>`:""}
@@ -1530,15 +1538,16 @@ function htmlControl(){
     <div class="fila2"><button data-bloqtodos="1">🔒 Bloquear todos</button><button data-bloqtodos="0">🔓 Desbloquear todos</button></div>
     ${HAY?`<div class="sub" style="margin-top:8px">${vids.filter(v=>!RES[v]).length} videos sin resaltar</div><div class="fila2"><button data-ocres="1">🙈 Ocultar sin resaltar</button><button data-ocres="0">👁 Mostrar sin resaltar</button></div><div class="fila2" style="margin-top:6px"><button data-bloqres="1">🔒 Bloquear sin resaltar</button><button data-bloqres="0">🔓 Desbloquear sin resaltar</button></div>`:""}
     ${(()=>{ const n=porAsignarSheet().length; return vids.some(v=>respDe(v)||edDe(v))?`<div class="sub" style="margin-top:8px">Los responsables de las columnas «Responsable Grabación» y «Responsable Edición» del Sheet se aplican solos${n?" · aplicando "+n+"…":""}.</div>`:""; })()}</div>`;
+  sec.ajustes=h; h="";
   h+=`<div class="linea">Videógrafo por persona</div>`;
   equipo().forEach(n=>{ const mis=porV.filter(x=>x.vg.includes(n)&&!ocultoV(x.v)), pT=mis.reduce((a,x)=>a+x.c.pT,0), pH=mis.reduce((a,x)=>a+x.c.pH,0);
     h+=`<div class="ccard"><div class="fila"><strong>${activoAhora(n)?"🟢 ":""}${esc(n)}</strong><span class="n">${mis.length} video${mis.length==1?"":"s"} · ${pH}/${pT} planos</span></div><div class="sub">📹 Grabó ${pl(nQ[n]||0)} nuevo${(nQ[n]||0)==1?"":"s"}</div>${pT?`<div class="bar"><i style="width:${Math.round(pH/pT*100)}%"></i></div>`:""}${mis.length?mis.map(x=>{ const g=x.c.pH; return `<div class="fila pv"><span>${esc(x.v)}</span><i class="mb"><i style="width:${x.c.pT?Math.min(100,Math.round(g/x.c.pT*100)):0}%"></i></i><span class="n"><b>${g}</b> de ${x.c.pT}</span></div>`; }).join(""):`<div class="sub">Sin videos asignados</div>`}</div>`; });
   h+=`<div class="linea">Edición por persona</div>`;
   equipo().forEach(n=>{ const mis=[...new Set(momV().map(m=>m.video))].filter(v=>egs(v).includes(n)&&!ocultoV(v)); h+=`<div class="ccard"><div class="fila"><strong>${esc(n)}</strong><span class="n">${mis.length} video${mis.length==1?"":"s"} para editar</span></div>${mis.length?mis.map(v=>{ const x=porV.find(y=>y.v==v), g=x?x.c.pH:0, t=x?x.c.pT:0; return `<div class="fila pv"><span>${esc(v)}</span><i class="mb"><i style="width:${t?Math.min(100,Math.round(g/t*100)):0}%"></i></i><span class="n"><b>${g}</b> de ${t}</span></div>`; }).join(""):`<div class="sub">Sin videos de edición</div>`}</div>`; });
+  sec.personas=h; h="";
   h+=`<div class="linea">Videos${sin?` · ${sin} sin videógrafo`:""}</div>`;
   const oculN=HAY&&!st.ctlVer?porV.filter(x=>!RES[x.v]).length:0;
   { const ocs=[...new Set(data.momentos.filter(m=>!finalizado(m.video)&&ocultoV(m.video)).map(m=>m.video))];
-    h+=`<button class="expbtn" data-organizar="1" style="margin:0 0 8px">📁 Organizar los clips del rodaje (computador)</button><button class="expbtn" data-orgwin="1" style="margin:0 0 12px">🪟 Descargar organizador para Windows (lee el iPhone por cable)</button>`;
     h+=`<button class="modo" data-ctlagr="1" aria-expanded="${!!st.ctlAgr}" style="margin:0 0 8px">➕ Agregar video ${st.ctlAgr?"▲":"▼"}</button>`;
     if(st.ctlAgr) h+=`<div class="ccard">${ocs.length?`<div class="sub" style="margin:0 0 8px">Toca un video oculto para devolverlo a la lista y definir su videógrafo.</div><div class="vgchips">${ocs.map(v=>`<button class="vgc" data-agrv="${esc(v)}">➕ ${esc(v)} · ${esc((data.momentos.find(m=>m.video==v)||{}).nombre||"")}</button>`).join("")}</div>`:`<div class="sub">No hay videos ocultos. Los que se borraron del plan vuelven quitando la X de «Grabaciones finalizadas» en la Sheet.</div>`}</div>`;
     const ocN=ocs.length;
@@ -1550,7 +1559,9 @@ function htmlControl(){
       <div class="bar"><i style="width:${pc}%"></i></div>
       <div class="sub">${ocultoV(x.v)?"🙈 oculto al equipo · ":""}${HAY&&!RES[x.v]?"sin resaltar · ":""}${respDe(x.v)?"Sheet grabación: "+esc(respDe(x.v))+" · ":""}${edDe(x.v)?"Sheet edición: "+esc(edDe(x.v))+" · ":""}${x.c.pH}/${x.c.pT} planos${nV[x.v]?" · "+pl(nV[x.v])+" nuevo"+(nV[x.v]==1?"":"s"):""}${x.ult?" · último "+esc(hace(x.ult)):""}${x.ser?` · ${x.ser} con seriales`:""}${x.com?` · ${x.com} con comentarios`:""}</div>
       ${selVideografo(x.v)}<button class="modo" data-irvideo="${esc(x.v)}" style="margin:6px 0 0">Ver video</button><button class="modo" data-ocv="${esc(x.v)}" style="margin:6px 0 0">${ocultoV(x.v)?"👁 Mostrar al equipo":"🙈 Ocultar al equipo"}</button><button class="modo" data-borrar="${esc(x.v)}" style="margin:6px 0 0">🗑 Borrar video</button></div>`; });
-  return h+footHTML(false);
+  sec.videos=h;
+  const TABS=[["resumen","📊 Resumen"],["personas","👥 Personas"],["videos","🎬 Videos"],["ajustes","⚙ Ajustes"]], tab=sec[st.ctlTab]!=null?st.ctlTab:"resumen";
+  return `<div class="ctltabs" role="tablist">${TABS.map(x=>`<button role="tab" data-ctltab="${x[0]}" aria-selected="${tab==x[0]}">${x[1]}</button>`).join("")}</div>`+sec[tab]+footHTML(false);
 }
 let modalPrev="";
 function renderModal(){ const m=document.getElementById("modal"); if(modalPrev!==""){ m.innerHTML=""; modalPrev=""; } }
@@ -1561,7 +1572,7 @@ let autoIntentado=false;
 function intentoAuto(){ if(autoIntentado || st.avisosNo || estadoAvisos()!="pendiente") return; autoIntentado=true; activarAvisos(); }
 document.addEventListener("click",ev=>{
   if(!ev.target.closest("[data-avisos],[data-avisosno],[data-avisosok],#modal")) intentoAuto();
-  const t=ev.target.closest("[data-finvideo],[data-vgen],[data-nuevou],[data-irmom],[data-sabana],[data-montodos],[data-copiar],[data-csv],[data-monota],[data-monreg],[data-monreg0],[data-ctlver],[data-ctltodos],[data-ocv],[data-ctlagr],[data-agrv],[data-borrar],[data-ctlaj],[data-ocres],[data-edv],[data-asv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-vertodos],[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,[data-aj],[data-bloqueo],[data-bloqtodos],#cerrarAviso,#reset,#toggleOcultar,#tsonido,#tcam,[data-avisosok]"); if(!t) return;
+  const t=ev.target.closest("[data-finvideo],[data-vgen],[data-nuevou],[data-irmom],[data-sabana],[data-montodos],[data-copiar],[data-csv],[data-monota],[data-monreg],[data-monreg0],[data-ctlver],[data-ctltab],[data-ctltodos],[data-ocv],[data-ctlagr],[data-agrv],[data-borrar],[data-ctlaj],[data-ocres],[data-edv],[data-asv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-vertodos],[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,[data-aj],[data-bloqueo],[data-bloqtodos],#cerrarAviso,#reset,#toggleOcultar,#tsonido,#tcam,[data-avisosok]"); if(!t) return;
   if(t.dataset.toggle){ const id=t.dataset.toggle; st.abiertas[id]=!st.abiertas[id]; if(st.abiertas[id]) st.videoActual=id; guardar(); pintarAvance();
     t.parentElement.classList.toggle("open",st.abiertas[id]); t.setAttribute("aria-expanded",st.abiertas[id]); return; }
   if(t.id=='avance'){ st.avanceTotal=!st.avanceTotal; guardar(); render(); return; }
@@ -1587,6 +1598,7 @@ document.addEventListener("click",ev=>{
   if(t.dataset.monota){ const id=t.dataset.monota, m=momento(id); if(!m) return; const cur=notaMon(id).replace(/^[^:]+: /,""), r=prompt("Nota de montaje para el momento "+m.momento+" del video "+m.video+" (vacío = borrarla):",cur); if(r===null) return; const x=r.trim().slice(0,300); ajustarYo("montaje::"+id, x?corto(st.persona||"Control")+": "+x:"", m.video); toast(x?"Nota guardada":"Nota borrada"); return; }
   if(t.dataset.monreg){ const id=t.dataset.monreg, m=momento(id); if(!m) return; const r=prompt("¿Qué hay que regrabar en el momento "+m.momento+" del video "+m.video+"? (por ejemplo: «falta plano abierto», «audio con viento»)",""); if(r===null) return; const x=r.trim().slice(0,300)||"sin detalle"; ajustarYo("regraba::"+id, corto(st.persona||"Control")+": "+x, m.video); toast("Regrabación pedida: le llega aviso a quien graba"); return; }
   if(t.dataset.monreg0){ const id=t.dataset.monreg0, m=momento(id); if(!m) return; ajustarYo("regraba::"+id, "", m.video); toast("Marcado como regrabado"); return; }
+  if(t.dataset.ctltab){ st.ctlTab=t.dataset.ctltab; guardar(); render(); window.scrollTo(0,0); return; }
   if(t.dataset.ctlaj){ st.ctlAj=!st.ctlAj; guardar(); render(); return; }
   if(t.dataset.ocres){ const v=t.dataset.ocres; ajustar([["sinres",v]]); toast(v=="1"?"Los videos sin resaltar se ocultan en los teléfonos":"Los videos sin resaltar se muestran otra vez"); return; }
   if(t.dataset.ctlver){ st.ctlVer=!st.ctlVer; guardar(); render(); return; }
