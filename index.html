@@ -239,6 +239,9 @@ body.vista-locdet header{display:none}
 .selbar select{width:100%;margin-top:6px;padding:10px;font-size:16px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
 .selbar select.sin{border-style:dashed}
 .selbar .ok{width:100%;margin-top:8px;padding:13px;border-radius:12px;border:0;background:var(--accent);color:#fff;font-weight:800;font-size:16px;cursor:pointer}.selbar .ok:disabled{opacity:.4}
+.ctltabs{display:flex;gap:6px;margin:0 0 12px;padding:4px;border-radius:14px;background:var(--line)}
+.ctltabs button{flex:1;padding:10px 4px;border:0;border-radius:11px;background:transparent;color:var(--muted);font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
+.ctltabs button[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.15)}
 .locabrir{cursor:pointer}.locabrir:active{background:var(--bg)}
 .loccard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px}
 .lochead{display:flex;align-items:center;gap:8px}.lochead b{flex:1;font-size:17px;line-height:1.25;min-width:0;overflow-wrap:anywhere}.lochead small{color:var(--muted);white-space:nowrap}
@@ -696,7 +699,7 @@ function cfgSW(){
 }
 
 let data = st.data || base;
-const VER_PROG="rodaje-v101";
+const VER_PROG="rodaje-v103";
 let swReg=null, recargandoSW=false, VERS="", actualizandoProg=false;   // actualización del programa (ver más abajo)
 /* Usuario de prueba: ve videos FALSOS (no los del Sheet) para probar actualizaciones y avisos sin ensuciar el plan real. */
 const NOM_PRUEBA="Usuario de prueba", esPrueba=()=>st.persona===NOM_PRUEBA;
@@ -1138,11 +1141,15 @@ function render(){
   renderModal();
   revisarCubiertos(); animarBarras();
 }
+/* Dónde trabaja cada persona (primer nombre en minúscula): «windows» = edita en un PC con Windows; «iphone» = todo en el teléfono (CapCut). */
+const PERFIL_EDICION={jorge:"windows",valentina:"iphone"};
+const usaWindows=()=>/Windows/i.test(navigator.userAgent||"")||PERFIL_EDICION[norm(String(st.persona||"")).split(" ")[0]]=="windows";
 function footHTML(plan){
   const team=!!urlSync();
   return `<div class="foot">`+
     `${plan?`<button data-exportar="mom" class="expbtn">📁 Exportar a carpetas</button><br>`:""}`+
     `${window.showDirectoryPicker?`<button data-organizar="1" class="expbtn">🖥️ Organizar todos los clips (computador)</button><br>`:""}`+
+    `${usaWindows()?`<button data-orgwin="1" class="expbtn">🪟 Organizador para Windows (lee el iPhone por cable)</button><br>`:""}`+
     `${tieneMios()||(HAY&&soloRes())?`<button id="toggleVerTodos" class="vt">${st.verTodos?(tieneMios()?"Ver solo mis videos":"Ver solo los resaltados"):"Ver todos los planos"}${!st.verTodos&&ocultosN()?" ("+ocultosN()+" ocultos)":""}</button><br>`:""}`+
     `<button id="tcam">${st.atajo=="si"?"📷 Cámara nativa (atajo)":st.atajo=="simple"?"📷 Cámara simple":"📷 Cámara sin configurar"} · cambiar</button> · `+
     `<button id="tsonido">${st.sonido===false?"🔇 Sonidos y vibración apagados":"🔔 Sonidos y vibración"}</button> · `+
@@ -1467,7 +1474,7 @@ let autoIntentado=false;
 function intentoAuto(){ if(autoIntentado || st.avisosNo || estadoAvisos()!="pendiente") return; autoIntentado=true; activarAvisos(); }
 document.addEventListener("click",ev=>{
   if(!ev.target.closest("[data-avisos],[data-avisosno],[data-avisosok],#modal")) intentoAuto();
-  const t=ev.target.closest("[data-finvideo],[data-vgen],[data-nuevou],[data-irmom],[data-sabana],[data-montodos],[data-copiar],[data-csv],[data-monota],[data-monreg],[data-monreg0],[data-ctlver],[data-ctltodos],[data-ocv],[data-ctlagr],[data-agrv],[data-borrar],[data-ctlaj],[data-ocres],[data-edv],[data-asv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-vertodos],[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,#cerrarAviso,#reset,#toggleOcultar,#tsonido,#tcam,[data-avisosok]"); if(!t) return;
+  const t=ev.target.closest("[data-finvideo],[data-vgen],[data-nuevou],[data-irmom],[data-sabana],[data-montodos],[data-copiar],[data-csv],[data-monota],[data-monreg],[data-monreg0],[data-ctlver],[data-ctltab],[data-ctltodos],[data-ocv],[data-ctlagr],[data-agrv],[data-borrar],[data-ctlaj],[data-ocres],[data-edv],[data-asv],[data-seg],[data-bloqres],[data-asr],#cerrarPremisa,[data-premisa],#toggleVerTodos,[data-vertodos],[data-toggle],[data-f],[data-ya],[data-nav],[data-abrirvideos],[data-serie],[data-irvideo],[data-modo],[data-listo],[data-addbtn],[data-del],#avance,[data-v],[data-cambiar],[data-ir],[data-persona],[data-avisos],[data-avisosno],#cancelarPersona,#cerrarAviso,#reset,#toggleOcultar,#tsonido,#tcam,[data-avisosok]"); if(!t) return;
   if(t.dataset.toggle){ const id=t.dataset.toggle; st.abiertas[id]=!st.abiertas[id]; if(st.abiertas[id]) st.videoActual=id; guardar(); pintarAvance();
     t.parentElement.classList.toggle("open",st.abiertas[id]); t.setAttribute("aria-expanded",st.abiertas[id]); return; }
   if(t.id=='avance'){ st.avanceTotal=!st.avanceTotal; guardar(); render(); return; }
