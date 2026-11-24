@@ -1618,7 +1618,7 @@ async function escribirCarpetas(raiz,grupos,prog){
   for(const g of grupos){
     let dir=raiz; for(const parte of g.car.split("/")) dir=await dir.getDirectoryHandle(parte,{create:true});
     for(const f of g.files){ let nom=limpiaN(f.name), k=2; while(await existeArch(dir,nom)) nom=limpiaN(f.name).replace(/(\.[^.]*)?$/," ("+(k++)+")$1");
-      const w=await (await dir.getFileHandle(nom,{create:true})).createWritable(); await w.write(f); await w.close(); prog(++n,tot); }
+      const src=f.h?await f.h.getFile():f, w=await (await dir.getFileHandle(nom,{create:true})).createWritable(); await w.write(src); await w.close(); prog(++n,tot); }
   }
   return tot;
 }
@@ -1649,6 +1649,48 @@ function compartirCarpetas(files,modo){
     try{ await navigator.share({files:g.files,title:nom}); hechos.add(b.dataset.exi); b.classList.add("hecho"); b.firstChild.textContent="✓ "+b.firstChild.textContent.slice(3); }catch(e){ if(!(e&&e.name=="AbortError")) toast("No se pudo compartir esa carpeta. Prueba con menos clips.",4500); }
   });
 }
+/* ===== Organizador para el computador (Control, en Chrome o Edge de Windows o Mac) =====
+   1) eliges la carpeta donde están los clips (se revisan también las subcarpetas), 2) eliges la carpeta destino, 3) se copian a «Por locación» y «Por momento» según los seriales. ===== */
+async function escanearClips(dir,out,ruta){
+  for await (const [n,h] of dir.entries()){
+    if(h.kind=="directory"){ if(!/^\./.test(n)) await escanearClips(h,out,ruta+n+"/"); }
+    else if(/\.(mov|mp4|m4v|hevc|heic|heif|jpe?g|png|dng|3gp)$/i.test(n)) out.push({name:n,h,ruta:ruta+n});
+  }
+  return out;
+}
+function organizarClips(){
+  if(!window.showDirectoryPicker){ hojaCam(`<h2>Usa Chrome o Edge</h2><p>Esta herramienta necesita Chrome o Edge en un computador (Windows o Mac). Safari y el iPhone no dejan crear carpetas.</p><div class="fila2"><button id="ox">Cerrar</button></div>`).querySelector("#ox").onclick=e=>e.target.closest("#recpick").remove(); return; }
+  const d=hojaCam(`<h2>📁 Organizar los clips</h2><p><b>Paso 1.</b> Elige la carpeta donde están los clips (por ejemplo, la que importaste del iPhone). Se revisan también las subcarpetas.</p><div class="fila2"><button class="ok" id="o1">Elegir carpeta con los clips</button></div><div class="fila2" style="margin-top:8px"><button id="ox">Cancelar</button></div>`), sh=d.querySelector(".sheet");
+  d.querySelector("#ox").onclick=()=>d.remove();
+  d.querySelector("#o1").onclick=async()=>{
+    let src; try{ src=await window.showDirectoryPicker({mode:"read"}); }catch(e){ return; }
+    sh.innerHTML=`<h2>Buscando clips…</h2><p>En «${esc(src.name)}»</p>`;
+    const items=[]; try{ await escanearClips(src,items,""); }catch(e){ sh.innerHTML=`<h2>No se pudo leer la carpeta</h2><div class="fila2"><button id="ox2">Cerrar</button></div>`; sh.querySelector("#ox2").onclick=()=>d.remove(); return; }
+    const gl=repartirClips(items,"loc"), gm=repartirClips(items,"mom"), sinL=items.filter(it=>!serialDe(it)||!destinosZip("loc")[serialDe(it)]).length, sinM=items.filter(it=>!serialDe(it)||!destinosZip("mom")[serialDe(it)]).length;
+    sh.innerHTML=`<h2>${items.length} clip${items.length==1?"":"s"} encontrados</h2>
+      <p>En «${esc(src.name)}».<br>Con locación: <b>${items.length-sinL}</b> · con video y momento: <b>${items.length-sinM}</b>.<br>Los demás van a «Sin asignar».</p>
+      <label style="display:block;margin:6px 0"><input type="checkbox" id="oL" checked> Por locación (${gl.length} carpetas)</label>
+      <label style="display:block;margin:6px 0"><input type="checkbox" id="oM" checked> Por video y momento (${gm.length} carpetas)</label>
+      <p><b>Paso 2.</b> Elige la carpeta donde se crean las carpetas.</p>
+      <div class="fila2"><button class="ok" id="o2">Elegir carpeta destino</button></div><div class="fila2" style="margin-top:8px"><button id="ox2">Cancelar</button></div>`;
+    sh.querySelector("#ox2").onclick=()=>d.remove();
+    sh.querySelector("#o2").onclick=async()=>{
+      const hacerL=sh.querySelector("#oL").checked, hacerM=sh.querySelector("#oM").checked; if(!hacerL&&!hacerM){ toast("Marca al menos una opción",2500); return; }
+      let dst; try{ dst=await window.showDirectoryPicker({mode:"readwrite"}); }catch(e){ return; }
+      const grupos=[...(hacerL?gl.map(g=>({...g,car:"Por locación/"+g.car})):[]),...(hacerM?gm.map(g=>({...g,car:"Por momento/"+g.car})):[])];
+      sh.innerHTML=`<h2>📁 Copiando…</h2><p id="exp">0 de ${grupos.reduce((a,g)=>a+g.files.length,0)} clips</p><p style="font-size:13px">No cierres esta pestaña hasta que termine.</p>`;
+      try{
+        const tot=await escribirCarpetas(dst,grupos,(n,t)=>{ sh.querySelector("#exp").textContent=`${n} de ${t} clips`; });
+        const dl=destinosZip("loc"), dm=destinosZip("mom"), fila=x=>'"'+String(x).replace(/"/g,'""')+'"';
+        const csv="\ufeffArchivo,Serial,Locación,Video y momento,Estado\n"+items.map(it=>{ const sr=serialDe(it), l=sr&&dl[sr]?[...dl[sr]].join(" | "):"", m=sr&&dm[sr]?[...dm[sr]].join(" | "):""; return [it.ruta,sr,l,m,(l||m)?"Asignado":"Sin asignar"].map(fila).join(","); }).join("\n");
+        const w=await (await dst.getFileHandle("Informe de clips.csv",{create:true})).createWritable(); await w.write(csv); await w.close();
+        sh.innerHTML=`<h2>✅ Listo</h2><p>${tot} copias en «${esc(dst.name)}».<br>Se creó también <b>Informe de clips.csv</b> con lo que quedó asignado y lo que no.</p><div class="fila2"><button class="ok" id="ox3">Cerrar</button></div>`;
+      }catch(e){ sh.innerHTML=`<h2>No se pudo copiar</h2><p>Revisa que haya espacio en el disco y permiso en la carpeta, y repite.</p><div class="fila2"><button class="ok" id="ox3">Cerrar</button></div>`; }
+      sh.querySelector("#ox3").onclick=()=>d.remove();
+    };
+  };
+}
+document.addEventListener("click",ev=>{ if(ev.target.closest("[data-organizar]")) organizarClips(); });
 document.addEventListener("click",ev=>{ const t=ev.target.closest("[data-exportar]"); if(t) exportarClips(t.dataset.exportar); });
 /* Locaciones: clips grabados, + para agregar, borrar y asignar video/momento. */
 function guardarClips(lid,files){
