@@ -231,6 +231,7 @@ body.vista-loc .filters,body.vista-loc .search{display:none}
 .clip select{width:100%;margin-top:6px;padding:10px;font-size:16px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
 .clip select.sin{border-style:dashed}
 .locform{display:flex;gap:8px;margin:0 0 12px}.locform input{flex:1;min-width:0;padding:12px;font-size:16px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}.locform button{flex:none;padding:0 16px;border:0;border-radius:10px;background:var(--accent);color:var(--on-accent,#fff);font-weight:700;font-size:16px}
+.expbtn,.fila2 [data-exportar]{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:15px;font-weight:700;cursor:pointer}
 .locbar{display:flex;align-items:center;gap:10px;margin-bottom:10px}.locbar p{flex:1;margin:0;font-size:14px;color:var(--muted);line-height:1.35}
 .gtk input{flex:none;width:24px;height:24px;margin:1px 0 0;accent-color:var(--ok)}.gtk small{display:block;color:var(--muted);font-size:12px;margin-top:2px}.gtk.on span{color:var(--muted)}
 .gnota{display:block;padding-top:8px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
@@ -1173,6 +1174,7 @@ function htmlLocaciones(){
   const ls=locsL(), vids=[...new Set(momV().map(m=>m.video))], abierto=!!st.abiertas.locNueva;
   let h=`<div class="linea">Locaciones</div><div class="locbar"><p>Lugares donde grabas. Cada plano que grabes aquí queda con su serial; después le pones video y momento.</p><button class="mas" data-locmas="1" aria-pressed="${abierto}" aria-label="Agregar locación" title="Agregar locación">+</button></div>`;
   if(abierto) h+=`<form class="locform" data-locadd><input type="text" maxlength="120" placeholder="Nombre de la locación" autocomplete="off" enterkeyhint="done" aria-label="Nombre de la locación"><button type="submit">Agregar</button></form>`;
+  h+=`<div class="fila2" style="margin:0 0 12px"><button data-exportar="1" class="expbtn">📦 Videos en carpetas (.zip)</button></div>`;
   if(!ls.length) return h+`<div class="empty">Todavía no hay locaciones.<br><small>Toca + para agregar la primera.</small></div>`+footHTML(false);
   ls.forEach(l=>{
     const cl=clipsLoc(l.id);
@@ -1575,6 +1577,75 @@ document.getElementById("recin").addEventListener("change",ev=>{
   const m=momDentro(); if(m){ marcarArchivos(m,files); return; }
   elegirMomentoCam(files);
 });
+/* ===== Archivo .zip con los videos en carpetas: por locación o por video y momento. Los clips se eligen de la Fototeca; cada uno se ubica por su serial (los números del nombre del archivo).
+   El .zip se arma en el teléfono sin comprimir y sin cargar los videos a la memoria (solo se leen para calcular su CRC). ===== */
+const limpiaN = t => String(t||"").replace(/[\\/:*?"<>|\u0000-\u001f]/g," ").replace(/\s+/g," ").trim().replace(/[. ]+$/,"").slice(0,80) || "Sin nombre";
+const carpMom = m => limpiaN("Video "+m.video+" · "+(m.nombre||""))+"/"+limpiaN("Momento "+m.momento);
+function destinosZip(modo){
+  const mp={}, add=(s,c)=>{ if(s) (mp[s] ||= new Set()).add(c); };
+  if(modo=="loc") locsL().forEach(l=>clipsLoc(l.id).forEach(c=>add(c.s,limpiaN(l.n))));
+  else {
+    Object.keys(st.notas).forEach(id=>{ const m=momento(id), t=notaDe(id,"seriales"); if(m&&t) t.split(/[\s,;]+/).filter(Boolean).forEach(x=>add(x,carpMom(m))); });
+    locsL().forEach(l=>clipsLoc(l.id).forEach(c=>{ const m=c.m&&momento(c.m); if(m) add(c.s,carpMom(m)); }));
+  }
+  return mp;
+}
+const CRCT=(()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[n]=c>>>0; } return t; })();
+async function crcArchivo(f,prog){
+  let c=0xFFFFFFFF; const CH=4<<20;
+  for(let o=0;o<f.size;o+=CH){ const b=new Uint8Array(await f.slice(o,o+CH).arrayBuffer()); for(let i=0;i<b.length;i++) c=CRCT[(c^b[i])&255]^(c>>>8); if(prog) prog(Math.min(o+CH,f.size)/f.size); }
+  return (c^0xFFFFFFFF)>>>0;
+}
+async function armarZip(files,modo,prog){
+  const mp=destinosZip(modo), enc=new TextEncoder(), parts=[], cen=[], usados=new Set(); let off=0, nClips=0, nSin=0; const carpetas=new Set();
+  const n=new Date(), dt=((n.getHours()<<11)|(n.getMinutes()<<5)|(n.getSeconds()>>1))&0xFFFF, dd=(((n.getFullYear()-1980)<<9)|((n.getMonth()+1)<<5)|n.getDate())&0xFFFF;
+  for(let i=0;i<files.length;i++){
+    const f=files[i], s=serialDe(f), ds=s&&mp[s]?[...mp[s]]:["Sin asignar"], base=limpiaN(String(f.name||"clip").replace(/^.*[\\/]/,"")), crc=await crcArchivo(f,x=>prog&&prog(i+x,files.length));
+    if(ds[0]=="Sin asignar") nSin++; else nClips++;
+    for(const car of ds){
+      let ruta=car+"/"+base, k=2; while(usados.has(ruta.toLowerCase())){ ruta=car+"/"+base.replace(/(\.[^.]*)?$/," ("+(k++)+")$1"); } usados.add(ruta.toLowerCase()); carpetas.add(car);
+      const nm=enc.encode(ruta), h=new DataView(new ArrayBuffer(30));
+      h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true); h.setUint16(10,dt,true); h.setUint16(12,dd,true);
+      h.setUint32(14,crc,true); h.setUint32(18,f.size,true); h.setUint32(22,f.size,true); h.setUint16(26,nm.length,true); h.setUint16(28,0,true);
+      cen.push({nm,crc,size:f.size,off}); parts.push(h.buffer,nm,f); off+=30+nm.length+f.size;
+      if(off>0xF0000000) throw new Error("grande");
+    }
+  }
+  let cd=0; const cparts=[];
+  cen.forEach(e=>{ const h=new DataView(new ArrayBuffer(46));
+    h.setUint32(0,0x02014b50,true); h.setUint16(4,20,true); h.setUint16(6,20,true); h.setUint16(8,0x0800,true); h.setUint16(10,0,true); h.setUint16(12,dt,true); h.setUint16(14,dd,true);
+    h.setUint32(16,e.crc,true); h.setUint32(20,e.size,true); h.setUint32(24,e.size,true); h.setUint16(28,e.nm.length,true); h.setUint32(42,e.off,true);
+    cparts.push(h.buffer,e.nm); cd+=46+e.nm.length; });
+  const fin=new DataView(new ArrayBuffer(22)); fin.setUint32(0,0x06054b50,true); fin.setUint16(8,cen.length,true); fin.setUint16(10,cen.length,true); fin.setUint32(12,cd,true); fin.setUint32(16,off,true);
+  return {blob:new Blob([...parts,...cparts,fin.buffer],{type:"application/zip"}), n:files.length, nClips, nSin, carpetas:carpetas.size, entradas:cen.length};
+}
+function exportarClips(){
+  const d=hojaCam(`<h2>📦 Videos en carpetas</h2><p>Se arma un <b>.zip</b> con tus clips ordenados en carpetas. Primero elige cómo ordenarlos y luego selecciona los clips de la Fototeca. Cada clip se ubica por su <b>serial</b>; los que no tengan serial asignado van a una carpeta «Sin asignar».</p><div class="fila2"><button class="ok" id="exl">📍 Por locación</button></div><div class="fila2" style="margin-top:8px"><button class="ok" id="exm">🎬 Por video y momento</button></div><div class="fila2" style="margin-top:8px"><button id="exno">Cancelar</button></div>`);
+  d.querySelector("#exno").onclick=()=>d.remove();
+  const elegir=modo=>{ const inp=document.createElement("input"); inp.type="file"; inp.multiple=true; inp.accept="video/*,image/*"; inp.style.display="none"; document.body.appendChild(inp);
+    inp.onchange=()=>{ const files=[...inp.files]; inp.remove(); if(files.length) construirZip(d,files,modo); };
+    inp.addEventListener("cancel",()=>inp.remove()); inp.click(); };
+  d.querySelector("#exl").onclick=()=>elegir("loc"); d.querySelector("#exm").onclick=()=>elegir("mom");
+}
+async function construirZip(d,files,modo){
+  const sh=d.querySelector(".sheet"), nombre=(modo=="loc"?"Videos por locacion":"Videos por momento")+".zip", total=files.reduce((a,f)=>a+f.size,0);
+  sh.innerHTML=`<h2>📦 Armando el archivo…</h2><p id="exp">Revisando ${files.length} clip${files.length==1?"":"s"} (${(total/1048576).toFixed(0)} MB). No cierres la app.</p>`;
+  const p=sh.querySelector("#exp");
+  try{
+    const r=await armarZip(files,modo,(x,n)=>{ p.textContent=`Revisando clips… ${Math.min(100,Math.round(x/n*100))} %`; });
+    const f=new File([r.blob],nombre,{type:"application/zip"});
+    sh.innerHTML=`<h2>✅ Archivo listo</h2><p><b>${nombre}</b> · ${(r.blob.size/1048576).toFixed(0)} MB<br>${r.nClips} clip${r.nClips==1?"":"s"} en ${r.carpetas-(r.nSin?1:0)} carpeta${r.carpetas-(r.nSin?1:0)==1?"":"s"}${r.nSin?` · ${r.nSin} sin asignar`:""}</p><div class="fila2"><button class="ok" id="exgo">Guardar / compartir</button></div><div class="fila2" style="margin-top:8px"><button id="exx">Cerrar</button></div>`;
+    sh.querySelector("#exx").onclick=()=>d.remove();
+    sh.querySelector("#exgo").onclick=async()=>{
+      if(navigator.canShare && navigator.canShare({files:[f]})){ try{ await navigator.share({files:[f],title:nombre}); return; }catch(e){ if(e&&e.name=="AbortError") return; } }
+      const a=document.createElement("a"); a.href=URL.createObjectURL(r.blob); a.download=nombre; document.body.appendChild(a); a.click(); setTimeout(()=>{ a.remove(); URL.revokeObjectURL(a.href); },60000);
+    };
+  }catch(e){
+    sh.innerHTML=`<h2>No se pudo armar el archivo</h2><p>${e&&e.message=="grande"?"Son demasiados videos para un solo archivo (máximo cerca de 3,5 GB). Elige menos clips y repite.":"Algo falló al leer los clips. Intenta con menos clips."}</p><div class="fila2"><button id="exx">Cerrar</button></div>`;
+    sh.querySelector("#exx").onclick=()=>d.remove();
+  }
+}
+document.addEventListener("click",ev=>{ if(ev.target.closest("[data-exportar]")) exportarClips(); });
 /* Locaciones: clips grabados, + para agregar, borrar y asignar video/momento. */
 function guardarClips(lid,files){
   const l=locsL().find(x=>x.id==lid); if(!l){ toast("Esa locación ya no existe",3000); return; }
@@ -1773,7 +1844,7 @@ function htmlMontaje(){
   if(!ctl) h+=tengo?`<button class="modo" data-montodos="1" style="margin:0 0 8px">${st.monTodos?"👤 Ver solo mis videos":"📋 Ver todos los videos ("+(D.videos.length-vis.length)+" más)"}</button>`:`<div class="sub" style="margin:0 4px 8px">No tienes videos asignados para editar: aquí ves todos.</div>`;
   h+=`<div class="sub" style="margin:0 4px 8px">${vis.length} video${vis.length==1?"":"s"} · ${D.nM} de ${D.nT} momentos con material en total · ${D.nP} planos grabados</div>
     <input id="monq" class="monq" type="search" placeholder="🔎 Buscar serial, plano o palabra" value="${esc(monQ)}" autocomplete="off" autocapitalize="off" enterkeyhint="search">
-    <div class="fila2" style="margin:8px 0 10px"><button data-sabana="1">📤 Compartir</button><button data-csv="1">⬇️ Descargar CSV</button></div>`;
+    <div class="fila2" style="margin:8px 0 10px"><button data-sabana="1">📤 Compartir</button><button data-csv="1">⬇️ Descargar CSV</button></div><div class="fila2" style="margin:0 0 10px"><button data-exportar="1">📦 Videos en carpetas (.zip)</button></div>`;
   if(!vis.length) h+=`<div class="empty">Todavía no hay videos para mostrar.</div>`;
   vis.forEach(V=>{
     h+=`<div class="ccard" data-sabv="${esc(V.v)}"><div class="fila"><strong>${esc(V.v)} · ${esc(V.nombre)}</strong><span class="n">${V.listos}/${V.mom.length} listos</span></div>
