@@ -696,7 +696,7 @@ function cfgSW(){
 }
 
 let data = st.data || base;
-const VER_PROG="rodaje-v100";
+const VER_PROG="rodaje-v101";
 let swReg=null, recargandoSW=false, VERS="", actualizandoProg=false;   // actualización del programa (ver más abajo)
 /* Usuario de prueba: ve videos FALSOS (no los del Sheet) para probar actualizaciones y avisos sin ensuciar el plan real. */
 const NOM_PRUEBA="Usuario de prueba", esPrueba=()=>st.persona===NOM_PRUEBA;
@@ -1632,6 +1632,8 @@ const carpMom = m => limpiaN("Video "+m.video+" · "+(m.nombre||""))+"/"+limpiaN
 function destinosZip(modo){
   const mp={}, add=(s,c)=>{ if(s) (mp[s] ||= new Set()).add(c); };
   if(modo=="loc") locsL().forEach(l=>clipsLoc(l.id).forEach(c=>add(c.s,limpiaN(l.n))));
+  else if(modo=="locmom") locsL().forEach(l=>clipsLoc(l.id).forEach(c=>{ const m=c.m&&momento(c.m), base=limpiaN(l.n);
+    add(c.s, m?base+"/"+carpMom(m) : c.v?base+"/"+limpiaN("Video "+c.v+" · "+((momV().find(q=>q.video==c.v)||{}).nombre||"")) : base); }));
   else {
     Object.keys(st.notas).forEach(id=>{ const m=momento(id), t=notaDe(id,"seriales"); if(m&&t) t.split(/[\s,;]+/).filter(Boolean).forEach(x=>add(x,carpMom(m))); });
     locsL().forEach(l=>clipsLoc(l.id).forEach(c=>{ const m=c.m&&momento(c.m); if(m) add(c.s,carpMom(m)); }));
@@ -1668,11 +1670,21 @@ async function escribirCarpetas(raiz,grupos,prog){
   }
   return tot;
 }
-function exportarClips(modo){   // en Momentos guarda por video y momento; en Locaciones, por locación
-  modo=modo=="loc"?"loc":"mom";
+const ESTR_TXT={loc:"de cada locación",locmom:"de cada locación, con video y momento adentro",mom:"de cada video y momento (sin carpeta de locación)"};
+function elegirEstructura(){
+  const d=hojaCam(`<h2>📁 ¿Cómo organizo las carpetas?</h2><p>Elige cómo se arman con los planos de las locaciones.</p>
+    <button class="expbtn" data-estr="loc" style="margin:0 0 8px">📍 Solo por locación<br><small>Locación / clips</small></button>
+    <button class="expbtn" data-estr="locmom" style="margin:0 0 8px">📍🎬 Por locación, y adentro por video y momento<br><small>Locación / Video / Momento / clips</small></button>
+    <button class="expbtn" data-estr="mom" style="margin:0 0 8px">🎬 Solo por video y momento, sin carpeta de locación<br><small>Video / Momento / clips</small></button>
+    <div class="fila2"><button id="estx">Cancelar</button></div>`);
+  d.querySelector("#estx").onclick=()=>d.remove();
+  d.querySelectorAll("[data-estr]").forEach(b=>b.onclick=()=>{ d.remove(); exportarClips(b.dataset.estr); });
+}
+function exportarClips(modo){   // en Momentos guarda por video y momento; en Locaciones, a elegir: locación, locación + video/momento, o solo video/momento
+  modo=modo=="loc"||modo=="locmom"?modo:"mom";
   if(window.showDirectoryPicker){
     window.showDirectoryPicker({mode:"readwrite"}).then(raiz=>{
-      const d=hojaCam(`<h2>📁 Carpeta: ${esc(raiz.name)}</h2><p>Dentro de ella se crean las carpetas ${modo=="loc"?"de cada locación":"de cada video y momento"}. Ahora elige los clips.</p><div class="fila2"><button class="ok" id="exc">Elegir clips</button></div><div class="fila2" style="margin-top:8px"><button id="exx">Cancelar</button></div>`);
+      const d=hojaCam(`<h2>📁 Carpeta: ${esc(raiz.name)}</h2><p>Dentro de ella se crean las carpetas ${ESTR_TXT[modo]}. Ahora elige los clips.</p><div class="fila2"><button class="ok" id="exc">Elegir clips</button></div><div class="fila2" style="margin-top:8px"><button id="exx">Cancelar</button></div>`);
       d.querySelector("#exx").onclick=()=>d.remove();
       d.querySelector("#exc").onclick=()=>pedirArchivos(async files=>{
         const sh=d.querySelector(".sheet"), gr=repartirClips(files,modo); sh.innerHTML=`<h2>📁 Copiando…</h2><p id="exp">0 de ${files.length}</p>`;
@@ -1687,7 +1699,7 @@ function exportarClips(modo){   // en Momentos guarda por video y momento; en Lo
 }
 function compartirCarpetas(files,modo){
   const gr=partirGrandes(repartirClips(files,modo)), hechos=new Set();
-  const d=hojaCam(`<h2>📁 Videos por ${modo=="loc"?"locación":"momento"}</h2><p>El iPhone no deja crear carpetas desde una app web, así que se guardan <b>una carpeta a la vez</b>: toca una, elige <b>Guardar en Archivos</b>, crea una carpeta con ese nombre (o elige la que ya hiciste) y guarda.</p><div class="exlista">${gr.map((g,i)=>`<button class="exrow" data-exi="${i}">📁 ${esc(g.car.replace("/"," / "))}${g.n?" · "+esc(g.n):""}<small>${g.files.length} clip${g.files.length==1?"":"s"} · ${mbDe(g.files)} MB</small></button>`).join("")}</div><div class="fila2" style="margin-top:10px"><button id="exx">Cerrar</button></div>`);
+  const d=hojaCam(`<h2>📁 Carpetas ${ESTR_TXT[modo]}</h2><p>El iPhone no deja crear carpetas desde una app web, así que se guardan <b>una carpeta a la vez</b>: toca una, elige <b>Guardar en Archivos</b>, crea una carpeta con ese nombre (o elige la que ya hiciste) y guarda.</p><div class="exlista">${gr.map((g,i)=>`<button class="exrow" data-exi="${i}">📁 ${esc(g.car.replace("/"," / "))}${g.n?" · "+esc(g.n):""}<small>${g.files.length} clip${g.files.length==1?"":"s"} · ${mbDe(g.files)} MB</small></button>`).join("")}</div><div class="fila2" style="margin-top:10px"><button id="exx">Cerrar</button></div>`);
   d.querySelector("#exx").onclick=()=>d.remove();
   d.querySelectorAll("[data-exi]").forEach(b=>b.onclick=async()=>{
     const g=gr[+b.dataset.exi], nom=g.car.split("/").pop();
@@ -1712,18 +1724,19 @@ function organizarClips(){
     let src; try{ src=await window.showDirectoryPicker({mode:"read"}); }catch(e){ return; }
     sh.innerHTML=`<h2>Buscando clips…</h2><p>En «${esc(src.name)}»</p>`;
     const items=[]; try{ await escanearClips(src,items,""); }catch(e){ sh.innerHTML=`<h2>No se pudo leer la carpeta</h2><div class="fila2"><button id="ox2">Cerrar</button></div>`; sh.querySelector("#ox2").onclick=()=>d.remove(); return; }
-    const gl=repartirClips(items,"loc"), gm=repartirClips(items,"mom"), sinL=items.filter(it=>!serialDe(it)||!destinosZip("loc")[serialDe(it)]).length, sinM=items.filter(it=>!serialDe(it)||!destinosZip("mom")[serialDe(it)]).length;
+    const gl=repartirClips(items,"loc"), gm=repartirClips(items,"mom"), glm=repartirClips(items,"locmom"), sinL=items.filter(it=>!serialDe(it)||!destinosZip("loc")[serialDe(it)]).length, sinM=items.filter(it=>!serialDe(it)||!destinosZip("mom")[serialDe(it)]).length;
     sh.innerHTML=`<h2>${items.length} clip${items.length==1?"":"s"} encontrados</h2>
       <p>En «${esc(src.name)}».<br>Con locación: <b>${items.length-sinL}</b> · con video y momento: <b>${items.length-sinM}</b>.<br>Los demás van a «Sin asignar».</p>
       <label style="display:block;margin:6px 0"><input type="checkbox" id="oL" checked> Por locación (${gl.length} carpetas)</label>
+      <label style="display:block;margin:6px 0"><input type="checkbox" id="oLM"> Por locación, con video y momento adentro (${glm.length} carpetas)</label>
       <label style="display:block;margin:6px 0"><input type="checkbox" id="oM" checked> Por video y momento (${gm.length} carpetas)</label>
       <p><b>Paso 2.</b> Elige la carpeta donde se crean las carpetas.</p>
       <div class="fila2"><button class="ok" id="o2">Elegir carpeta destino</button></div><div class="fila2" style="margin-top:8px"><button id="ox2">Cancelar</button></div>`;
     sh.querySelector("#ox2").onclick=()=>d.remove();
     sh.querySelector("#o2").onclick=async()=>{
-      const hacerL=sh.querySelector("#oL").checked, hacerM=sh.querySelector("#oM").checked; if(!hacerL&&!hacerM){ toast("Marca al menos una opción",2500); return; }
+      const hacerL=sh.querySelector("#oL").checked, hacerM=sh.querySelector("#oM").checked, hacerLM=sh.querySelector("#oLM").checked; if(!hacerL&&!hacerM&&!hacerLM){ toast("Marca al menos una opción",2500); return; }
       let dst; try{ dst=await window.showDirectoryPicker({mode:"readwrite"}); }catch(e){ return; }
-      const grupos=[...(hacerL?gl.map(g=>({...g,car:"Por locación/"+g.car})):[]),...(hacerM?gm.map(g=>({...g,car:"Por momento/"+g.car})):[])];
+      const grupos=[...(hacerL?gl.map(g=>({...g,car:"Por locación/"+g.car})):[]),...(hacerLM?glm.map(g=>({...g,car:"Por locación y momento/"+g.car})):[]),...(hacerM?gm.map(g=>({...g,car:"Por momento/"+g.car})):[])];
       sh.innerHTML=`<h2>📁 Copiando…</h2><p id="exp">0 de ${grupos.reduce((a,g)=>a+g.files.length,0)} clips</p><p style="font-size:13px">No cierres esta pestaña hasta que termine.</p>`;
       try{
         const tot=await escribirCarpetas(dst,grupos,(n,t)=>{ sh.querySelector("#exp").textContent=`${n} de ${t} clips`; });
@@ -1751,7 +1764,7 @@ function descargarOrganizadorWin(){
   toast(n?`⬇️ Descargado, con ${n} serial${n==1?"":"es"} asignado${n==1?"":"s"}`:"⬇️ Descargado (todavía no hay seriales asignados; sirve para probar la lectura del iPhone)",5500);
 }
 document.addEventListener("click",ev=>{ if(ev.target.closest("[data-organizar]")) organizarClips(); if(ev.target.closest("[data-orgwin]")) descargarOrganizadorWin(); });
-document.addEventListener("click",ev=>{ const t=ev.target.closest("[data-exportar]"); if(t) exportarClips(t.dataset.exportar); });
+document.addEventListener("click",ev=>{ const t=ev.target.closest("[data-exportar]"); if(!t) return; if(t.dataset.exportar=="loc") elegirEstructura(); else exportarClips(t.dataset.exportar); });
 /* Locaciones: clips grabados, + para agregar, borrar y asignar video/momento. */
 function guardarClips(lid,files){
   const l=locsL().find(x=>x.id==lid); if(!l){ toast("Esa locación ya no existe",3000); return; }

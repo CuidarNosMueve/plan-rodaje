@@ -7,7 +7,7 @@ p = pathlib.Path(__file__).parent
 datos = json.dumps(json.loads((p/"planos.json").read_text(encoding="utf-8")), ensure_ascii=False).replace("</", "<\\/")
 src = (p/"app.html").read_text(encoding="utf-8").replace("/*DATOS*/", datos)
 
-VER_EQ, VER_CT = "rodaje-v100", "control-v98"
+VER_EQ, VER_CT = "rodaje-v101", "control-v99"
 def armar(control):
     quitar, dejar = ("CREW", "CTL") if control else ("CTL", "CREW")
     s = re.sub(r"§%s\{.*?\}%s§" % (quitar, quitar), "", src, flags=re.S)
