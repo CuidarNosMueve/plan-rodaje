@@ -231,7 +231,7 @@ body.vista-loc .filters,body.vista-loc .search{display:none}
 .clip select{width:100%;margin-top:6px;padding:10px;font-size:16px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
 .clip select.sin{border-style:dashed}
 .locform{display:flex;gap:8px;margin:0 0 12px}.locform input{flex:1;min-width:0;padding:12px;font-size:16px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}.locform button{flex:none;padding:0 16px;border:0;border-radius:10px;background:var(--accent);color:var(--on-accent,#fff);font-weight:700;font-size:16px}
-.expbtn,.fila2 [data-exportar]{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:15px;font-weight:700;cursor:pointer}
+.expbtn,.fila2 [data-exportar],.fila2 [data-organizar]{width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:15px;font-weight:700;cursor:pointer}
 .locbar{display:flex;align-items:center;gap:10px;margin-bottom:10px}.locbar p{flex:1;margin:0;font-size:14px;color:var(--muted);line-height:1.35}
 .gtk input{flex:none;width:24px;height:24px;margin:1px 0 0;accent-color:var(--ok)}.gtk small{display:block;color:var(--muted);font-size:12px;margin-top:2px}.gtk.on span{color:var(--muted)}
 .gnota{display:block;padding-top:8px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
@@ -1177,6 +1177,7 @@ function footHTML(plan){
   const team=!!urlSync();
   return `<div class="foot">`+
     `${plan?`<button data-exportar="mom" class="expbtn">📁 Videos por momento (carpetas)</button><br>`:""}`+
+    `${window.showDirectoryPicker?`<button data-organizar="1" class="expbtn">🖥️ Organizar todos los clips (computador)</button><br>`:""}`+
     `${tieneMios()||(HAY&&soloRes())?`<button id="toggleVerTodos" class="vt">${st.verTodos?(tieneMios()?"Ver solo mis videos":"Ver solo los resaltados"):"Ver todos los planos"}${!st.verTodos&&ocultosN()?" ("+ocultosN()+" ocultos)":""}</button><br>`:""}`+
     `<button id="tcam">${st.atajo=="si"?"📷 Cámara nativa (atajo)":st.atajo=="simple"?"📷 Cámara simple":"📷 Cámara sin configurar"} · cambiar</button> · `+
     `<button id="tsonido">${st.sonido===false?"🔇 Sonidos y vibración apagados":"🔔 Sonidos y vibración"}</button> · `+
@@ -1231,7 +1232,7 @@ function htmlLocaciones(){
   const ls=locsL(), vids=[...new Set(momV().map(m=>m.video))], abierto=!!st.abiertas.locNueva;
   let h=`<div class="linea">Locaciones</div><div class="locbar"><p>Lugares donde grabas. Cada plano que grabes aquí queda con su serial; después le pones video y momento.</p><button class="mas" data-locmas="1" aria-pressed="${abierto}" aria-label="Agregar locación" title="Agregar locación">+</button></div>`;
   if(abierto) h+=`<form class="locform" data-locadd><input type="text" maxlength="120" placeholder="Nombre de la locación" autocomplete="off" enterkeyhint="done" aria-label="Nombre de la locación"><button type="submit">Agregar</button></form>`;
-  h+=`<div class="fila2" style="margin:0 0 12px"><button data-exportar="loc" class="expbtn">📁 Videos por locación (carpetas)</button></div>`;
+  h+=`<div class="fila2" style="margin:0 0 12px"><button data-exportar="loc" class="expbtn">📁 Videos por locación (carpetas)</button></div>${window.showDirectoryPicker?`<div class="fila2" style="margin:0 0 12px"><button data-organizar="1" class="expbtn">🖥️ Organizar todos los clips (computador)</button></div>`:""}`;
   if(!ls.length) return h+`<div class="empty">Todavía no hay locaciones.<br><small>Toca + para agregar la primera.</small></div>`+footHTML(false);
   ls.forEach(l=>{
     const cl=clipsLoc(l.id);
