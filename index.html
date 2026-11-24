@@ -222,6 +222,23 @@ body.uno .filters, body.uno .search{display:none}
 .gitem{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}.gitem .gt{font-size:16px;font-weight:700;margin-bottom:8px}
 .gtk{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:14px;line-height:1.35;cursor:pointer}
 body.vista-loc .filters,body.vista-loc .search{display:none}
+body.vista-locdet header,body.vista-locdet #rec{}
+body.vista-locdet header{display:none}
+.locfijo{position:sticky;top:0;z-index:12;display:flex;align-items:center;gap:10px;margin:-4px -2px 8px;padding:10px 4px;background:var(--bg);border-bottom:1px solid var(--line)}
+.locfijo .locback{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:10px 12px;font-size:15px;font-weight:700;cursor:pointer}
+.locfijo .locgrande{flex:1;font-size:22px;font-weight:800;line-height:1.1;word-break:break-word}
+.locacc{display:flex;gap:6px;flex:none}.locacc button{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:20px;cursor:pointer}.locacc .locrec{background:#e0202c;border-color:#e0202c;color:#fff}
+.locsub{display:flex;align-items:center;gap:8px;justify-content:space-between;margin:0 0 8px;color:var(--muted);font-size:14px}
+.locsub .modo{padding:9px 14px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font-weight:700;text-decoration:none;cursor:pointer}.locsub .modo.on{background:var(--ink);color:var(--bg)}
+.selrap{display:flex;gap:8px;margin:0 0 8px}.selrap button{flex:1;padding:9px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-weight:700;font-size:14px;cursor:pointer}
+.clip .selck{width:24px;height:24px;flex:none}
+.loccard.sel{outline:2px solid var(--accent)}
+.clipn{width:100%;margin-top:6px;padding:9px 10px;font-size:15px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);box-sizing:border-box}
+.asigres{margin-top:6px;font-size:14px;color:var(--muted)}
+.selbar{position:sticky;bottom:calc(8px + env(safe-area-inset-bottom));z-index:15;margin-top:10px;padding:12px;border-radius:16px;background:var(--card);border:2px solid var(--accent);box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.selbar select{width:100%;margin-top:6px;padding:10px;font-size:16px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.selbar select.sin{border-style:dashed}
+.selbar .ok{width:100%;margin-top:8px;padding:13px;border-radius:12px;border:0;background:var(--accent);color:#fff;font-weight:800;font-size:16px;cursor:pointer}.selbar .ok:disabled{opacity:.4}
 .locabrir{cursor:pointer}.locabrir:active{background:var(--bg)}
 .loccard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px}
 .lochead{display:flex;align-items:center;gap:8px}.lochead b{flex:1;font-size:17px;line-height:1.25;min-width:0;overflow-wrap:anywhere}.lochead small{color:var(--muted);white-space:nowrap}
@@ -1093,6 +1110,7 @@ function render(){
   document.body.classList.toggle("uno",st.modo!="lista");
   if(st.modo!="lista" && MOMS().length){ const mm=MOMS()[momActual()]; if(!(st.modo=="uno" && esIntro(st.pos) && MOMS().some(m=>m.video==st.pos.slice(7)))) st.pos=mm.id; st.videoActual=mm.video; }
   document.body.classList.toggle("vista-loc",vistaLoc);
+  document.body.classList.toggle("vista-locdet",vistaLoc&&!!st.locAbierta&&locsL().some(l=>l.id==st.locAbierta));
   document.body.classList.toggle("vista-equipo",vistaEq||vistaGen);
   document.getElementById("ttxt").textContent = data.proyecto || "Plan de rodaje";
   { const yo=document.getElementById("yo"); yo.hidden=!(team&&st.persona); yo.textContent=corto(st.persona); yo.title=st.persona||""; }
@@ -1174,17 +1192,34 @@ function clipsLoc(lid){
     return {k, s:o.s||"", t:o.t||st.aj[k].ts, q:o.q||"", v:o.v||"", m:o.m||"", a:o.a||"", o}; }).sort((a,b)=>a.t-b.t);
 }
 function guardarClip(k,o){ ajustarYo(k, JSON.stringify(o), o.v||""); }
+let selMod=false, selClips=new Set(), grp={v:"",m:"",p:""};
+const vidsL=()=>[...new Set(momV().map(m=>m.video))];
+function selsAsig(pre,id,v,mid,pk){
+  const vids=vidsL(), ms=v?momV().filter(m=>m.video==v):[], m=mid?momento(mid):null, pls=m?planosDe(m).filter(i=>!i.fijo):[];
+  const at=`data-${pre}="${esc(id)}"`;
+  return `<select ${at} data-asp0="v" class="${v?"":"sin"}" aria-label="Video"><option value="">Video…</option>${vids.map(x=>`<option value="${esc(x)}"${v==x?" selected":""}>Video ${esc(x)} · ${esc((momV().find(q=>q.video==x)||{}).nombre||"")}</option>`).join("")}</select>`
+   +(v?`<select ${at} data-asp0="m" class="${mid?"":"sin"}" aria-label="Momento"><option value="">Momento…</option>${ms.map(q=>`<option value="${esc(q.id)}"${mid==q.id?" selected":""}>Momento ${esc(q.momento)} · ${esc(cortar(q.voz||"",40))}</option>`).join("")}</select>`:"")
+   +(mid?`<select ${at} data-asp0="p" class="${pk?"":"sin"}" aria-label="Plano"><option value="">Plano (opcional)…</option>${pls.map(i=>`<option value="${esc(i.k)}"${pk==i.k?" selected":""}>${hecho(i.k)?"✓ ":""}${esc(cortar(i.t,50))}</option>`).join("")}<option value="__nuevo">➕ Inventar un plano…</option></select>`:"");
+}
+function resumenAsig(o){
+  if(!o.v) return "";
+  const m=o.m?momento(o.m):null, pl=m&&o.p?planosDe(m).find(i=>i.k==o.p):null;
+  return `Video ${esc(o.v)}`+(m?` · Momento ${esc(m.momento)}`:"")+(pl?` · «${esc(cortar(pl.t,40))}»`:"");
+}
 function htmlLocacion(l){
-  const cl=clipsLoc(l.id), vids=[...new Set(momV().map(m=>m.video))];
-  let h=`<button class="modo locatras" data-locatras="1" style="margin:0 0 8px">‹ Todas las locaciones</button>
-    <div class="loccard"><div class="lochead"><b>📍 ${esc(l.n)}</b><small>${cl.length} plano${cl.length==1?"":"s"}</small><button class="locrec" data-loccam="${esc(l.id)}" aria-label="Grabar en ${esc(l.n)}" title="Grabar aquí">🎥</button><button data-locdel="${esc(l.id)}" aria-label="Borrar locación" title="Borrar locación">×</button></div>
-    <p class="sub" style="margin:8px 0 0">Todo lo que grabes con el botón rojo queda en esta locación, con su serial.</p></div>`;
+  const cl=clipsLoc(l.id); selClips=new Set([...selClips].filter(k=>cl.some(c=>c.k==k)));
+  let h=`<div class="locfijo"><button class="locback" data-locatras="1" aria-label="Volver a las locaciones">‹ Locaciones</button><div class="locgrande">📍 ${esc(l.n)}</div><div class="locacc"><button class="locrec" data-loccam="${esc(l.id)}" aria-label="Grabar en ${esc(l.n)}" title="Grabar aquí">🎥</button><button data-locdel="${esc(l.id)}" aria-label="Borrar locación" title="Borrar locación">×</button></div></div>
+    <div class="locsub"><span>${cl.length} plano${cl.length==1?"":"s"} grabado${cl.length==1?"":"s"} aquí</span>${cl.length?`<button class="modo${selMod?" on":""}" data-selmod="1">${selMod?"Cancelar selección":"☑ Seleccionar"}</button>`:""}</div>`;
   if(!cl.length) h+=`<div class="empty">Todavía no hay planos en esta locación.<br><small>Toca el botón rojo 🎥 para grabar aquí.</small></div>`;
+  if(selMod&&cl.length) h+=`<div class="selrap"><button data-selall="1">${selClips.size==cl.length?"Quitar todos":"Elegir todos"}</button><button data-selsin="1">Solo sin asignar</button></div>`;
   cl.forEach((c,n)=>{
-    const ms=c.v?momV().filter(m=>m.video==c.v):[];
-    h+=`<div class="loccard clip1"><div class="clip" style="border:0;margin:0;padding:0"><div class="cs"><span>Plano ${n+1} · ${c.s?"serial "+esc(c.s):"sin serial"} <small>${esc(corto(c.q))}${c.q?" · ":""}${esc(hora(c.t))}</small></span><button data-clipdel="${esc(c.k)}" aria-label="Quitar plano" title="Quitar plano">×</button></div>
-      <select data-clipv="${esc(c.k)}" class="${c.v?"":"sin"}" aria-label="Video"><option value="">Video…</option>${vids.map(v=>`<option value="${esc(v)}"${c.v==v?" selected":""}>${esc(v)} · ${esc((momV().find(m=>m.video==v)||{}).nombre||"")}</option>`).join("")}</select>
-      ${c.v?`<select data-clipm="${esc(c.k)}" class="${c.m?"":"sin"}" aria-label="Momento"><option value="">Momento…</option>${ms.map(m=>`<option value="${esc(m.id)}"${c.m==m.id?" selected":""}>Momento ${esc(m.momento)} · ${esc(cortar(m.voz||"",45))}</option>`).join("")}</select>`:""}</div></div>`; });
+    const sel=selClips.has(c.k), r=resumenAsig(c.o);
+    h+=`<div class="loccard clip1${sel?" sel":""}"><div class="clip" style="border:0;margin:0;padding:0"><div class="cs">${selMod?`<input type="checkbox" class="selck" data-clipsel="${esc(c.k)}"${sel?" checked":""} aria-label="Elegir plano ${n+1}">`:""}<span>${c.o.n?`<b>${esc(c.o.n)}</b> · `:""}${c.s?"serial "+esc(c.s):"sin serial"} <small>${esc(corto(c.q))}${c.q?" · ":""}${esc(hora(c.t))}</small></span><button data-clipdel="${esc(c.k)}" aria-label="Quitar plano" title="Quitar plano">×</button></div>
+      <input class="clipn" data-clipn="${esc(c.k)}" maxlength="80" placeholder="Nombre del plano (opcional)" value="${esc(c.o.n||"")}">
+      ${r?`<div class="asigres">✓ ${r}</div>`:""}
+      ${selMod?"":selsAsig("clip",c.k,c.v,c.m,c.o.p||"")}</div></div>`; });
+  if(selMod&&selClips.size){
+    h+=`<div class="selbar"><b>${selClips.size} plano${selClips.size==1?"":"s"} elegido${selClips.size==1?"":"s"}</b>${selsAsig("grp","x",grp.v,grp.m,grp.p)}<button class="ok" data-selok="1"${grp.v?"":" disabled"}>Asignar${grp.p?" a este plano":grp.m?" a este momento":" a este video"}</button></div>`; }
   return h+footHTML(false);
 }
 function htmlLocaciones(){
@@ -1725,9 +1760,13 @@ function guardarClips(lid,files){
   toast(n?`📍 ${n} plano${n==1?"":"s"} en ${l.n}`+(sers.length?` · serial ${sers.join(", ")}`:" · sin serial en el nombre del archivo"):"Esos planos ya estaban en la locación",4500);
 }
 document.addEventListener("click",ev=>{
-  const t=ev.target.closest("[data-locmas],[data-loccam],[data-locdel],[data-clipdel],[data-locabrir],[data-locatras]"); if(!t) return;
+  const t=ev.target.closest("[data-locmas],[data-loccam],[data-locdel],[data-clipdel],[data-locabrir],[data-locatras],[data-selmod],[data-selall],[data-selsin],[data-selok]"); if(!t) return;
+  if(t.dataset.selmod){ selMod=!selMod; selClips.clear(); grp={v:"",m:"",p:""}; render(); return; }
+  if(t.dataset.selall){ const cl=clipsLoc(st.locAbierta); if(selClips.size==cl.length) selClips.clear(); else cl.forEach(c=>selClips.add(c.k)); render(); return; }
+  if(t.dataset.selsin){ selClips.clear(); clipsLoc(st.locAbierta).filter(c=>!c.v).forEach(c=>selClips.add(c.k)); render(); return; }
+  if(t.dataset.selok){ aplicarGrupo(); return; }
   if(t.dataset.locabrir){ st.locAbierta=t.dataset.locabrir; guardar(); render(); window.scrollTo(0,0); return; }
-  if(t.dataset.locatras){ st.locAbierta=""; guardar(); render(); return; }
+  if(t.dataset.locatras){ st.locAbierta=""; selMod=false; selClips.clear(); guardar(); render(); return; }
   if(t.dataset.locmas){ st.abiertas.locNueva=!st.abiertas.locNueva; guardar(); render(); if(st.abiertas.locNueva){ const i=document.querySelector("[data-locadd] input"); i&&i.focus(); } return; }
   if(t.dataset.loccam){ grabarEnLoc(t.dataset.loccam); return; }
   if(t.dataset.clipdel){ ajustarYo(t.dataset.clipdel,"",""); return; }
@@ -1743,18 +1782,50 @@ document.addEventListener("submit",ev=>{
   if(locsL().some(l=>l.n.toLowerCase()==v.toLowerCase())){ toast("Ya existe una locación con ese nombre",3000); return; }
   st.abiertas.locNueva=false; ajustarYo("loc::"+uid(), v, "");
 });
-document.addEventListener("change",ev=>{
-  const el=ev.target, kv=el.dataset&&el.dataset.clipv, km=el.dataset&&el.dataset.clipm, k=kv||km; if(!k) return;
-  const c=Object.keys(st.aj).includes(k)?clipsLoc(k.split("::")[1]).find(x=>x.k==k):null; if(!c) return;
-  const o={...c.o};
-  if(kv){ o.v=el.value; o.m=""; guardarClip(k,o); return; }
-  o.m=el.value;
-  const m=o.m?momento(o.m):null;
-  if(m && o.a!=o.m){   // primera vez que se asigna a este momento: marca el plano y anota el serial, como al grabar dentro del video
-    if(puedeEditar(m.video)){ marcarCam(m,true); anotarSeriales(m,[c.s]); o.a=o.m; toast(`✓ Marcado en Video ${m.video} · momento ${m.momento}`+(c.s?` · serial ${c.s}`:""),3500); }
-    else toast("Quedó ligado, pero ese video no es tuyo: no se marcó el plano",4000);
+/* Asignar planos de una locación a video → momento → plano (existente o inventado). Cada plano puede reunir varios clips. */
+function pedirNombrePlano(cb){
+  const d=hojaCam(`<h2>➕ Inventar un plano</h2><p>Ponle un nombre corto. Se agrega a ese momento y queda marcado como grabado.</p><input id="pnom" maxlength="80" placeholder="Ej: Detalle de manos" style="width:100%;padding:12px;font-size:16px;border-radius:10px;border:1px solid var(--line);box-sizing:border-box"><div class="fila2" style="margin-top:10px"><button id="pno">Cancelar</button><button class="ok" id="pok">Crear y asignar</button></div>`);
+  const i=d.querySelector("#pnom"); i.focus();
+  d.querySelector("#pno").onclick=()=>{ d.remove(); render(); };
+  const ok=()=>{ const v=i.value.trim().replace(/\s+/g," "); if(!v) return; d.remove(); cb(v); };
+  d.querySelector("#pok").onclick=ok; i.addEventListener("keydown",e=>{ if(e.key=="Enter") ok(); });
+}
+function asignarClips(keys,v,mid,pk,nuevo){
+  const m=mid?momento(mid):null, lid=st.locAbierta, cls=clipsLoc(lid).filter(c=>keys.includes(c.k));
+  if(!cls.length) return;
+  const editable=!!m&&puedeEditar(m.video); let pkey=pk||"", sers=[], marcados=0;
+  if(editable){
+    if(nuevo){ const cid=uid(); festejar=true; registrar("agregar",cid,m.id,nuevo); pkey=m.id+"::mio::"+cid; registrar("marcar",pkey,m.id,nuevo); marcados++; }
+    else if(pkey){ const it=planosDe(m).find(i=>i.k==pkey); if(it&&!hecho(pkey)){ festejar=true; registrar("marcar",pkey,m.id,it.t); marcados++; } }
   }
-  guardarClip(k,o);
+  cls.forEach(c=>{
+    const o={...c.o,v:v||"",m:mid||"",p:pkey}; const dest=pkey||mid||"";
+    if(editable&&dest&&o.a!=dest){
+      if(!pkey){ marcarCam(m,true); marcados++; }
+      if(c.s) sers.push(c.s); o.a=dest; }
+    guardarClip(c.k,o); });
+  if(editable&&sers.length) anotarSeriales(m,sers);
+  if(m&&!editable) toast("Quedó ligado, pero ese video no es tuyo: no se marcó el plano",4000);
+  else if(m) toast(`✓ ${cls.length} plano${cls.length==1?"":"s"} → Video ${m.video} · momento ${m.momento}`+(pkey?" · plano asignado":"")+(sers.length?` · serial ${sers.join(", ")}`:""),4000);
+}
+function aplicarGrupo(){
+  const keys=[...selClips]; if(!keys.length||!grp.v) return;
+  const fin=()=>{ selMod=false; selClips.clear(); grp={v:"",m:"",p:""}; };
+  if(grp.p=="__nuevo"){ pedirNombrePlano(n=>{ asignarClips(keys,grp.v,grp.m,"",n); fin(); render(); }); return; }
+  asignarClips(keys,grp.v,grp.m,grp.p,""); fin(); render();
+}
+document.addEventListener("change",ev=>{
+  const el=ev.target, d=el.dataset||{};
+  if(d.clipsel){ if(el.checked) selClips.add(d.clipsel); else selClips.delete(d.clipsel); render(); return; }
+  if(d.clipn){ const c=clipsLoc(st.locAbierta).find(x=>x.k==d.clipn); if(!c) return; const n=el.value.trim().replace(/\s+/g," ").slice(0,80); if((c.o.n||"")==n) return; guardarClip(c.k,{...c.o,n}); return; }
+  if(d.asp0&&(d.grp||d.clip)){
+    const w=d.asp0, val=el.value;
+    if(d.grp){ if(w=="v"){ grp={v:val,m:"",p:""}; } else if(w=="m"){ grp.m=val; grp.p=""; } else grp.p=val; render(); return; }
+    const c=clipsLoc(st.locAbierta).find(x=>x.k==d.clip); if(!c) return;
+    let v=c.v, m=c.m, p=c.o.p||"";
+    if(w=="v"){ v=val; m=""; p=""; } else if(w=="m"){ m=val; p=""; } else p=val;
+    if(w=="p"&&val=="__nuevo"){ pedirNombrePlano(n=>asignarClips([c.k],v,m,"",n)); return; }
+    asignarClips([c.k],v,m,p,""); return; }
 });
 document.getElementById("buscar").addEventListener("input",render);
 /* Seriales y comentarios: se guardan solos (0,7 s después de escribir y al salir del cuadro), sin repintar la pantalla. */
