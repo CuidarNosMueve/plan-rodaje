@@ -242,6 +242,7 @@ body.vista-locdet header{display:none}
 .ctltabs{display:flex;gap:6px;margin:0 0 12px;padding:4px;border-radius:14px;background:var(--line)}
 .ctltabs button{flex:1;padding:10px 4px;border:0;border-radius:11px;background:transparent;color:var(--muted);font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
 .ctltabs button[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.defcard select{width:100%;margin-top:6px;padding:10px;font-size:16px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}.defcard select.sin{border-style:dashed}
 .locabrir{cursor:pointer}.locabrir:active{background:var(--bg)}
 .loccard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px}
 .lochead{display:flex;align-items:center;gap:8px}.lochead b{flex:1;font-size:17px;line-height:1.25;min-width:0;overflow-wrap:anywhere}.lochead small{color:var(--muted);white-space:nowrap}
@@ -699,7 +700,7 @@ function cfgSW(){
 }
 
 let data = st.data || base;
-const VER_PROG="rodaje-v103";
+const VER_PROG="rodaje-v104";
 let swReg=null, recargandoSW=false, VERS="", actualizandoProg=false;   // actualización del programa (ver más abajo)
 /* Usuario de prueba: ve videos FALSOS (no los del Sheet) para probar actualizaciones y avisos sin ensuciar el plan real. */
 const NOM_PRUEBA="Usuario de prueba", esPrueba=()=>st.persona===NOM_PRUEBA;
@@ -1202,12 +1203,12 @@ function clipsLoc(lid){
 function guardarClip(k,o){ ajustarYo(k, JSON.stringify(o), o.v||""); }
 let selMod=false, selClips=new Set(), grp={v:"",m:"",p:""};
 const vidsL=()=>[...new Set(momV().map(m=>m.video))];
-function selsAsig(pre,id,v,mid,pk){
+function selsAsig(pre,id,v,mid,pk,sinNuevo){
   const vids=vidsL(), ms=v?momV().filter(m=>m.video==v):[], m=mid?momento(mid):null, pls=m?planosDe(m).filter(i=>!i.fijo):[];
   const at=`data-${pre}="${esc(id)}"`;
   return `<select ${at} data-asp0="v" class="${v?"":"sin"}" aria-label="Video"><option value="">Video…</option>${vids.map(x=>`<option value="${esc(x)}"${v==x?" selected":""}>Video ${esc(x)} · ${esc((momV().find(q=>q.video==x)||{}).nombre||"")}</option>`).join("")}</select>`
    +(v?`<select ${at} data-asp0="m" class="${mid?"":"sin"}" aria-label="Momento"><option value="">Momento…</option>${ms.map(q=>`<option value="${esc(q.id)}"${mid==q.id?" selected":""}>Momento ${esc(q.momento)} · ${esc(cortar(q.voz||"",40))}</option>`).join("")}</select>`:"")
-   +(mid?`<select ${at} data-asp0="p" class="${pk?"":"sin"}" aria-label="Plano"><option value="">Plano (opcional)…</option>${pls.map(i=>`<option value="${esc(i.k)}"${pk==i.k?" selected":""}>${hecho(i.k)?"✓ ":""}${esc(cortar(i.t,50))}</option>`).join("")}<option value="__nuevo">➕ Inventar un plano…</option></select>`:"");
+   +(mid?`<select ${at} data-asp0="p" class="${pk?"":"sin"}" aria-label="Plano"><option value="">Plano (opcional)…</option>${pls.map(i=>`<option value="${esc(i.k)}"${pk==i.k?" selected":""}>${hecho(i.k)?"✓ ":""}${esc(cortar(i.t,50))}</option>`).join("")}${sinNuevo?"":`<option value="__nuevo">➕ Inventar un plano…</option>`}</select>`:"");
 }
 function resumenAsig(o){
   if(!o.v) return "";
@@ -1218,6 +1219,11 @@ function htmlLocacion(l){
   const cl=clipsLoc(l.id); selClips=new Set([...selClips].filter(k=>cl.some(c=>c.k==k)));
   let h=`<div class="locfijo"><button class="locback" data-locatras="1" aria-label="Volver a las locaciones">‹ Locaciones</button><div class="locgrande">📍 ${esc(l.n)}</div><div class="locacc"><button class="locrec" data-loccam="${esc(l.id)}" aria-label="Grabar en ${esc(l.n)}" title="Grabar aquí">🎥</button><button data-locdel="${esc(l.id)}" aria-label="Borrar locación" title="Borrar locación">×</button></div></div>
     <div class="locsub"><span>${cl.length} plano${cl.length==1?"":"s"} grabado${cl.length==1?"":"s"} aquí</span>${cl.length?`<button class="modo${selMod?" on":""}" data-selmod="1">${selMod?"Cancelar selección":"☑ Seleccionar"}</button>`:""}</div>`;
+  { const df=(st.locDef||{})[l.id]||{v:"",m:"",p:""}, mm=df.m?momento(df.m):null, pl=mm&&df.p?planosDe(mm).find(i=>i.k==df.p):null;
+    h+=`<div class="loccard defcard"><b>🎯 Lo que vas a grabar aquí</b>
+      <p class="sub" style="margin:4px 0 0">${df.v?`Los planos que grabes en esta locación quedan asignados solos a <b>Video ${esc(df.v)}</b>${mm?` · <b>Momento ${esc(mm.momento)}</b>`:""}${pl?` · «${esc(cortar(pl.t,40))}»`:""}.`:"Sin definir: los asignas después, plano por plano. O elige aquí un video y momento y se asignan solos."}</p>
+      ${selsAsig("def",l.id,df.v,df.m,df.p,true)}
+      ${df.v?`<button class="modo" data-defclear="1" style="margin:8px 0 0">Quitar (asignar después)</button>`:""}</div>`; }
   if(!cl.length) h+=`<div class="empty">Todavía no hay planos en esta locación.<br><small>Toca el botón rojo 🎥 para grabar aquí.</small></div>`;
   if(selMod&&cl.length) h+=`<div class="selrap"><button data-selall="1">${selClips.size==cl.length?"Quitar todos":"Elegir todos"}</button><button data-selsin="1">Solo sin asignar</button></div>`;
   cl.forEach((c,n)=>{
@@ -1775,13 +1781,17 @@ document.addEventListener("click",ev=>{ const t=ev.target.closest("[data-exporta
 /* Locaciones: clips grabados, + para agregar, borrar y asignar video/momento. */
 function guardarClips(lid,files){
   const l=locsL().find(x=>x.id==lid); if(!l){ toast("Esa locación ya no existe",3000); return; }
-  const ya=new Set(clipsLoc(lid).map(c=>c.s).filter(Boolean)); let n=0; const sers=[];
+  const ya=new Set(clipsLoc(lid).map(c=>c.s).filter(Boolean)); let n=0; const sers=[], nuevas=[];
   files.forEach((f,i)=>{ const s=serialDe(f); if(s&&ya.has(s)) return; if(s) ya.add(s);
-    ajustarYo("locclip::"+lid+"::"+uid()+i, JSON.stringify({s, t:Date.now()+i, q:corto(esControl()?"Control":st.persona)}), ""); n++; if(s) sers.push(s); });
+    const kk="locclip::"+lid+"::"+uid()+i; nuevas.push(kk);
+    ajustarYo(kk, JSON.stringify({s, t:Date.now()+i, q:corto(esControl()?"Control":st.persona)}), ""); n++; if(s) sers.push(s); });
+  const df=(st.locDef||{})[lid];
+  if(df&&df.v&&nuevas.length){ asignarClips(nuevas,df.v,df.m||"",df.p||"","",lid); return; }   // destino definido de antemano: los clips quedan asignados solos
   toast(n?`📍 ${n} plano${n==1?"":"s"} en ${l.n}`+(sers.length?` · serial ${sers.join(", ")}`:" · sin serial en el nombre del archivo"):"Esos planos ya estaban en la locación",4500);
 }
 document.addEventListener("click",ev=>{
-  const t=ev.target.closest("[data-locmas],[data-loccam],[data-locdel],[data-clipdel],[data-locabrir],[data-locatras],[data-selmod],[data-selall],[data-selsin],[data-selok]"); if(!t) return;
+  const t=ev.target.closest("[data-locmas],[data-loccam],[data-locdel],[data-clipdel],[data-locabrir],[data-locatras],[data-defclear],[data-selmod],[data-selall],[data-selsin],[data-selok]"); if(!t) return;
+  if(t.dataset.defclear){ if(st.locDef) delete st.locDef[st.locAbierta]; guardar(); render(); return; }
   if(t.dataset.selmod){ selMod=!selMod; selClips.clear(); grp={v:"",m:"",p:""}; render(); return; }
   if(t.dataset.selall){ const cl=clipsLoc(st.locAbierta); if(selClips.size==cl.length) selClips.clear(); else cl.forEach(c=>selClips.add(c.k)); render(); return; }
   if(t.dataset.selsin){ selClips.clear(); clipsLoc(st.locAbierta).filter(c=>!c.v).forEach(c=>selClips.add(c.k)); render(); return; }
@@ -1811,8 +1821,8 @@ function pedirNombrePlano(cb){
   const ok=()=>{ const v=i.value.trim().replace(/\s+/g," "); if(!v) return; d.remove(); cb(v); };
   d.querySelector("#pok").onclick=ok; i.addEventListener("keydown",e=>{ if(e.key=="Enter") ok(); });
 }
-function asignarClips(keys,v,mid,pk,nuevo){
-  const m=mid?momento(mid):null, lid=st.locAbierta, cls=clipsLoc(lid).filter(c=>keys.includes(c.k));
+function asignarClips(keys,v,mid,pk,nuevo,lid0){
+  const m=mid?momento(mid):null, lid=lid0||st.locAbierta, cls=clipsLoc(lid).filter(c=>keys.includes(c.k));
   if(!cls.length) return;
   const editable=!!m&&puedeEditar(m.video); let pkey=pk||"", sers=[], marcados=0;
   if(editable){
@@ -1839,6 +1849,9 @@ document.addEventListener("change",ev=>{
   const el=ev.target, d=el.dataset||{};
   if(d.clipsel){ if(el.checked) selClips.add(d.clipsel); else selClips.delete(d.clipsel); render(); return; }
   if(d.clipn){ const c=clipsLoc(st.locAbierta).find(x=>x.k==d.clipn); if(!c) return; const n=el.value.trim().replace(/\s+/g," ").slice(0,80); if((c.o.n||"")==n) return; guardarClip(c.k,{...c.o,n}); return; }
+  if(d.def&&d.asp0){ const lid=st.locAbierta; if(!lid) return; st.locDef ||= {}; const o={...(st.locDef[lid]||{v:"",m:"",p:""})}, w=d.asp0, val=el.value;
+    if(w=="v"){ o.v=val; o.m=""; o.p=""; } else if(w=="m"){ o.m=val; o.p=""; } else o.p=val;
+    if(o.v) st.locDef[lid]=o; else delete st.locDef[lid]; guardar(); render(); return; }
   if(d.asp0&&(d.grp||d.clip)){
     const w=d.asp0, val=el.value;
     if(d.grp){ if(w=="v"){ grp={v:val,m:"",p:""}; } else if(w=="m"){ grp.m=val; grp.p=""; } else grp.p=val; render(); return; }
