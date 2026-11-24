@@ -702,7 +702,7 @@ function cfgSW(){
 }
 
 let data = st.data || base;
-const VER_PROG="rodaje-v109";
+const VER_PROG="rodaje-v110";
 let swReg=null, recargandoSW=false, VERS="", actualizandoProg=false;   // actualización del programa (ver más abajo)
 /* Usuario de prueba: ve videos FALSOS (no los del Sheet) para probar actualizaciones y avisos sin ensuciar el plan real. */
 const NOM_PRUEBA="Usuario de prueba", esPrueba=()=>st.persona===NOM_PRUEBA;
@@ -1476,6 +1476,7 @@ function renderModal(){
        <p>Lo que marques en este teléfono quedará a tu nombre y el equipo podrá verlo.</p>
        ${equipo().map(n=>`<button class="nombre${n==st.persona?" sel":""}" data-persona="${esc(n)}">${esc(n)}</button>`).join("")}
        <button class="nombre nuevo" data-nuevou="1">🧪 Usuario de prueba</button>
+       <a class="nombre nuevo" href="control/" style="display:block;text-align:center;text-decoration:none">🔑 Entrar como Leandro (Control)</a>
        ${cambiando?'<button class="nombre cancel" id="cancelarPersona">Cancelar</button>':""}</div></div>` : "";
   if(html!==modalPrev){ m.innerHTML=html; modalPrev=html; }
 }
