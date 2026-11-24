@@ -242,7 +242,9 @@ body.vista-locdet header{display:none}
 .ctltabs{display:flex;gap:6px;margin:0 0 12px;padding:4px;border-radius:14px;background:var(--line)}
 .ctltabs button{flex:1;padding:10px 4px;border:0;border-radius:11px;background:transparent;color:var(--muted);font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
 .ctltabs button[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.15)}
-.defcard select{width:100%;margin-top:6px;padding:10px;font-size:16px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}.defcard select.sin{border-style:dashed}
+.loccard.defcard{background:var(--accent-soft);border:2px solid var(--accent);box-shadow:0 4px 14px color-mix(in srgb,var(--accent) 25%,transparent)}.defcard .defhead b{color:var(--accent);font-size:17px}
+.defhead{display:flex;align-items:center;justify-content:space-between;gap:8px}.defhead button{border:0;background:none;color:var(--muted);font-size:22px;line-height:1;padding:2px 8px;cursor:pointer}
+.defcard select{border-color:var(--accent);width:100%;margin-top:6px;padding:10px;font-size:16px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}.defcard select.sin{border-style:dashed}
 .locabrir{cursor:pointer}.locabrir:active{background:var(--bg)}
 .loccard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px}
 .lochead{display:flex;align-items:center;gap:8px}.lochead b{flex:1;font-size:17px;line-height:1.25;min-width:0;overflow-wrap:anywhere}.lochead small{color:var(--muted);white-space:nowrap}
@@ -733,7 +735,7 @@ function cfgSW(){
 }
 
 let data = st.data || base;
-const VER_PROG="control-v102";
+const VER_PROG="control-v104";
 let swReg=null, recargandoSW=false, VERS="", actualizandoProg=false;   // actualización del programa (ver más abajo)
 /* Usuario de prueba: ve videos FALSOS (no los del Sheet) para probar actualizaciones y avisos sin ensuciar el plan real. */
 const NOM_PRUEBA="Usuario de prueba", esPrueba=()=>st.persona===NOM_PRUEBA;
@@ -1203,7 +1205,7 @@ const usaWindows=()=>/Windows/i.test(navigator.userAgent||"")||PERFIL_EDICION[no
 function footHTML(plan){
   const team=!!urlSync();
   return `<div class="foot">`+
-    `${plan?`<button data-exportar="mom" class="expbtn">📁 Exportar a carpetas</button><br>`:""}`+
+    `${plan?`<button data-impmom="1" class="expbtn">📥 Importar clips</button><br><button data-exportar="mom" class="expbtn">📁 Exportar a carpetas</button><br>`:""}`+
     `${window.showDirectoryPicker?`<button data-organizar="1" class="expbtn">🖥️ Organizar todos los clips (computador)</button><br>`:""}`+
     `${usaWindows()?`<button data-orgwin="1" class="expbtn">🪟 Organizador para Windows (lee el iPhone por cable)</button><br>`:""}`+
     `${tieneMios()||(HAY&&soloRes())?`<button id="toggleVerTodos" class="vt">${st.verTodos?(tieneMios()?"Ver solo mis videos":"Ver solo los resaltados"):"Ver todos los planos"}${!st.verTodos&&ocultosN()?" ("+ocultosN()+" ocultos)":""}</button><br>`:""}`+
@@ -1273,10 +1275,11 @@ function resumenAsig(o){
 function htmlLocacion(l){
   const cl=clipsLoc(l.id); selClips=new Set([...selClips].filter(k=>cl.some(c=>c.k==k)));
   let h=`<div class="locfijo"><button class="locback" data-locatras="1" aria-label="Volver a las locaciones">‹ Locaciones</button><div class="locgrande">📍 ${esc(l.n)}</div><div class="locacc"><button class="locrec" data-loccam="${esc(l.id)}" aria-label="Grabar en ${esc(l.n)}" title="Grabar aquí">🎥</button><button data-locdel="${esc(l.id)}" aria-label="Borrar locación" title="Borrar locación">×</button></div></div>
+    <button class="expbtn" data-imploc="${esc(l.id)}" style="margin:0 0 8px">📥 Importar clips a esta locación</button>
     <div class="locsub"><span>${cl.length} plano${cl.length==1?"":"s"} grabado${cl.length==1?"":"s"} aquí</span>${cl.length?`<button class="modo${selMod?" on":""}" data-selmod="1">${selMod?"Cancelar selección":"☑ Seleccionar"}</button>`:""}</div>`;
   { const df=(st.locDef||{})[l.id]||{v:"",m:"",p:""}, mm=df.m?momento(df.m):null, pl=mm&&df.p?planosDe(mm).find(i=>i.k==df.p):null;
-    h+=`<div class="loccard defcard"><b>🎯 Lo que vas a grabar aquí</b>
-      <p class="sub" style="margin:4px 0 0">${df.v?`Los planos que grabes en esta locación quedan asignados solos a <b>Video ${esc(df.v)}</b>${mm?` · <b>Momento ${esc(mm.momento)}</b>`:""}${pl?` · «${esc(cortar(pl.t,40))}»`:""}.`:"Sin definir: los asignas después, plano por plano. O elige aquí un video y momento y se asignan solos."}</p>
+    h+=`<div class="loccard defcard"><div class="defhead"><b>🎯 Lo que vas a grabar aquí</b>${st.ayudaDefNo?"":`<button data-defayuda="1" aria-label="Ocultar explicación" title="Ocultar explicación">×</button>`}</div>
+      ${st.ayudaDefNo?"":`<p class="sub" style="margin:4px 0 0">${df.v?`Los planos que grabes en esta locación quedan asignados solos a <b>Video ${esc(df.v)}</b>${mm?` · <b>Momento ${esc(mm.momento)}</b>`:""}${pl?` · «${esc(cortar(pl.t,40))}»`:""}.`:"Sin definir: los asignas después, plano por plano. O elige aquí un video y momento y se asignan solos."}</p>`}
       ${selsAsig("def",l.id,df.v,df.m,df.p,true)}
       ${df.v?`<button class="modo" data-defclear="1" style="margin:8px 0 0">Quitar (asignar después)</button>`:""}</div>`; }
   if(!cl.length) h+=`<div class="empty">Todavía no hay planos en esta locación.<br><small>Toca el botón rojo 🎥 para grabar aquí.</small></div>`;
@@ -1713,7 +1716,7 @@ function elegirMomentoCam(files){
 const ATAJO_URL="https://www.icloud.com/shortcuts/c06f4ec3e62742f89d83f98f4e76a900", ATAJO_NOM="Cámara Rodaje";
 let pendMom=null;   // momento al que van los clips que se importan después de grabar
 let pendLoc=null;   // locación a la que van (pestaña Locaciones)
-function hojaCam(html){ document.getElementById("recpick")?.remove(); const d=document.createElement("div"); d.id="recpick"; d.innerHTML=`<div class="sheet" role="dialog" aria-modal="true">${html}</div>`; document.body.appendChild(d); d.addEventListener("click",e=>{ if(e.target===d) d.remove(); }); return d; }
+function hojaCam(html,fijo){ document.getElementById("recpick")?.remove(); const d=document.createElement("div"); d.id="recpick"; d.innerHTML=`<div class="sheet" role="dialog" aria-modal="true">${html}</div>`; document.body.appendChild(d); d.addEventListener("click",e=>{ if(e.target===d&&!fijo) d.remove(); }); return d; }
 function momDentro(){ const ms=MOMS(); return st.vista=="plan" && st.modo=="uno" && ms.length && !esIntro(st.pos) ? ms[momActual()] : null; }
 function abrirSelector(simple){ const i=document.getElementById("recin"); if(simple) i.setAttribute("capture","environment"); else i.removeAttribute("capture"); i.click(); }
 function lanzarAtajo(){ const m=pendLoc?null:momDentro(); st.camAt=Date.now(); st.camMom=m?m.id:null; st.camLoc=pendLoc||null; guardar(); location.href="shortcuts://run-shortcut?name="+encodeURIComponent(ATAJO_NOM); }
@@ -1746,13 +1749,21 @@ document.getElementById("rec").addEventListener("click",()=>{
   pendLoc=null; iniciarCam();
 });
 /* Al volver de la cámara: ofrecer importar lo grabado (marca planos y anota los seriales). */
+function confirmarSalirImportar(volver){
+  const d=hojaCam(`<h2>¿Salir sin importar?</h2><p>Los clips que grabaste siguen en tu Fototeca. Puedes importarlos después con el botón <b>📥 Importar clips</b>.</p><div class="fila2"><button class="ok" id="simp">Seguir importando</button><button id="nimp">Salir</button></div>`,true);
+  d.querySelector("#simp").onclick=()=>{ d.remove(); volver(); };
+  d.querySelector("#nimp").onclick=()=>{ d.remove(); toast("Cuando quieras: botón 📥 Importar clips",3500); };
+}
+function mostrarImportar(mid,lid){
+  const loc=lid&&locsL().find(l=>l.id==lid), m=mid&&momento(mid), d=hojaCam(`<h2>📥 Importar lo que grabaste</h2><p>${loc?`Se guardarán en la locación <b>${esc(loc.n)}</b>, con sus seriales.`:m?`Se marcarán en <b>Video ${esc(m.video)} · momento ${esc(m.momento)}</b>, con sus seriales.`:"Después eliges el video y el momento."}<br>Toca <b>Importar clips</b>, elige <b>Fototeca</b> y selecciona los clips.</p><div class="fila2"><button id="cimpno">Ahora no</button><button class="ok" id="cimp">Importar clips</button></div>`,true);
+  d.querySelector("#cimp").onclick=()=>{ d.remove(); pendMom=loc?null:(mid||null); pendLoc=loc?lid:null; abrirSelector(false); };
+  d.querySelector("#cimpno").onclick=()=>{ d.remove(); confirmarSalirImportar(()=>mostrarImportar(mid,lid)); };
+}
 function ofrecerImportar(){
   if(!st.camAt || document.visibilityState!=="visible") return;
   const t=Date.now()-st.camAt; if(t<2500) return;
-  const mid=st.camMom, lid=st.camLoc, loc=lid&&locsL().find(l=>l.id==lid); st.camAt=0; st.camLoc=null; guardar(); if(t>3*3600e3) return;
-  const m=mid&&momento(mid), d=hojaCam(`<h2>📥 Importar lo que grabaste</h2><p>${loc?`Se guardarán en la locación <b>${esc(loc.n)}</b>, con sus seriales.`:m?`Se marcarán en <b>Video ${esc(m.video)} · momento ${esc(m.momento)}</b>, con sus seriales.`:"Después eliges el video y el momento."}<br>Toca <b>Importar clips</b>, elige <b>Fototeca</b> y selecciona los clips.</p><div class="fila2"><button id="cimpno">Ahora no</button><button class="ok" id="cimp">Importar clips</button></div>`);
-  d.querySelector("#cimp").onclick=()=>{ d.remove(); pendMom=loc?null:(mid||null); pendLoc=loc?lid:null; abrirSelector(false); };
-  d.querySelector("#cimpno").onclick=()=>d.remove();
+  const mid=st.camMom, lid=st.camLoc; st.camAt=0; st.camLoc=null; guardar(); if(t>3*3600e3) return;
+  mostrarImportar(mid,lid);
 }
 document.addEventListener("visibilitychange",()=>setTimeout(ofrecerImportar,300));
 addEventListener("pageshow",()=>setTimeout(ofrecerImportar,300));
@@ -1904,7 +1915,7 @@ function descargarOrganizadorWin(){
   toast(n?`⬇️ Descargado, con ${n} serial${n==1?"":"es"} asignado${n==1?"":"s"}`:"⬇️ Descargado (todavía no hay seriales asignados; sirve para probar la lectura del iPhone)",5500);
 }
 document.addEventListener("click",ev=>{ if(ev.target.closest("[data-organizar]")) organizarClips(); if(ev.target.closest("[data-orgwin]")) descargarOrganizadorWin(); });
-document.addEventListener("click",ev=>{ const t=ev.target.closest("[data-exportar]"); if(!t) return; if(t.dataset.exportar=="loc") elegirEstructura(); else exportarClips(t.dataset.exportar); });
+document.addEventListener("click",ev=>{ if(ev.target.closest("[data-impmom]")){ pendLoc=null; pendMom=null; abrirSelector(false); return; } const t=ev.target.closest("[data-exportar]"); if(!t) return; if(t.dataset.exportar=="loc") elegirEstructura(); else exportarClips(t.dataset.exportar); });
 /* Locaciones: clips grabados, + para agregar, borrar y asignar video/momento. */
 function guardarClips(lid,files){
   const l=locsL().find(x=>x.id==lid); if(!l){ toast("Esa locación ya no existe",3000); return; }
@@ -1917,7 +1928,9 @@ function guardarClips(lid,files){
   toast(n?`📍 ${n} plano${n==1?"":"s"} en ${l.n}`+(sers.length?` · serial ${sers.join(", ")}`:" · sin serial en el nombre del archivo"):"Esos planos ya estaban en la locación",4500);
 }
 document.addEventListener("click",ev=>{
-  const t=ev.target.closest("[data-locmas],[data-loccam],[data-locdel],[data-clipdel],[data-locabrir],[data-locatras],[data-defclear],[data-selmod],[data-selall],[data-selsin],[data-selok]"); if(!t) return;
+  const t=ev.target.closest("[data-locmas],[data-loccam],[data-locdel],[data-clipdel],[data-locabrir],[data-locatras],[data-imploc],[data-defayuda],[data-defclear],[data-selmod],[data-selall],[data-selsin],[data-selok]"); if(!t) return;
+  if(t.dataset.imploc){ pendLoc=t.dataset.imploc; pendMom=null; abrirSelector(false); return; }
+  if(t.dataset.defayuda){ st.ayudaDefNo=true; guardar(); render(); return; }
   if(t.dataset.defclear){ if(st.locDef) delete st.locDef[st.locAbierta]; guardar(); render(); return; }
   if(t.dataset.selmod){ selMod=!selMod; selClips.clear(); grp={v:"",m:"",p:""}; render(); return; }
   if(t.dataset.selall){ const cl=clipsLoc(st.locAbierta); if(selClips.size==cl.length) selClips.clear(); else cl.forEach(c=>selClips.add(c.k)); render(); return; }
