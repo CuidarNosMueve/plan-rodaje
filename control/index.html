@@ -222,6 +222,7 @@ body.uno .filters, body.uno .search{display:none}
 .gitem{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}.gitem .gt{font-size:16px;font-weight:700;margin-bottom:8px}
 .gtk{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:14px;line-height:1.35;cursor:pointer}
 body.vista-loc .filters,body.vista-loc .search{display:none}
+.locabrir{cursor:pointer}.locabrir:active{background:var(--bg)}
 .loccard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px}
 .lochead{display:flex;align-items:center;gap:8px}.lochead b{flex:1;font-size:17px;line-height:1.25;min-width:0;overflow-wrap:anywhere}.lochead small{color:var(--muted);white-space:nowrap}
 .lochead button{flex:none;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--bg);font-size:20px;line-height:1;color:var(--ink);cursor:pointer}
@@ -1228,7 +1229,21 @@ function clipsLoc(lid){
     return {k, s:o.s||"", t:o.t||st.aj[k].ts, q:o.q||"", v:o.v||"", m:o.m||"", a:o.a||"", o}; }).sort((a,b)=>a.t-b.t);
 }
 function guardarClip(k,o){ ajustarYo(k, JSON.stringify(o), o.v||""); }
+function htmlLocacion(l){
+  const cl=clipsLoc(l.id), vids=[...new Set(momV().map(m=>m.video))];
+  let h=`<button class="modo locatras" data-locatras="1" style="margin:0 0 8px">‹ Todas las locaciones</button>
+    <div class="loccard"><div class="lochead"><b>📍 ${esc(l.n)}</b><small>${cl.length} plano${cl.length==1?"":"s"}</small><button class="locrec" data-loccam="${esc(l.id)}" aria-label="Grabar en ${esc(l.n)}" title="Grabar aquí">🎥</button><button data-locdel="${esc(l.id)}" aria-label="Borrar locación" title="Borrar locación">×</button></div>
+    <p class="sub" style="margin:8px 0 0">Todo lo que grabes con el botón rojo queda en esta locación, con su serial.</p></div>`;
+  if(!cl.length) h+=`<div class="empty">Todavía no hay planos en esta locación.<br><small>Toca el botón rojo 🎥 para grabar aquí.</small></div>`;
+  cl.forEach((c,n)=>{
+    const ms=c.v?momV().filter(m=>m.video==c.v):[];
+    h+=`<div class="loccard clip1"><div class="clip" style="border:0;margin:0;padding:0"><div class="cs"><span>Plano ${n+1} · ${c.s?"serial "+esc(c.s):"sin serial"} <small>${esc(corto(c.q))}${c.q?" · ":""}${esc(hora(c.t))}</small></span><button data-clipdel="${esc(c.k)}" aria-label="Quitar plano" title="Quitar plano">×</button></div>
+      <select data-clipv="${esc(c.k)}" class="${c.v?"":"sin"}" aria-label="Video"><option value="">Video…</option>${vids.map(v=>`<option value="${esc(v)}"${c.v==v?" selected":""}>${esc(v)} · ${esc((momV().find(m=>m.video==v)||{}).nombre||"")}</option>`).join("")}</select>
+      ${c.v?`<select data-clipm="${esc(c.k)}" class="${c.m?"":"sin"}" aria-label="Momento"><option value="">Momento…</option>${ms.map(m=>`<option value="${esc(m.id)}"${c.m==m.id?" selected":""}>Momento ${esc(m.momento)} · ${esc(cortar(m.voz||"",45))}</option>`).join("")}</select>`:""}</div></div>`; });
+  return h+footHTML(false);
+}
 function htmlLocaciones(){
+  { const ab=st.locAbierta&&locsL().find(l=>l.id==st.locAbierta); if(ab) return htmlLocacion(ab); if(st.locAbierta){ st.locAbierta=""; } }
   const ls=locsL(), vids=[...new Set(momV().map(m=>m.video))], abierto=!!st.abiertas.locNueva;
   let h=`<div class="linea">Locaciones</div><div class="locbar"><p>Lugares donde grabas. Cada plano que grabes aquí queda con su serial; después le pones video y momento.</p><button class="mas" data-locmas="1" aria-pressed="${abierto}" aria-label="Agregar locación" title="Agregar locación">+</button></div>`;
   if(abierto) h+=`<form class="locform" data-locadd><input type="text" maxlength="120" placeholder="Nombre de la locación" autocomplete="off" enterkeyhint="done" aria-label="Nombre de la locación"><button type="submit">Agregar</button></form>`;
@@ -1236,13 +1251,7 @@ function htmlLocaciones(){
   if(!ls.length) return h+`<div class="empty">Todavía no hay locaciones.<br><small>Toca + para agregar la primera.</small></div>`+footHTML(false);
   ls.forEach(l=>{
     const cl=clipsLoc(l.id);
-    h+=`<div class="loccard"><div class="lochead"><b>📍 ${esc(l.n)}</b><small>${cl.length} plano${cl.length==1?"":"s"}</small><button class="locrec" data-loccam="${esc(l.id)}" aria-label="Grabar en ${esc(l.n)}" title="Grabar aquí">🎥</button><button data-locdel="${esc(l.id)}" aria-label="Borrar locación" title="Borrar locación">×</button></div>`;
-    cl.forEach((c,n)=>{
-      const ms=c.v?momV().filter(m=>m.video==c.v):[];
-      h+=`<div class="clip"><div class="cs"><span>Plano ${n+1} · ${c.s?"serial "+esc(c.s):"sin serial"} <small>${esc(corto(c.q))}${c.q?" · ":""}${esc(hora(c.t))}</small></span><button data-clipdel="${esc(c.k)}" aria-label="Quitar plano" title="Quitar plano">×</button></div>
-        <select data-clipv="${esc(c.k)}" class="${c.v?"":"sin"}" aria-label="Video"><option value="">Video…</option>${vids.map(v=>`<option value="${esc(v)}"${c.v==v?" selected":""}>${esc(v)} · ${esc((momV().find(m=>m.video==v)||{}).nombre||"")}</option>`).join("")}</select>
-        ${c.v?`<select data-clipm="${esc(c.k)}" class="${c.m?"":"sin"}" aria-label="Momento"><option value="">Momento…</option>${ms.map(m=>`<option value="${esc(m.id)}"${c.m==m.id?" selected":""}>Momento ${esc(m.momento)} · ${esc(cortar(m.voz||"",45))}</option>`).join("")}</select>`:""}</div>`; });
-    h+=`</div>`; });
+    h+=`<div class="loccard locabrir" data-locabrir="${esc(l.id)}" role="button" tabindex="0"><div class="lochead"><b>📍 ${esc(l.n)}</b><small>${cl.length} plano${cl.length==1?"":"s"} ›</small><button class="locrec" data-loccam="${esc(l.id)}" aria-label="Grabar en ${esc(l.n)}" title="Grabar aquí">🎥</button></div></div>`; });
   return h+footHTML(false);
 }
 function htmlGenericos(){
@@ -1679,7 +1688,7 @@ function pedirLoc(){
   d.querySelector("#locok").onclick=()=>{ const id=d.querySelector("#locp").value; d.remove(); grabarEnLoc(id); };
 }
 document.getElementById("rec").addEventListener("click",()=>{
-  if(st.vista=="locaciones"){ pedirLoc(); return; }
+  if(st.vista=="locaciones"){ const ab=st.locAbierta&&locsL().find(l=>l.id==st.locAbierta); if(ab) grabarEnLoc(ab.id); else pedirLoc(); return; }
   pendLoc=null; iniciarCam();
 });
 /* Al volver de la cámara: ofrecer importar lo grabado (marca planos y anota los seriales). */
@@ -1838,14 +1847,16 @@ function guardarClips(lid,files){
   toast(n?`📍 ${n} plano${n==1?"":"s"} en ${l.n}`+(sers.length?` · serial ${sers.join(", ")}`:" · sin serial en el nombre del archivo"):"Esos planos ya estaban en la locación",4500);
 }
 document.addEventListener("click",ev=>{
-  const t=ev.target.closest("[data-locmas],[data-loccam],[data-locdel],[data-clipdel]"); if(!t) return;
+  const t=ev.target.closest("[data-locmas],[data-loccam],[data-locdel],[data-clipdel],[data-locabrir],[data-locatras]"); if(!t) return;
+  if(t.dataset.locabrir){ st.locAbierta=t.dataset.locabrir; guardar(); render(); window.scrollTo(0,0); return; }
+  if(t.dataset.locatras){ st.locAbierta=""; guardar(); render(); return; }
   if(t.dataset.locmas){ st.abiertas.locNueva=!st.abiertas.locNueva; guardar(); render(); if(st.abiertas.locNueva){ const i=document.querySelector("[data-locadd] input"); i&&i.focus(); } return; }
   if(t.dataset.loccam){ grabarEnLoc(t.dataset.loccam); return; }
   if(t.dataset.clipdel){ ajustarYo(t.dataset.clipdel,"",""); return; }
   if(t.dataset.locdel){ const id=t.dataset.locdel, l=locsL().find(x=>x.id==id); if(!l) return;
     const d=hojaCam(`<h2>¿Borrar esta locación?</h2><p><b>${esc(l.n)}</b> y sus ${clipsLoc(id).length} plano(s) desaparecen de la lista de Locaciones <b>de todo el equipo</b>. Los planos ya marcados en los momentos no se tocan.</p><div class="fila2"><button id="ldno">Cancelar</button><button class="ok" id="ldok">Borrar</button></div>`);
     d.querySelector("#ldno").onclick=()=>d.remove();
-    d.querySelector("#ldok").onclick=()=>{ d.remove(); clipsLoc(id).forEach(c=>ajustarYo(c.k,"","")); ajustarYo("loc::"+id,"",""); };
+    d.querySelector("#ldok").onclick=()=>{ d.remove(); if(st.locAbierta==id){ st.locAbierta=""; } clipsLoc(id).forEach(c=>ajustarYo(c.k,"","")); ajustarYo("loc::"+id,"",""); };
   }
 });
 document.addEventListener("submit",ev=>{
