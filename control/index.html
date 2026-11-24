@@ -735,7 +735,7 @@ function cfgSW(){
 }
 
 let data = st.data || base;
-const VER_PROG="control-v104";
+const VER_PROG="control-v105";
 let swReg=null, recargandoSW=false, VERS="", actualizandoProg=false;   // actualización del programa (ver más abajo)
 /* Usuario de prueba: ve videos FALSOS (no los del Sheet) para probar actualizaciones y avisos sin ensuciar el plan real. */
 const NOM_PRUEBA="Usuario de prueba", esPrueba=()=>st.persona===NOM_PRUEBA;
@@ -1175,7 +1175,9 @@ function render(){
   document.body.classList.toggle("vista-locdet",vistaLoc&&!!st.locAbierta&&locsL().some(l=>l.id==st.locAbierta));
   document.body.classList.toggle("vista-equipo",vistaEq||vistaGen||vistaCtl);
   document.getElementById("ttxt").textContent = data.proyecto || "Plan de rodaje";
-  { const yo=document.getElementById("yo"); yo.hidden=!(team&&st.persona); yo.textContent=corto(st.persona); yo.title=st.persona||""; }
+  { const yo=document.getElementById("yo"), soloCtl=team&&!st.persona&&esControl(); yo.hidden=!(team&&(st.persona||esControl()));
+    yo.textContent=st.persona?corto(st.persona):"Control"; yo.title=st.persona?st.persona:"Sesión de Control: lo que hagas aquí se firma como «Control»";
+    if(soloCtl) yo.removeAttribute("data-cambiar"); else yo.setAttribute("data-cambiar",""); }
   document.getElementById("sub").textContent = (data.mensaje||"").replace(/\.$/,"");
   pintarAvance();
   document.querySelectorAll("#vistas button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v==(vistaCtl?"control":vistaMon?"montaje":vistaLoc?"locaciones":vistaEq?"equipo":"plan"))));
