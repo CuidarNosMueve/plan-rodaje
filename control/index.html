@@ -1177,7 +1177,7 @@ function render(){
 function footHTML(plan){
   const team=!!urlSync();
   return `<div class="foot">`+
-    `${plan?`<button data-exportar="mom" class="expbtn">📁 Videos por momento (carpetas)</button><br>`:""}`+
+    `${plan?`<button data-exportar="mom" class="expbtn">📁 Exportar a carpetas</button><br>`:""}`+
     `${window.showDirectoryPicker?`<button data-organizar="1" class="expbtn">🖥️ Organizar todos los clips (computador)</button><br>`:""}`+
     `${tieneMios()||(HAY&&soloRes())?`<button id="toggleVerTodos" class="vt">${st.verTodos?(tieneMios()?"Ver solo mis videos":"Ver solo los resaltados"):"Ver todos los planos"}${!st.verTodos&&ocultosN()?" ("+ocultosN()+" ocultos)":""}</button><br>`:""}`+
     `<button id="tcam">${st.atajo=="si"?"📷 Cámara nativa (atajo)":st.atajo=="simple"?"📷 Cámara simple":"📷 Cámara sin configurar"} · cambiar</button> · `+
@@ -1247,7 +1247,7 @@ function htmlLocaciones(){
   const ls=locsL(), vids=[...new Set(momV().map(m=>m.video))], abierto=!!st.abiertas.locNueva;
   let h=`<div class="linea">Locaciones</div><div class="locbar"><p>Lugares donde grabas. Cada plano que grabes aquí queda con su serial; después le pones video y momento.</p><button class="mas" data-locmas="1" aria-pressed="${abierto}" aria-label="Agregar locación" title="Agregar locación">+</button></div>`;
   if(abierto) h+=`<form class="locform" data-locadd><input type="text" maxlength="120" placeholder="Nombre de la locación" autocomplete="off" enterkeyhint="done" aria-label="Nombre de la locación"><button type="submit">Agregar</button></form>`;
-  h+=`<div class="fila2" style="margin:0 0 12px"><button data-exportar="loc" class="expbtn">📁 Videos por locación (carpetas)</button></div>${window.showDirectoryPicker?`<div class="fila2" style="margin:0 0 12px"><button data-organizar="1" class="expbtn">🖥️ Organizar todos los clips (computador)</button></div>`:""}`;
+  h+=`<div class="fila2" style="margin:0 0 12px"><button data-exportar="loc" class="expbtn">📁 Exportar a carpetas</button></div>${window.showDirectoryPicker?`<div class="fila2" style="margin:0 0 12px"><button data-organizar="1" class="expbtn">🖥️ Organizar todos los clips (computador)</button></div>`:""}`;
   if(!ls.length) return h+`<div class="empty">Todavía no hay locaciones.<br><small>Toca + para agregar la primera.</small></div>`+footHTML(false);
   ls.forEach(l=>{
     const cl=clipsLoc(l.id);
