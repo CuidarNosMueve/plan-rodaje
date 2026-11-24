@@ -353,6 +353,10 @@ body.edicion .shot.ya .txt{font-weight:800}
 .vg select{flex:1;min-width:0;height:36px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font-size:15px;padding:0 8px}
 .ctl-solo{display:none}
 body.control .ctl-solo{display:block}
+/* Control: dos hileras de botones (3 + 2), más grandes y con aire */
+body.control.team .vistas{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:5px}
+body.control.team .vistas button{grid-column:span 2;padding:11px 4px;font-size:15px;min-height:44px}
+body.control.team .vistas button:nth-child(n+4){grid-column:span 3}
 .ro{margin-top:10px;padding:10px 12px;border:1px dashed var(--line);border-radius:10px;font-size:13px;color:var(--muted);white-space:pre-wrap}
 .ro b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
 .ctl-badge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:99px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;vertical-align:middle}
