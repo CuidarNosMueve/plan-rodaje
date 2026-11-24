@@ -595,7 +595,7 @@ html[data-skin="editorial"] .logro .lg{background:#fbfaf6;color:#111;border:4px 
 html[data-skin="aurora"] .logro .lg{background:linear-gradient(135deg,rgba(106,76,255,.95),rgba(255,79,134,.95));color:#fff;border:0;border-radius:28px;box-shadow:0 20px 60px rgba(255,79,134,.5)}html[data-skin="aurora"] .logro b{color:#fff}
 @media (prefers-reduced-motion:reduce){.logro,.logro .lg{animation:none}}
 #rec{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:40;width:66px;height:66px;padding:0;border-radius:50%;border:4px solid #fff;background:#e0202c;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,.35)}#rec i{display:block;width:24px;height:24px;border-radius:50%;background:#fff}#rec:active{transform:scale(.94);background:#b81822}body:not(.team) #rec,body.vista-equipo #rec,body.con-tec #rec{display:none}
-#recpick{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center}#recpick .sheet{width:100%;max-width:520px;background:var(--card,#fff);color:var(--ink);border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}#recpick h2{margin:0 0 6px;font-size:18px}#recpick p{margin:0 0 12px;font-size:14px;opacity:.8}#recpick select{width:100%;margin:0 0 10px;padding:12px;font-size:16px;border-radius:10px}#recpick .fila2{display:flex;gap:8px}#recpick p b{font-weight:700}#recpick button{flex:1;padding:13px;border-radius:12px;border:0;font-size:16px;font-weight:700}#recpick .ok{background:var(--accent);color:#fff}
+#recpick{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center}#recpick .sheet{width:100%;max-width:520px;background:var(--card,#fff);color:var(--ink);border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}#recpick h2{margin:0 0 6px;font-size:18px}#recpick p{margin:0 0 12px;font-size:14px;opacity:.8}#recpick select{width:100%;margin:0 0 10px;padding:12px;font-size:16px;border-radius:10px}#recpick .fila2{display:flex;gap:8px}#recpick p b{font-weight:700}#recpick button{flex:1;padding:13px;border-radius:12px;border:0;font-size:16px;font-weight:700}#recpick .ok{background:var(--accent);color:#fff}#recpick .sheet{max-height:90vh;overflow:auto}#recpick .exlista{display:flex;flex-direction:column;gap:8px;margin:0 0 4px}#recpick .exrow{flex:none;width:100%;text-align:left;padding:12px 14px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:16px;font-weight:700;border-radius:12px}#recpick .exrow small{display:block;font-weight:400;font-size:13px;opacity:.7;margin-top:2px}#recpick .exrow.hecho{border-color:var(--ok);background:var(--ok-soft)}
 
 /* Jalar hacia abajo para recargar (datos + programa) */
 #ptr{position:fixed;left:0;right:0;top:0;z-index:70;display:flex;justify-content:center;pointer-events:none;transform:translateY(-60px);opacity:0;transition:opacity .15s}
@@ -612,7 +612,7 @@ html[data-skin="aurora"] .logro .lg{background:linear-gradient(135deg,rgba(106,7
     <button class="iconbtn" id="btnSync" aria-label="Actualizar lista y equipo"><span id="syncIco">↻</span><span class="pend" id="pend" hidden></span></button>
   </div>
   <div class="progress"><button class="avance" id="avance" aria-label="Cambiar entre planos de hoy y planos totales"></button></div>
-  <div class="vistas" id="vistas"><button data-v="plan">Momentos</button><button data-v="locaciones">Locaciones</button><button data-v="equipo">Equipo</button><button data-v="montaje">Montaje</button></div>
+  <div class="vistas" id="vistas"><button data-v="plan">Momentos</button><button data-v="locaciones">Locaciones</button></div>
   <div id="vfijo" hidden></div>
   <div class="sbar" id="sbar" aria-hidden="true"><i></i></div>
 </header>
@@ -1078,6 +1078,7 @@ function porPlano(m,d){
 function autoalto(el){ el.style.height="auto"; el.style.height=Math.max(44,el.scrollHeight)+"px"; }
 let ultVideoMio=null, llegando=false;
 function render(){
+  if(st.vista=="equipo"||st.vista=="montaje") st.vista="plan";   // pestañas Equipo y Montaje retiradas
   calcNuevos(); calcRes(); calcGen();
   
   const team=!!urlSync(), vistaEq=team && !!st.persona && st.vista=="equipo", vistaGen=team && st.vista=="genericos", vistaMon=team && st.vista=="montaje", vistaLoc=team && st.vista=="locaciones";
@@ -1120,6 +1121,7 @@ function render(){
 function footHTML(plan){
   const team=!!urlSync();
   return `<div class="foot">`+
+    `${plan?`<button data-exportar="mom" class="expbtn">📁 Videos por momento (carpetas)</button><br>`:""}`+
     `${tieneMios()||(HAY&&soloRes())?`<button id="toggleVerTodos" class="vt">${st.verTodos?(tieneMios()?"Ver solo mis videos":"Ver solo los resaltados"):"Ver todos los planos"}${!st.verTodos&&ocultosN()?" ("+ocultosN()+" ocultos)":""}</button><br>`:""}`+
     `<button id="tcam">${st.atajo=="si"?"📷 Cámara nativa (atajo)":st.atajo=="simple"?"📷 Cámara simple":"📷 Cámara sin configurar"} · cambiar</button> · `+
     `<button id="tsonido">${st.sonido===false?"🔇 Sonidos y vibración apagados":"🔔 Sonidos y vibración"}</button> · `+
@@ -1174,7 +1176,7 @@ function htmlLocaciones(){
   const ls=locsL(), vids=[...new Set(momV().map(m=>m.video))], abierto=!!st.abiertas.locNueva;
   let h=`<div class="linea">Locaciones</div><div class="locbar"><p>Lugares donde grabas. Cada plano que grabes aquí queda con su serial; después le pones video y momento.</p><button class="mas" data-locmas="1" aria-pressed="${abierto}" aria-label="Agregar locación" title="Agregar locación">+</button></div>`;
   if(abierto) h+=`<form class="locform" data-locadd><input type="text" maxlength="120" placeholder="Nombre de la locación" autocomplete="off" enterkeyhint="done" aria-label="Nombre de la locación"><button type="submit">Agregar</button></form>`;
-  h+=`<div class="fila2" style="margin:0 0 12px"><button data-exportar="1" class="expbtn">📦 Videos en carpetas (.zip)</button></div>`;
+  h+=`<div class="fila2" style="margin:0 0 12px"><button data-exportar="loc" class="expbtn">📁 Videos por locación (carpetas)</button></div>`;
   if(!ls.length) return h+`<div class="empty">Todavía no hay locaciones.<br><small>Toca + para agregar la primera.</small></div>`+footHTML(false);
   ls.forEach(l=>{
     const cl=clipsLoc(l.id);
@@ -1266,7 +1268,7 @@ function htmlMisVideos(){
 }
 function banners(){
   let h=htmlAvisos("plan");
-  { const {g,e}=misVideos(); if(g.length||e.length) h+=`<button class="mios" data-v="equipo">Te tocan: ${g.length?"🎥 grabar "+g.length:""}${g.length&&e.length?" · ":""}${e.length?"✂️ editar "+e.length:""} <span>ver cuáles ›</span></button><button class="vtodos" data-vertodos="1">${st.verTodos?"👤 Ver solo mis videos":"📋 Ver todos los videos"+(ocultosN()?" ("+ocultosN()+" más)":"")}</button>`; }
+  { const {g,e}=misVideos(); if(g.length||e.length) h+=`<button class="mios" data-abrirvideos="1">Te tocan: ${g.length?"🎥 grabar "+g.length:""}${g.length&&e.length?" · ":""}${e.length?"✂️ editar "+e.length:""} <span>ver cuáles ›</span></button><button class="vtodos" data-vertodos="1">${st.verTodos?"👤 Ver solo mis videos":"📋 Ver todos los videos"+(ocultosN()?" ("+ocultosN()+" más)":"")}</button>`; }
   if(aviso){
     const partes=[]; if(aviso.agregados) partes.push(`${aviso.agregados} plano${aviso.agregados>1?"s":""} nuevo${aviso.agregados>1?"s":""}`);
     if(aviso.quitados) partes.push(`${aviso.quitados} quitado${aviso.quitados>1?"s":""}`);
@@ -1590,62 +1592,64 @@ function destinosZip(modo){
   }
   return mp;
 }
-const CRCT=(()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[n]=c>>>0; } return t; })();
-async function crcArchivo(f,prog){
-  let c=0xFFFFFFFF; const CH=4<<20;
-  for(let o=0;o<f.size;o+=CH){ const b=new Uint8Array(await f.slice(o,o+CH).arrayBuffer()); for(let i=0;i<b.length;i++) c=CRCT[(c^b[i])&255]^(c>>>8); if(prog) prog(Math.min(o+CH,f.size)/f.size); }
-  return (c^0xFFFFFFFF)>>>0;
+/* Reparte los clips en carpetas (por serial). «Sin asignar» recoge los que no tienen serial ligado. */
+function repartirClips(files,modo){
+  const mp=destinosZip(modo), g={};
+  files.forEach(f=>{ const s=serialDe(f), ds=s&&mp[s]?[...mp[s]]:["Sin asignar"]; ds.forEach(c=>(g[c] ||= []).push(f)); });
+  return Object.keys(g).sort((a,b)=>a.localeCompare(b,"es",{numeric:true})).map(c=>({car:c,files:g[c],n:""}));
 }
-async function armarZip(files,modo,prog){
-  const mp=destinosZip(modo), enc=new TextEncoder(), parts=[], cen=[], usados=new Set(); let off=0, nClips=0, nSin=0; const carpetas=new Set();
-  const n=new Date(), dt=((n.getHours()<<11)|(n.getMinutes()<<5)|(n.getSeconds()>>1))&0xFFFF, dd=(((n.getFullYear()-1980)<<9)|((n.getMonth()+1)<<5)|n.getDate())&0xFFFF;
-  for(let i=0;i<files.length;i++){
-    const f=files[i], s=serialDe(f), ds=s&&mp[s]?[...mp[s]]:["Sin asignar"], base=limpiaN(String(f.name||"clip").replace(/^.*[\\/]/,"")), crc=await crcArchivo(f,x=>prog&&prog(i+x,files.length));
-    if(ds[0]=="Sin asignar") nSin++; else nClips++;
-    for(const car of ds){
-      let ruta=car+"/"+base, k=2; while(usados.has(ruta.toLowerCase())){ ruta=car+"/"+base.replace(/(\.[^.]*)?$/," ("+(k++)+")$1"); } usados.add(ruta.toLowerCase()); carpetas.add(car);
-      const nm=enc.encode(ruta), h=new DataView(new ArrayBuffer(30));
-      h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true); h.setUint16(10,dt,true); h.setUint16(12,dd,true);
-      h.setUint32(14,crc,true); h.setUint32(18,f.size,true); h.setUint32(22,f.size,true); h.setUint16(26,nm.length,true); h.setUint16(28,0,true);
-      cen.push({nm,crc,size:f.size,off}); parts.push(h.buffer,nm,f); off+=30+nm.length+f.size;
-      if(off>0xF0000000) throw new Error("grande");
-    }
+const mbDe = fs => Math.round(fs.reduce((a,x)=>a+x.size,0)/1048576);
+/* iPhone: cada carpeta se comparte aparte; si una es muy grande se parte en varias (máx. ~1,2 GB o 25 clips). */
+function partirGrandes(grupos){
+  const out=[]; grupos.forEach(g=>{ let cur=[], sz=0; const ps=[];
+    g.files.forEach(f=>{ if(cur.length&&(sz+f.size>1.2e9||cur.length>=25)){ ps.push(cur); cur=[]; sz=0; } cur.push(f); sz+=f.size; });
+    if(cur.length) ps.push(cur); ps.forEach((fs,i)=>out.push({car:g.car,files:fs,n:ps.length>1?"parte "+(i+1)+" de "+ps.length:""})); });
+  return out;
+}
+function pedirArchivos(cb){
+  const inp=document.createElement("input"); inp.type="file"; inp.multiple=true; inp.accept="video/*,image/*"; inp.style.display="none"; document.body.appendChild(inp);
+  inp.onchange=()=>{ const files=[...inp.files]; inp.remove(); if(files.length) cb(files); };
+  inp.addEventListener("cancel",()=>inp.remove()); inp.click();
+}
+async function existeArch(dir,nom){ try{ await dir.getFileHandle(nom); return true; }catch(e){ return false; } }
+/* Computador (Chrome/Edge): se crean carpetas reales dentro de la carpeta que elijas. */
+async function escribirCarpetas(raiz,grupos,prog){
+  const tot=grupos.reduce((a,g)=>a+g.files.length,0); let n=0;
+  for(const g of grupos){
+    let dir=raiz; for(const parte of g.car.split("/")) dir=await dir.getDirectoryHandle(parte,{create:true});
+    for(const f of g.files){ let nom=limpiaN(f.name), k=2; while(await existeArch(dir,nom)) nom=limpiaN(f.name).replace(/(\.[^.]*)?$/," ("+(k++)+")$1");
+      const w=await (await dir.getFileHandle(nom,{create:true})).createWritable(); await w.write(f); await w.close(); prog(++n,tot); }
   }
-  let cd=0; const cparts=[];
-  cen.forEach(e=>{ const h=new DataView(new ArrayBuffer(46));
-    h.setUint32(0,0x02014b50,true); h.setUint16(4,20,true); h.setUint16(6,20,true); h.setUint16(8,0x0800,true); h.setUint16(10,0,true); h.setUint16(12,dt,true); h.setUint16(14,dd,true);
-    h.setUint32(16,e.crc,true); h.setUint32(20,e.size,true); h.setUint32(24,e.size,true); h.setUint16(28,e.nm.length,true); h.setUint32(42,e.off,true);
-    cparts.push(h.buffer,e.nm); cd+=46+e.nm.length; });
-  const fin=new DataView(new ArrayBuffer(22)); fin.setUint32(0,0x06054b50,true); fin.setUint16(8,cen.length,true); fin.setUint16(10,cen.length,true); fin.setUint32(12,cd,true); fin.setUint32(16,off,true);
-  return {blob:new Blob([...parts,...cparts,fin.buffer],{type:"application/zip"}), n:files.length, nClips, nSin, carpetas:carpetas.size, entradas:cen.length};
+  return tot;
 }
-function exportarClips(){
-  const d=hojaCam(`<h2>📦 Videos en carpetas</h2><p>Se arma un <b>.zip</b> con tus clips ordenados en carpetas. Primero elige cómo ordenarlos y luego selecciona los clips de la Fototeca. Cada clip se ubica por su <b>serial</b>; los que no tengan serial asignado van a una carpeta «Sin asignar».</p><div class="fila2"><button class="ok" id="exl">📍 Por locación</button></div><div class="fila2" style="margin-top:8px"><button class="ok" id="exm">🎬 Por video y momento</button></div><div class="fila2" style="margin-top:8px"><button id="exno">Cancelar</button></div>`);
-  d.querySelector("#exno").onclick=()=>d.remove();
-  const elegir=modo=>{ const inp=document.createElement("input"); inp.type="file"; inp.multiple=true; inp.accept="video/*,image/*"; inp.style.display="none"; document.body.appendChild(inp);
-    inp.onchange=()=>{ const files=[...inp.files]; inp.remove(); if(files.length) construirZip(d,files,modo); };
-    inp.addEventListener("cancel",()=>inp.remove()); inp.click(); };
-  d.querySelector("#exl").onclick=()=>elegir("loc"); d.querySelector("#exm").onclick=()=>elegir("mom");
-}
-async function construirZip(d,files,modo){
-  const sh=d.querySelector(".sheet"), nombre=(modo=="loc"?"Videos por locacion":"Videos por momento")+".zip", total=files.reduce((a,f)=>a+f.size,0);
-  sh.innerHTML=`<h2>📦 Armando el archivo…</h2><p id="exp">Revisando ${files.length} clip${files.length==1?"":"s"} (${(total/1048576).toFixed(0)} MB). No cierres la app.</p>`;
-  const p=sh.querySelector("#exp");
-  try{
-    const r=await armarZip(files,modo,(x,n)=>{ p.textContent=`Revisando clips… ${Math.min(100,Math.round(x/n*100))} %`; });
-    const f=new File([r.blob],nombre,{type:"application/zip"});
-    sh.innerHTML=`<h2>✅ Archivo listo</h2><p><b>${nombre}</b> · ${(r.blob.size/1048576).toFixed(0)} MB<br>${r.nClips} clip${r.nClips==1?"":"s"} en ${r.carpetas-(r.nSin?1:0)} carpeta${r.carpetas-(r.nSin?1:0)==1?"":"s"}${r.nSin?` · ${r.nSin} sin asignar`:""}</p><div class="fila2"><button class="ok" id="exgo">Guardar / compartir</button></div><div class="fila2" style="margin-top:8px"><button id="exx">Cerrar</button></div>`;
-    sh.querySelector("#exx").onclick=()=>d.remove();
-    sh.querySelector("#exgo").onclick=async()=>{
-      if(navigator.canShare && navigator.canShare({files:[f]})){ try{ await navigator.share({files:[f],title:nombre}); return; }catch(e){ if(e&&e.name=="AbortError") return; } }
-      const a=document.createElement("a"); a.href=URL.createObjectURL(r.blob); a.download=nombre; document.body.appendChild(a); a.click(); setTimeout(()=>{ a.remove(); URL.revokeObjectURL(a.href); },60000);
-    };
-  }catch(e){
-    sh.innerHTML=`<h2>No se pudo armar el archivo</h2><p>${e&&e.message=="grande"?"Son demasiados videos para un solo archivo (máximo cerca de 3,5 GB). Elige menos clips y repite.":"Algo falló al leer los clips. Intenta con menos clips."}</p><div class="fila2"><button id="exx">Cerrar</button></div>`;
-    sh.querySelector("#exx").onclick=()=>d.remove();
+function exportarClips(modo){   // en Momentos guarda por video y momento; en Locaciones, por locación
+  modo=modo=="loc"?"loc":"mom";
+  if(window.showDirectoryPicker){
+    window.showDirectoryPicker({mode:"readwrite"}).then(raiz=>{
+      const d=hojaCam(`<h2>📁 Carpeta: ${esc(raiz.name)}</h2><p>Dentro de ella se crean las carpetas ${modo=="loc"?"de cada locación":"de cada video y momento"}. Ahora elige los clips.</p><div class="fila2"><button class="ok" id="exc">Elegir clips</button></div><div class="fila2" style="margin-top:8px"><button id="exx">Cancelar</button></div>`);
+      d.querySelector("#exx").onclick=()=>d.remove();
+      d.querySelector("#exc").onclick=()=>pedirArchivos(async files=>{
+        const sh=d.querySelector(".sheet"), gr=repartirClips(files,modo); sh.innerHTML=`<h2>📁 Copiando…</h2><p id="exp">0 de ${files.length}</p>`;
+        try{ await escribirCarpetas(raiz,gr,(n,t)=>{ sh.querySelector("#exp").textContent=`${n} de ${t} clips`; });
+          sh.innerHTML=`<h2>✅ Listo</h2><p>${files.length} clip${files.length==1?"":"s"} en ${gr.length} carpeta${gr.length==1?"":"s"} dentro de «${esc(raiz.name)}».</p><div class="fila2"><button class="ok" id="exx2">Cerrar</button></div>`; }
+        catch(e){ sh.innerHTML=`<h2>No se pudo copiar</h2><p>Revisa que la carpeta tenga permiso y espacio, y repite.</p><div class="fila2"><button class="ok" id="exx2">Cerrar</button></div>`; }
+        sh.querySelector("#exx2").onclick=()=>d.remove(); });
+    }).catch(()=>{});
+    return;
   }
+  pedirArchivos(files=>compartirCarpetas(files,modo));
 }
-document.addEventListener("click",ev=>{ if(ev.target.closest("[data-exportar]")) exportarClips(); });
+function compartirCarpetas(files,modo){
+  const gr=partirGrandes(repartirClips(files,modo)), hechos=new Set();
+  const d=hojaCam(`<h2>📁 Videos por ${modo=="loc"?"locación":"momento"}</h2><p>El iPhone no deja crear carpetas desde una app web, así que se guardan <b>una carpeta a la vez</b>: toca una, elige <b>Guardar en Archivos</b>, crea una carpeta con ese nombre (o elige la que ya hiciste) y guarda.</p><div class="exlista">${gr.map((g,i)=>`<button class="exrow" data-exi="${i}">📁 ${esc(g.car.replace("/"," / "))}${g.n?" · "+esc(g.n):""}<small>${g.files.length} clip${g.files.length==1?"":"s"} · ${mbDe(g.files)} MB</small></button>`).join("")}</div><div class="fila2" style="margin-top:10px"><button id="exx">Cerrar</button></div>`);
+  d.querySelector("#exx").onclick=()=>d.remove();
+  d.querySelectorAll("[data-exi]").forEach(b=>b.onclick=async()=>{
+    const g=gr[+b.dataset.exi], nom=g.car.split("/").pop();
+    if(!(navigator.canShare&&navigator.canShare({files:g.files}))){ toast("Este navegador no deja compartir archivos. Usa el iPhone o Chrome en un computador.",5000); return; }
+    try{ await navigator.share({files:g.files,title:nom}); hechos.add(b.dataset.exi); b.classList.add("hecho"); b.firstChild.textContent="✓ "+b.firstChild.textContent.slice(3); }catch(e){ if(!(e&&e.name=="AbortError")) toast("No se pudo compartir esa carpeta. Prueba con menos clips.",4500); }
+  });
+}
+document.addEventListener("click",ev=>{ const t=ev.target.closest("[data-exportar]"); if(t) exportarClips(t.dataset.exportar); });
 /* Locaciones: clips grabados, + para agregar, borrar y asignar video/momento. */
 function guardarClips(lid,files){
   const l=locsL().find(x=>x.id==lid); if(!l){ toast("Esa locación ya no existe",3000); return; }
