@@ -1162,8 +1162,7 @@ function render(){
 function footHTML(plan){
   const team=!!urlSync();
   return `<div class="foot">`+
-    `${tieneMios()||(HAY&&soloRes())?`<button id="toggleVerTodos" class="vt">${st.verTodos?(tieneMios()?"Ver solo mis videos":"Ver solo los resaltados"):"Ver todos los videos"}${!st.verTodos&&ocultosN()?" ("+ocultosN()+" ocultos)":""}</button><br>`:""}`+
-    `${plan?`<button id="toggleOcultar">${st.ocultar?"Mostrar":"Ocultar"} planos grabados</button> · `:""}`+
+    `${tieneMios()||(HAY&&soloRes())?`<button id="toggleVerTodos" class="vt">${st.verTodos?(tieneMios()?"Ver solo mis videos":"Ver solo los resaltados"):"Ver todos los planos"}${!st.verTodos&&ocultosN()?" ("+ocultosN()+" ocultos)":""}</button><br>`:""}`+
     `<button id="tcam">${st.atajo=="si"?"📷 Cámara nativa (atajo)":st.atajo=="simple"?"📷 Cámara simple":"📷 Cámara sin configurar"} · cambiar</button> · `+
     `<button id="tsonido">${st.sonido===false?"🔇 Sonidos y vibración apagados":"🔔 Sonidos y vibración"}</button> · `+
     `<button id="reset">${team?"Reiniciar este teléfono":"Borrar mi avance"}</button><br>`+
@@ -1256,7 +1255,7 @@ function htmlMomento(m){
     ${regraba(m.id)?`<div class="sab-reg">🔁 <b>Regrabar:</b> ${esc(regraba(m.id))} <button data-monreg0="${esc(m.id)}">✓ Ya regrabé</button></div>`:""}${notaMon(m.id)?`<div class="sab-s"><b>✂️ Nota de montaje</b> ${esc(notaMon(m.id))}</div>`:""}
     ${items.length?"":`<p class="info">Sin planos propuestos todavía.</p>`}
     ${esApertura(m,prop)?`<span class="apert"><b>🎬 Plano de apertura</b> Debe ser un plano pensado para que entre graficación sobre él.</span>`:""}
-    <ul class="shots">${prop.filter(i=>!(st.ocultar && hecho(i.k))).map(li).join("")}</ul>
+    <ul class="shots">${prop.map(li).join("")}</ul>
     ${ya.length?`<button class="yabtn" data-ya="${esc(m.id)}" aria-expanded="${yaAb}">✓ Ya grabados (${ya.length}) ${yaAb?"▾":"▸"}</button>${yaAb?`<ul class="shots">${ya.map(li).join("")}</ul>`:""}`:""}
     ${agregando?`<form class="add" data-add="${esc(m.id)}"><input name="t" maxlength="300" placeholder="Describe el plano…" enterkeyhint="done" autocomplete="off"><button>Agregar</button></form>`:""}
     ${nota("seriales","Seriales de video")}
