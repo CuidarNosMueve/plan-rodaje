@@ -245,6 +245,7 @@ body.vista-locdet header{display:none}
 .loccard.defcard{background:var(--accent-soft);border:2px solid var(--accent);box-shadow:0 4px 14px color-mix(in srgb,var(--accent) 25%,transparent)}.defcard .defhead b{color:var(--accent);font-size:17px}
 .defhead{display:flex;align-items:center;justify-content:space-between;gap:8px}.defhead button{border:0;background:none;color:var(--muted);font-size:22px;line-height:1;padding:2px 8px;cursor:pointer}
 .defcard select{border-color:var(--accent);width:100%;margin-top:6px;padding:10px;font-size:16px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}.defcard select.sin{border-style:dashed}
+html.web #rec,html.web .locrec,html.web #tcam{display:none!important}
 .locabrir{cursor:pointer}.locabrir:active{background:var(--bg)}
 .loccard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:12px}
 .lochead{display:flex;align-items:center;gap:8px}.lochead b{flex:1;font-size:17px;line-height:1.25;min-width:0;overflow-wrap:anywhere}.lochead small{color:var(--muted);white-space:nowrap}
@@ -715,6 +716,8 @@ const EQUIPO = ["Valentina Hoyos","Alejandra Rivera","Jorge Girón","Juan David"
 const base = JSON.parse(document.getElementById("datos-base").textContent);
 const DEF = () => ({formato:2,modo:"uno",serie:null,pos:null,avanceTotal:false,videoActual:null,notas:{},marcas:{},custom:{},nuevos:{},keys:null,sig:null,data:null,filtro:"Todos",ocultar:false,abiertas:{},
   persona:null,control:"",asig:{},aj:{},finv:{},cola:[],borrados:{},pin:"",vista:"plan",vistoEn:0,adoptado:false,sub:null,avisosNo:false,avisosOk:false,deHoja:false});
+/* En el computador (web) no se graba: se oculta el botón de cámara */
+if(!/iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent) && !(navigator.maxTouchPoints>1 && /Mac/i.test(navigator.platform))) document.documentElement.classList.add("web");
 let st = cargar();
  if(!st.control){ st.control="1"; st.persona="Control"; st.adoptado=true; st.vista="control"; } 
 function cargar(){
@@ -735,7 +738,7 @@ function cfgSW(){
 }
 
 let data = st.data || base;
-const VER_PROG="control-v109";
+const VER_PROG="control-v110";
 let swReg=null, recargandoSW=false, VERS="", actualizandoProg=false;   // actualización del programa (ver más abajo)
 /* Usuario de prueba: ve videos FALSOS (no los del Sheet) para probar actualizaciones y avisos sin ensuciar el plan real. */
 const NOM_PRUEBA="Usuario de prueba", esPrueba=()=>st.persona===NOM_PRUEBA;
