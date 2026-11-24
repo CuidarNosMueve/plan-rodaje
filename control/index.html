@@ -729,7 +729,8 @@ function cfgSW(){
 }
 
 let data = st.data || base;
-let swReg=null, recargandoSW=false, VERS="";   // actualización del programa (ver más abajo)
+const VER_PROG="control-v98";
+let swReg=null, recargandoSW=false, VERS="", actualizandoProg=false;   // actualización del programa (ver más abajo)
 /* Usuario de prueba: ve videos FALSOS (no los del Sheet) para probar actualizaciones y avisos sin ensuciar el plan real. */
 const NOM_PRUEBA="Usuario de prueba", esPrueba=()=>st.persona===NOM_PRUEBA;
 function datosPrueba(){
@@ -826,15 +827,15 @@ function aplicar(nueva, manual){
   if(sig===st.sig){
     const ex=m=>(m.color||"")+"|"+(m.premisa||"")+"|"+(m.resumen||"")+"|"+(m.responsable||"")+"|"+(m.editor||""), col=new Map(nueva.momentos.map(m=>[m.id,m]));
     if(data.momentos.some(m=>col.has(m.id) && ex(m)!==ex(col.get(m.id)))){ data={...data, momentos:data.momentos.map(m=>col.has(m.id)?{...m,color:col.get(m.id).color||"",premisa:col.get(m.id).premisa||"",resumen:col.get(m.id).resumen||"",responsable:col.get(m.id).responsable||"",editor:col.get(m.id).editor||""}:m)}; st.data=data; guardar(); render(); }
-    if(manual) toast("Ya tienes la lista más reciente"); return; }
+    return; }
   const k=todasLlaves(nueva);
   if(st.keys){
     const antes=new Set(st.keys), ahora=new Set(k);
     const agregados=k.filter(x=>!antes.has(x)), quitados=st.keys.filter(x=>!ahora.has(x));
     agregados.forEach(x=>st.nuevos[x]=1);
     Object.keys(st.nuevos).forEach(x=>{ if(!ahora.has(x)) delete st.nuevos[x]; });
-    aviso={version:nueva.version, agregados:agregados.length, quitados:quitados.length};
-    toast("Lista actualizada");
+    if(agregados.length||quitados.length){ aviso={version:nueva.version, agregados:agregados.length, quitados:quitados.length};
+      toast(agregados.length?`🆕 Hay ${agregados.length} plano${agregados.length==1?"":"s"} nuevo${agregados.length==1?"":"s"} en la lista`:"Se quitaron planos de la lista",4500); }
   }
   Object.keys(st.aj).forEach(kk=>{ if(!kk.startsWith("finalizado::")) return; const a=st.aj[kk], v=kk.slice(12);
     if(a.v=="1" && !st.cola.length && Date.now()-a.ts>120000 && (nueva.momentos||[]).some(m=>m.video==v)) (st.finv ||= {})[v]=a.ts; });
@@ -2357,12 +2358,21 @@ document.addEventListener("click",async ev=>{ const b=ev.target.closest&&ev.targ
   try{ const rs=await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r=>r.unregister())); }catch(e){}
   try{ const ks=await caches.keys(); await Promise.all(ks.filter(k=>k!="rodaje-cfg").map(k=>caches.delete(k))); }catch(e){}
   location.reload(); });
-function revisarPrograma(){ try{ if(swReg) swReg.update().catch(()=>{}); }catch(e){} }
+/* Programa nuevo: se compara la versión publicada (sw.js, siempre fresco) con la que está corriendo; si cambió, se avisa y se recarga con la versión nueva. */
+async function hayProgramaNuevo(){ try{ const r=await fetch("sw.js?t="+Date.now(),{cache:"no-store"}); if(!r.ok) return false; const m=(await r.text()).match(/CACHE\s*=\s*"([^"]+)"/); return !!m && m[1]!==VER_PROG; }catch(e){ return false; } }
+async function actualizarPrograma(){
+  if(actualizandoProg||recargandoSW) return; actualizandoProg=true;
+  toast("🔄 Hay una versión nueva · actualizando la app…",4000);
+  try{ const rs=await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r=>r.unregister())); }catch(e){}
+  try{ const ks=await caches.keys(); await Promise.all(ks.filter(k=>k!="rodaje-cfg").map(k=>caches.delete(k))); }catch(e){}
+  setTimeout(recargarSiLibre,900);
+}
+function revisarPrograma(){ try{ if(swReg) swReg.update().catch(()=>{}); }catch(e){} hayProgramaNuevo().then(n=>{ if(n) actualizarPrograma(); }); }
 function recargarSiLibre(){ if(recargandoSW) return; const f=document.activeElement; if(f&&/^(TEXTAREA|INPUT)$/.test(f.tagName)){ f.addEventListener("blur",()=>setTimeout(recargarSiLibre,400),{once:true}); return; } recargandoSW=true; location.reload(); }
 if("serviceWorker" in navigator && location.protocol=="https:"){ try{
   const habia=!!navigator.serviceWorker.controller;
   navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>{ swReg=r; revisarPrograma(); }).catch(()=>{});
-  navigator.serviceWorker.addEventListener("controllerchange",()=>{ if(habia) { toast("Actualizando la app…"); setTimeout(recargarSiLibre,700); } });
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{ if(habia && !actualizandoProg) { toast("🔄 Hay una versión nueva · actualizando la app…",4000); setTimeout(recargarSiLibre,700); } });
   document.addEventListener("visibilitychange",()=>{ if(document.visibilityState=="visible") revisarPrograma(); });
 }catch(e){} }
 </script>
