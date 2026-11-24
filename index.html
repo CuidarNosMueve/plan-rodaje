@@ -702,7 +702,7 @@ function cfgSW(){
 }
 
 let data = st.data || base;
-const VER_PROG="rodaje-v110";
+const VER_PROG="rodaje-v111";
 let swReg=null, recargandoSW=false, VERS="", actualizandoProg=false;   // actualización del programa (ver más abajo)
 /* Usuario de prueba: ve videos FALSOS (no los del Sheet) para probar actualizaciones y avisos sin ensuciar el plan real. */
 const NOM_PRUEBA="Usuario de prueba", esPrueba=()=>st.persona===NOM_PRUEBA;
@@ -1658,6 +1658,8 @@ document.getElementById("recin").addEventListener("change",ev=>{
 const limpiaN = t => String(t||"").replace(/[\\/:*?"<>|\u0000-\u001f]/g," ").replace(/\s+/g," ").trim().replace(/[. ]+$/,"").slice(0,80) || "Sin nombre";
 const carpMom = m => limpiaN("Video "+m.video+" · "+(m.nombre||""))+"/"+limpiaN("Momento "+m.momento);
 function destinosZip(modo){
+  if(modo=="todo"){ const a=destinosZip("locmom"), b=destinosZip("mom"), r={}; Object.keys(a).forEach(k=>r[k]=new Set(a[k]));
+    Object.keys(b).forEach(k=>{ if(!r[k]) r[k]=new Set([...b[k]].map(c=>"Sin locación/"+c)); }); return r; }
   const mp={}, add=(s,c)=>{ if(s) (mp[s] ||= new Set()).add(c); };
   if(modo=="loc") locsL().forEach(l=>clipsLoc(l.id).forEach(c=>add(c.s,limpiaN(l.n))));
   else if(modo=="locmom") locsL().forEach(l=>clipsLoc(l.id).forEach(c=>{ const m=c.m&&momento(c.m), base=limpiaN(l.n);
@@ -1752,23 +1754,23 @@ function organizarClips(){
     let src; try{ src=await window.showDirectoryPicker({mode:"read"}); }catch(e){ return; }
     sh.innerHTML=`<h2>Buscando clips…</h2><p>En «${esc(src.name)}»</p>`;
     const items=[]; try{ await escanearClips(src,items,""); }catch(e){ sh.innerHTML=`<h2>No se pudo leer la carpeta</h2><div class="fila2"><button id="ox2">Cerrar</button></div>`; sh.querySelector("#ox2").onclick=()=>d.remove(); return; }
-    const gl=repartirClips(items,"loc"), gm=repartirClips(items,"mom"), glm=repartirClips(items,"locmom"), sinL=items.filter(it=>!serialDe(it)||!destinosZip("loc")[serialDe(it)]).length, sinM=items.filter(it=>!serialDe(it)||!destinosZip("mom")[serialDe(it)]).length;
+    const gl=repartirClips(items,"loc"), gm=repartirClips(items,"mom"), glm=repartirClips(items,"todo"), sinL=items.filter(it=>!serialDe(it)||!destinosZip("loc")[serialDe(it)]).length, sinM=items.filter(it=>!serialDe(it)||!destinosZip("mom")[serialDe(it)]).length;
     sh.innerHTML=`<h2>${items.length} clip${items.length==1?"":"s"} encontrados</h2>
       <p>En «${esc(src.name)}».<br>Con locación: <b>${items.length-sinL}</b> · con video y momento: <b>${items.length-sinM}</b>.<br>Los demás van a «Sin asignar».</p>
-      <label style="display:block;margin:6px 0"><input type="checkbox" id="oL" checked> Por locación (${gl.length} carpetas)</label>
-      <label style="display:block;margin:6px 0"><input type="checkbox" id="oLM"> Por locación, con video y momento adentro (${glm.length} carpetas)</label>
-      <label style="display:block;margin:6px 0"><input type="checkbox" id="oM" checked> Por video y momento (${gm.length} carpetas)</label>
+      <p>Se crea <b>Cuidar Nos Mueve → Material</b> y adentro:</p>
+      <label style="display:block;margin:6px 0"><input type="radio" name="oE" value="todo" checked> Locación → video y momento (${glm.length} carpetas)</label>
+      <label style="display:block;margin:6px 0"><input type="radio" name="oE" value="loc"> Solo locación (${gl.length} carpetas)</label>
+      <label style="display:block;margin:6px 0"><input type="radio" name="oE" value="mom"> Solo video y momento (${gm.length} carpetas)</label>
       <p><b>Paso 2.</b> Elige la carpeta donde se crean las carpetas.</p>
       <div class="fila2"><button class="ok" id="o2">Elegir carpeta destino</button></div><div class="fila2" style="margin-top:8px"><button id="ox2">Cancelar</button></div>`;
     sh.querySelector("#ox2").onclick=()=>d.remove();
     sh.querySelector("#o2").onclick=async()=>{
-      const hacerL=sh.querySelector("#oL").checked, hacerM=sh.querySelector("#oM").checked, hacerLM=sh.querySelector("#oLM").checked; if(!hacerL&&!hacerM&&!hacerLM){ toast("Marca al menos una opción",2500); return; }
-      let dst; try{ dst=await window.showDirectoryPicker({mode:"readwrite"}); }catch(e){ return; }
-      const grupos=[...(hacerL?gl.map(g=>({...g,car:"Por locación/"+g.car})):[]),...(hacerLM?glm.map(g=>({...g,car:"Por locación y momento/"+g.car})):[]),...(hacerM?gm.map(g=>({...g,car:"Por momento/"+g.car})):[])];
+      const modoE=(sh.querySelector("input[name=oE]:checked")||{}).value||"todo"; let dst; try{ dst=await window.showDirectoryPicker({mode:"readwrite"}); }catch(e){ return; }
+      const grupos=repartirClips(items,modoE).map(g=>({...g,car:"Cuidar Nos Mueve/Material/"+g.car}));
       sh.innerHTML=`<h2>📁 Copiando…</h2><p id="exp">0 de ${grupos.reduce((a,g)=>a+g.files.length,0)} clips</p><p style="font-size:13px">No cierres esta pestaña hasta que termine.</p>`;
       try{
         const tot=await escribirCarpetas(dst,grupos,(n,t)=>{ sh.querySelector("#exp").textContent=`${n} de ${t} clips`; });
-        const dl=destinosZip("loc"), dm=destinosZip("mom"), fila=x=>'"'+String(x).replace(/"/g,'""')+'"';
+        const dl=destinosZip(modoE), dm=destinosZip("mom"), fila=x=>'"'+String(x).replace(/"/g,'""')+'"';
         const csv="\ufeffArchivo,Serial,Locación,Video y momento,Estado\n"+items.map(it=>{ const sr=serialDe(it), l=sr&&dl[sr]?[...dl[sr]].join(" | "):"", m=sr&&dm[sr]?[...dm[sr]].join(" | "):""; return [it.ruta,sr,l,m,(l||m)?"Asignado":"Sin asignar"].map(fila).join(","); }).join("\n");
         const w=await (await dst.getFileHandle("Informe de clips.csv",{create:true})).createWritable(); await w.write(csv); await w.close();
         sh.innerHTML=`<h2>✅ Listo</h2><p>${tot} copias en «${esc(dst.name)}».<br>Se creó también <b>Informe de clips.csv</b> con lo que quedó asignado y lo que no.</p><div class="fila2"><button class="ok" id="ox3">Cerrar</button></div>`;
@@ -1780,9 +1782,8 @@ function organizarClips(){
 /* Windows: programa (PowerShell) que lee los clips directo del iPhone por cable y los copia a carpetas. Se descarga con el mapa de seriales de este momento. */
 const PS_ORG = "# Organizar clips desde el iPhone (Windows) - Cali Somos Todos\n# Lee los clips directo del iPhone conectado por cable y los copia a carpetas por locacion y por video y momento.\n# Antes de empezar: conecta el iPhone, desbloquealo y toca \"Confiar\". No cierres esta ventana hasta que termine.\n$ErrorActionPreference = \"Continue\"\n$json = @'\n__MAPA__\n'@\n$mapa = $json | ConvertFrom-Json\n$shell = New-Object -ComObject Shell.Application\n\nfunction Serial($nombre) {\n  $b = [IO.Path]::GetFileNameWithoutExtension($nombre)\n  if ($b -match '(?i)(?:IMG|MVI|VID|DSC|DJI|GOPR|GX|C)[_ -]?(\\d{3,})') { return $Matches[1] }\n  if ($b -match '(\\d{3,})(?!.*\\d)') { return $Matches[1] }\n  return \"\"\n}\nfunction NombreDe($it) {\n  $n = \"\"\n  try { $n = [IO.Path]::GetFileName([string]$it.Path) } catch { }\n  if (-not $n) { $n = [string]$it.Name }\n  return $n\n}\n\nWrite-Host \"\"\nWrite-Host \"Buscando el iPhone...\" -ForegroundColor Cyan\n$pc = $shell.NameSpace(17)\n$iph = $null\nforeach ($i in $pc.Items()) { if ($i.Name -like \"*iPhone*\") { $iph = $i } }\nif (-not $iph) {\n  Write-Host \"No encuentro el iPhone en 'Este equipo'.\" -ForegroundColor Red\n  Write-Host \"Revisa: cable conectado, iPhone desbloqueado, 'Confiar' tocado, y la app 'Dispositivos Apple' (Microsoft Store) o iTunes instalada.\"\n  Read-Host \"Enter para cerrar\"; exit\n}\nWrite-Host (\"Encontrado: \" + $iph.Name) -ForegroundColor Green\n\n$lista = New-Object System.Collections.ArrayList\nfunction Buscar($carpeta, $prof) {\n  foreach ($it in $carpeta.Items()) {\n    if ($it.IsFolder) {\n      if ($prof -lt 4) { Buscar $it.GetFolder ($prof + 1) }\n    } else {\n      $n = NombreDe $it\n      if ($n -match '(?i)\\.(mov|mp4|m4v|hevc|heic|heif|jpe?g|png|dng|3gp)$') { [void]$lista.Add($it) }\n    }\n  }\n}\nWrite-Host \"Revisando los clips del iPhone (puede tardar un poco)...\" -ForegroundColor Cyan\nBuscar $iph.GetFolder 0\nWrite-Host (\"Se encontraron \" + $lista.Count + \" archivos en el iPhone.\")\nif ($lista.Count -eq 0) { Read-Host \"No hay archivos. Enter para cerrar\"; exit }\n\n$asig = New-Object System.Collections.ArrayList\n$sin = New-Object System.Collections.ArrayList\nforeach ($it in $lista) {\n  $n = NombreDe $it\n  $s = Serial $n\n  $destinos = @()\n  if ($s -ne \"\") { $destinos = @($mapa.$s) }\n  if ($destinos.Count -gt 0 -and $destinos[0]) { [void]$asig.Add(@($it, $n, $s, $destinos)) } else { [void]$sin.Add(@($it, $n, $s)) }\n}\nWrite-Host (\"Con locacion o momento asignado: \" + $asig.Count + \"   Sin asignar: \" + $sin.Count)\n$maxSin = Read-Host \"Cuantos clips SIN asignar copiar tambien a 'Sin asignar' (0 = ninguno, para la prueba escribe 3)\"\nif ($maxSin -notmatch '^\\d+$') { $maxSin = 0 } else { $maxSin = [int]$maxSin }\n\n$dlg = $shell.BrowseForFolder(0, \"Elige la carpeta (vacia) donde se crean las carpetas\", 0x51)\nif (-not $dlg) { Write-Host \"No elegiste carpeta. Se cancela.\"; Read-Host \"Enter para cerrar\"; exit }\n$dest = $dlg.Self.Path\n\nfunction EsperarArchivo($ruta) {\n  $prev = -1\n  for ($k = 0; $k -lt 7200; $k++) {\n    if (Test-Path -LiteralPath $ruta) {\n      $t = (Get-Item -LiteralPath $ruta).Length\n      if ($t -gt 0 -and $t -eq $prev) {\n        try { $f = [IO.File]::Open($ruta, 'Open', 'Read', 'None'); $f.Close(); return $true } catch { }\n      }\n      $prev = $t\n    }\n    Start-Sleep -Milliseconds 500\n  }\n  return $false\n}\nfunction CopiarDesdeIphone($it, $rel, $nombre) {\n  $dir = Join-Path $dest $rel\n  New-Item -ItemType Directory -Force -Path $dir | Out-Null\n  $final = Join-Path $dir $nombre\n  if (Test-Path -LiteralPath $final) { return $final }\n  $ns = $shell.NameSpace($dir)\n  $ns.CopyHere($it, 20)\n  [void](EsperarArchivo $final)\n  return $final\n}\n\n$filas = New-Object System.Collections.ArrayList\n$hechos = 0\nforeach ($a in $asig) {\n  $it = $a[0]; $n = $a[1]; $s = $a[2]; $ds = $a[3]\n  $hechos++\n  Write-Host (\"[\" + $hechos + \"/\" + $asig.Count + \"] \" + $n + \" -> \" + $ds.Count + \" carpeta(s)\")\n  $primero = CopiarDesdeIphone $it $ds[0] $n\n  for ($j = 1; $j -lt $ds.Count; $j++) {\n    $dir2 = Join-Path $dest $ds[$j]\n    New-Item -ItemType Directory -Force -Path $dir2 | Out-Null\n    Copy-Item -LiteralPath $primero -Destination (Join-Path $dir2 $n) -Force\n  }\n  [void]$filas.Add(('\"' + $n + '\",\"' + $s + '\",\"' + ($ds -join \" | \") + '\",\"Asignado\"'))\n}\n$c = 0\nforeach ($b in $sin) {\n  if ($c -ge $maxSin) { break }\n  $c++\n  Write-Host (\"[sin asignar \" + $c + \"/\" + $maxSin + \"] \" + $b[1])\n  [void](CopiarDesdeIphone $b[0] \"Sin asignar\" $b[1])\n  [void]$filas.Add(('\"' + $b[1] + '\",\"' + $b[2] + '\",\"Sin asignar\",\"Sin asignar\"'))\n}\n$csv = \"Archivo,Serial,Carpetas,Estado`r`n\" + ($filas -join \"`r`n\")\n[IO.File]::WriteAllText((Join-Path $dest \"Informe de clips.csv\"), $csv, (New-Object System.Text.UTF8Encoding($true)))\nWrite-Host \"\"\nWrite-Host (\"Listo. Carpetas creadas en: \" + $dest) -ForegroundColor Green\nWrite-Host \"Se guardo tambien 'Informe de clips.csv'.\"\nRead-Host \"Enter para cerrar\"\n";
 function mapaClips(){
-  const dl=destinosZip("loc"), dm=destinosZip("mom"), mp={}, add=(x,c)=>{ (mp[x] ||= []).push(c); };
-  Object.keys(dl).forEach(x=>dl[x].forEach(c=>add(x,"Por locación\\"+c.replace(/\//g,"\\"))));
-  Object.keys(dm).forEach(x=>dm[x].forEach(c=>add(x,"Por momento\\"+c.replace(/\//g,"\\"))));
+  const d=destinosZip("todo"), mp={}, R="Cuidar Nos Mueve\\Material\\";
+  Object.keys(d).forEach(x=>{ mp[x]=[...d[x]].map(c=>R+c.replace(/\//g,"\\")); });
   return mp;
 }
 function descargarOrganizadorWin(){
