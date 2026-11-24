@@ -705,7 +705,7 @@ function cfgSW(){
 }
 
 let data = st.data || base;
-const VER_PROG="rodaje-v118";
+const VER_PROG="rodaje-v119";
 let swReg=null, recargandoSW=false, VERS="", actualizandoProg=false;   // actualización del programa (ver más abajo)
 /* Usuario de prueba: ve videos FALSOS (no los del Sheet) para probar actualizaciones y avisos sin ensuciar el plan real. */
 const NOM_PRUEBA="Usuario de prueba", esPrueba=()=>st.persona===NOM_PRUEBA;
@@ -1169,6 +1169,7 @@ function footHTML(plan){
 /* Premisa del video (columna «Premisa» del Sheet, en cualquiera de sus filas) y planos genéricos (fila «Planos genéricos» al final del Sheet). */
 const porAsignarSheet = () => [...new Set(momV().map(m=>m.video))].map(v=>{ const g=miembros(respDe(v)).join("|"), e=miembros(edDe(v)).join("|");
   return { v, g: g&&g!==videografo(v)?g:"", e: e&&e!==egs(v).join("|")?e:null }; }).filter(x=>x.g||x.e!=null);
+const nomVid = v => { const m=data.momentos.find(x=>x.video==v); return m&&m.nombre?String(m.nombre):""; };
 const edDe = v => { const m=momV().find(x=>x.video==v&&x.editor); return m?m.editor:""; };   // «Editor» del Sheet
 const respDe = v => { const m=momV().find(x=>x.video==v&&x.responsable); return m?m.responsable:""; };
 /* Nombres del equipo que menciona la columna «Responsable» (por el primer nombre: «Alejandra» → Alejandra Rivera). «Juan David - PILOTO» no está en el equipo: se ignora. */
