@@ -735,7 +735,7 @@ function cfgSW(){
 }
 
 let data = st.data || base;
-const VER_PROG="control-v105";
+const VER_PROG="control-v107";
 let swReg=null, recargandoSW=false, VERS="", actualizandoProg=false;   // actualización del programa (ver más abajo)
 /* Usuario de prueba: ve videos FALSOS (no los del Sheet) para probar actualizaciones y avisos sin ensuciar el plan real. */
 const NOM_PRUEBA="Usuario de prueba", esPrueba=()=>st.persona===NOM_PRUEBA;
@@ -1177,7 +1177,7 @@ function render(){
   document.getElementById("ttxt").textContent = data.proyecto || "Plan de rodaje";
   { const yo=document.getElementById("yo"), soloCtl=team&&!st.persona&&esControl(); yo.hidden=!(team&&(st.persona||esControl()));
     yo.textContent=st.persona?corto(st.persona):"Control"; yo.title=st.persona?st.persona:"Sesión de Control: lo que hagas aquí se firma como «Control»";
-    if(soloCtl) yo.removeAttribute("data-cambiar"); else yo.setAttribute("data-cambiar",""); }
+    yo.setAttribute("data-cambiar",""); }
   document.getElementById("sub").textContent = (data.mensaje||"").replace(/\.$/,"");
   pintarAvance();
   document.querySelectorAll("#vistas button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v==(vistaCtl?"control":vistaMon?"montaje":vistaLoc?"locaciones":vistaEq?"equipo":"plan"))));
@@ -1215,7 +1215,8 @@ function footHTML(plan){
     `<button id="tsonido">${st.sonido===false?"🔇 Sonidos y vibración apagados":"🔔 Sonidos y vibración"}</button> · `+
     `<button id="reset">${team?"Reiniciar este teléfono":"Borrar mi avance"}</button><br>`+
     `<button id="forzar" class="vt" style="margin-top:8px">⟳ Forzar actualización del programa</button>`+
-    `<div class="sub" style="text-align:center;margin-top:6px">${VERS?"Versión instalada: "+esc(VERS):"Versión: sin copia guardada"}</div></div>`;
+    `<div class="sub" style="text-align:center;margin-top:6px">${VERS?"Versión instalada: "+esc(VERS):"Versión: sin copia guardada"}</div>`+
+    `<div class="sub" style="text-align:center;margin-top:4px"><b>Sesión:</b> ${esc(st.persona||"sin nombre")} · <b>App:</b> ${esControl()?"Control":"del equipo"}</div></div>`;
 }
 /* Premisa del video (columna «Premisa» del Sheet, en cualquiera de sus filas) y planos genéricos (fila «Planos genéricos» al final del Sheet). */
 const porAsignarSheet = () => [...new Set(momV().map(m=>m.video))].map(v=>{ const g=miembros(respDe(v)).join("|"), e=miembros(edDe(v)).join("|");
@@ -1575,7 +1576,13 @@ function htmlControl(){
   return `<div class="ctltabs" role="tablist">${TABS.map(x=>`<button role="tab" data-ctltab="${x[0]}" aria-selected="${tab==x[0]}">${x[1]}</button>`).join("")}</div>`+sec[tab]+footHTML(false);
 }
 let modalPrev="";
-function renderModal(){ const m=document.getElementById("modal"); if(modalPrev!==""){ m.innerHTML=""; modalPrev=""; } }
+function renderModal(){ const m=document.getElementById("modal");
+  const html = cambiando ? `<div class="modal"><div class="sheet" role="dialog" aria-modal="true"><h2>¿Quién eres?</h2>
+    <p>Aquí solo cambia el nombre que ves arriba. Lo que hagas desde Control siempre queda firmado como «Control».</p>
+    <button class="nombre${st.persona=="Control"?" sel":""}" data-persona="Control">Control (Leandro)</button>
+    ${equipo().map(n=>`<button class="nombre${n==st.persona?" sel":""}" data-persona="${esc(n)}">${esc(n)}</button>`).join("")}
+    <button class="nombre cancel" id="cancelarPersona">Cancelar</button></div></div>` : "";
+  if(html!==modalPrev){ m.innerHTML=html; modalPrev=html; } }
 
 /* ===== Interacción ===== */
 /* El permiso de notificaciones solo se puede pedir tras un toque del usuario (regla de iOS): se pide en el primer toque útil. */
@@ -1641,7 +1648,7 @@ document.addEventListener("click",ev=>{
   if(t.id=="cancelarPersona"){ cambiando=false; render(); return; }
   if(t.dataset.nuevou){
     st.control=""; st.vista="plan"; st.persona=NOM_PRUEBA; data=datosPrueba(); st.modo="uno"; cambiando=false; toast("Modo prueba: videos falsos. Lo que marques llega al equipo como prueba.");  adoptar(); guardar(); render(); intentoAuto(); sincEquipo(true); return; }
-  if(t.dataset.persona){ st.control=""; st.vista="plan"; st.persona=t.dataset.persona; data=st.data||base; cambiando=false; adoptar(); guardar(); render(); intentoAuto(); sincEquipo(true); return; }
+  if(t.dataset.persona){ st.persona=t.dataset.persona; data=st.data||base; cambiando=false; adoptar(); guardar(); render(); intentoAuto(); sincEquipo(true); return; }
   if(t.dataset.ir){ const id=t.dataset.ir, m=momento(id); st.vista="plan"; st.filtro="Todos"; st.modo="uno"; st.pos=id; if(m) st.abiertas[m.video]=true; document.getElementById("buscar").value=""; guardar(); render();
     const el=document.querySelector(`[data-id="${CSS.escape(id)}"]`); if(el) el.scrollIntoView({block:"start"}); return; }
   if(t.dataset.finvideo){ preguntarBorrar(t.dataset.finvideo,false); return; }
